@@ -29,7 +29,7 @@ technique, tailored to text classification, that chooses those text
 models that are more suitable for a given text classification problem.
 
 Text models are functions that transform a text into a vector, i.e.,
-:math:`text \rightarrow R`. Different methods have been proposed to represent
+:math:`text \rightarrow R^d`. Different methods have been proposed to represent
 text in a vector space. Perhaps, one of the most popular ones is the
 Bag of Word model.
 
