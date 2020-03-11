@@ -1,0 +1,55 @@
+os:
+  - linux
+  - osx
+
+language: generic
+
+env:
+  matrix:
+    - python=3.5  CONDA_PY=35  
+    - python=3.6  CONDA_PY=36
+    - python=3.7  CONDA_PY=37
+
+  global:
+    - secure: "ab0JQHlsbI6XsF+OCESxLJjm5nkF6DRrCioUgPGMjdgLFdRmtU5nNxt74XzMG16HlL1tZt6WAYzzHzUd3DjyD6TXTb86ubyXtI89bJIGIXnbVOQUipsiB7xia1FUQ7sBcV4IdFgDKE71Qpp1dLTww6Bok0P6xeq2WxjOkADc0pzPZklVVuH8oON3FaXju4aqzIatbITL8ukWfab2sFWPddnkhYpLdlypjv/QfV8dabGBlTsqRefG3Pde1nNMPqt438aqlV039Ec9N5xhC5RBFO4L17+ejCNauJZtROZvRJr1q+JAaOBN/TQhMaVjqCPDO8fKujjPYq0qjvdDF++YY5Qid6ZJc/SGnaNxNryI7+38Cegg6gJsJqhGguAPj8lMtuiMODhg+ZweGMRooxPQQVKqPO7d5u+4jqaj2CVgwyEGKwGgCaj0/gCHYSRbcJgmyts4K1sOxAWyksETm9yBZLO2NXK6nG8Hp+tCtOdPfzhesQgNLc1YB0xu4mFqIhtQpQlSq7Lvv6/tWwWcka8ctoThCLnSVLgNF4XOOzi+anG0Yir05k2gP8v/bT03DxpXPCCkSow+zk4ksIPIP6QMm42kITmwqHYxBH/3qZP6oa5vwztZ/oCUvCNrj2UPY3qlzj7Nuj6l8k0TvALS6u2ORvTxp0YqgbF/P9ksceYolaY="
+    - secure: "YJgSGFNbJCR4ALGV7XwjOlbaV//uYZGg8ARCiPeAnaTxF4Y6fP4k3OT+s0tyUTubJGbfltn3L6OEuekyHBS5tseuNuvcihubf/6TSY9ssolKLZKaEHBkHtKKCYdIiSxDvGq6AxqpiHx0ZYXR+vy3xPDVi4kldDYzfcwhMpf0VlI5u47Df5x8RaO37RfEIayfOHbLUtvJzWrbR+7yHlew9AaWorOthzgNNMxBYYqnqVKdztm8YXI/X0H6rcWcHS0TaeWWr1d3oewt9Opnm6LJnYyg6+kqiA23PEicMOf/iTb7K0pgkB3edDhM88GXBa5zSn0MqVW1bpcubWdHuqScF5bdRdZ+C03QdKxHRWCIjPTDFPf2Zwl0w/T8HNNmV9Lxd7dQVh1eaaSI6F23rNU7CiYgpSqFT+Ce1HRf9yifot2eOurb+YOf8XqzkN0/sioloGvA0BV4ToL73wxbGwqDEWN9n+iuxvUyMy48VmReeDr0GVDr/YGVCOfCCEkoGQ25IpBpHmVBlfA/0fGDfBInj3mi0pwI06XntKdZ+/x5WdVHRrH4RCutVhA9mPX/5l3NKV7LgcXGf2pi2tTppoL7olJBaJlwx1idF9YWQwmBFPTP1pIESRuujkmXPQG156bUVoFueQ9WjaXKSXKeZrsP4LXHTEUZVR1Peae/4btTJfs="
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then curl -L -o miniconda.sh http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh; fi
+  - chmod 755 miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=$HOME/miniconda3/bin:$PATH
+  - conda update --yes conda
+  - conda create --yes -n ingeotec python=$python
+  - source activate ingeotec  
+  - conda install --yes pip
+  - pip install coverage
+  - pip install coveralls
+  - conda config --append channels ingeotec  
+  - conda install --yes numpy scipy scikit-learn nltk nose b4msa evodag conceptmodelling cython evomsa
+  - python setup.py build_ext --inplace
+  
+script:
+  - which python
+  - python --version
+  - which coverage
+  - if [ $python = 3.5 ]; then nosetests --verbose -exe EvoMSA; fi  
+  - if [ $python = 3.6 ]; then coverage run setup.py nosetests; fi
+  - if [ $python = 3.7 ]; then nosetests --verbose -exe EvoMSA; fi  
+
+after_success:
+  - if [ $python = 3.6 ]; then coveralls || echo "Coveralls upload failed"; fi
+  - if [ $TRAVIS_BRANCH = "master" -a $python = 3.6 ]; then python setup.py sdist; pip install twine; twine upload -u mgraffg -p $TWINE dist/*.tar.gz; fi
+  - if [ $TRAVIS_BRANCH = "master" ]; then python setup.py bdist_wheel; pip install twine; twine upload -u mgraffg -p $TWINE dist/*.whl; fi  
+
+notifications:
+    email:
+      recipients:
+        - mario.graff@infotec.mx
+        - eric.tellez@infotec.mx
+        - sabino.miranda@infotec.mx
+        - dmoctezuma@centrogeo.edu.mx
+    on_success: change  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: never     # options: [always|never|change] default: always
