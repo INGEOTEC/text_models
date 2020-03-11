@@ -152,19 +152,20 @@ class ForwardSelection(object):
     Models
 
     >>> models = dict()
-    >>> models[0] = ["EvoMSA.model.EmoSpaceEs", "sklearn.svm.LinearSVC"]
+    >>> models[0] = [download("emo_Es.tm"), "sklearn.svm.LinearSVC"]
     >>> models[1] = ["EvoMSA.model.ThumbsUpDownEs", "sklearn.svm.LinearSVC"]
     >>> models[2] = [download("b4msa_Es.tm"), "sklearn.svm.LinearSVC"]
     >>> X = [x for x, y in D]
     >>> y = [y for x, y in D]
     >>> fwdSel = ForwardSelection(models)
     >>> cache = os.path.join("cache", "train")
-    >>> fwdSel.fit(X[:500], y[:500], cache=cache)
+    >>> _ = fwdSel.fit(X[:500], y[:500], cache=cache)
 
     Using the latest 500 elements to guide the search
 
     >>> cache = os.path.join("cache", "test")
-    >>> best = fwdSel.run(X[500:], y[500:], cache=test)
+    >>> best = fwdSel.run(X[500:], y[500:], cache=cache)
+    >>> best
     0-2
 
     :param models: Dictionary of pairs (see :py:attr:`EvoMSA.base.EvoMSA.models`)
