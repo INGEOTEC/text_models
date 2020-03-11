@@ -37,5 +37,6 @@ setup(
     author="Mario Graff",
     author_email="mgraffg@ieee.org",
     packages=['text_models', 'text_models/tests'],
+    zip_safe=False,    
     install_requires=['EvoMSA']
 )
