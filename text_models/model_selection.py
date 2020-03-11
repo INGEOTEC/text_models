@@ -246,16 +246,6 @@ class BeamSelection(ForwardSelection):
         """
 
         return node.perf
-        # try:
-        #     perf = self._perf
-        # except AttributeError:
-        #     self._perf = dict()
-        #     perf = self._perf
-        # depth = len(node.model)
-        # value = perf.get(depth, node.perf)
-        # value = value if value > node.perf else node.perf
-        # perf[depth] = value
-        # return value
 
     def run(self, X, y, early_stopping=1000, **kwargs):
         """
