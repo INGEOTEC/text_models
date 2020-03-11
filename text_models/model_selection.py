@@ -153,7 +153,7 @@ class ForwardSelection(object):
 
     >>> models = dict()
     >>> models[0] = [download("emo_Es.tm"), "sklearn.svm.LinearSVC"]
-    >>> models[1] = ["EvoMSA.model.ThumbsUpDownEs", "sklearn.svm.LinearSVC"]
+    >>> models[1] = ["EvoMSA.model.AggressivenessEs", "sklearn.svm.LinearSVC"]
     >>> models[2] = [download("b4msa_Es.tm"), "sklearn.svm.LinearSVC"]
     >>> X = [x for x, y in D]
     >>> y = [y for x, y in D]
