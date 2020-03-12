@@ -17,6 +17,7 @@ from queue import LifoQueue
 from microtc.utils import save_model
 from sklearn.metrics import f1_score
 from sklearn.model_selection import KFold
+from .utils import macro_f1
 import numpy as np
 import os
 
@@ -204,7 +205,7 @@ class ForwardSelection(object):
 
     def __init__(self, models, node=Node,
                  output=None, verbose=logging.INFO,
-                 metric=lambda y, hy: f1_score(y, hy, average="macro"),
+                 metric=macro_f1,
                  split_dataset=KFold(n_splits=3, random_state=1, shuffle=True),
                  aggregate=np.median,
                  cache=os.path.join("cache", "fw"),
