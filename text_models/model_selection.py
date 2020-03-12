@@ -251,17 +251,6 @@ class BeamSelection(ForwardSelection):
     Select the models using Beam Search.
     """
 
-    def perf(self, node):
-        """
-        Node's performance
-
-        :param node: Node
-        :type node: :py:class:`EvoMSA.model_selection.Node`
-        :rtype: float
-        """
-
-        return node.perf
-
     def run(self, X, y, early_stopping=1000):
         """
 

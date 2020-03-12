@@ -1,0 +1,15 @@
+name: text_models
+channels:
+  - ingeotec
+dependencies:
+  - python
+  - setuptools
+  - numpy
+  - scipy
+  - scikit-learn
+  - nltk
+  - evodag
+  - b4msa
+  - conceptmodelling
+  - cython
+  - evomsa
