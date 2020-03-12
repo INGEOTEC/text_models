@@ -16,6 +16,9 @@ from EvoMSA.base import EvoMSA
 from queue import LifoQueue
 from microtc.utils import save_model
 from sklearn.metrics import f1_score
+from sklearn.model_selection import KFold
+import numpy as np
+import os
 
 
 class Node(object):
@@ -26,19 +29,45 @@ class Node(object):
     :type model: list
     :param models: Dictionary of pairs (see :py:attr:`EvoMSA.base.EvoMSA.models`)
     :type model: dict
-    :param metric: Performance metric
+    :param metric: Performance metric, e.g., accuracy
     :type metric: function
+    :param split_dataset: Iterator to split dataset in training and validation
+    :type split_dataset: instance
+    :param aggregate: :math:`\\text{aggregate}: \\mathbb R^d \\rightarrow \\mathbb R`
+    :type aggregate: function
+    :param cache: Store the output of text models
+    :type cache: str
+    :param TR: EvoMSA's default model
+    :type TR: bool
+    :param stacked_method: Classifier or regressor used to ensemble the outputs of :attr:`EvoMSA.models`
+    :type stacked_method: str or class
+
     """
 
     def __init__(self, model, models=None,
-                 metric=None):
+                 metric=None,
+                 split_dataset=None,
+                 aggregate=None,
+                 cache=None,
+                 TR=False,
+                 stacked_method="sklearn.naive_bayes.GaussianNB",
+                 **kwargs):
         assert metric is not None
+        assert split_dataset is not None and hasattr(split_dataset, "split")
+        assert aggregate is not None
+        assert cache is not None
         self._models = models
         self._model = [x for x in model]
         _ = self._model.copy()
         _.sort()
         self._repr = "-".join(map(str, _))
         self._metric = metric
+        self._split_dataset = split_dataset
+        self._aggregate = aggregate
+        self._cache = cache
+        self._TR = TR
+        self._kwargs = kwargs
+        self._kwargs.update(dict(stacked_method=stacked_method))
 
     def __repr__(self):
         return self._repr
@@ -56,7 +85,12 @@ class Node(object):
         for x in variables - set(model):
             yield self.__class__(model + [x],
                                  models=self._models,
-                                 metric=self._metric)
+                                 metric=self._metric,
+                                 split_dataset=self._split_dataset,
+                                 aggregate=self._aggregate,
+                                 cache=self._cache,
+                                 TR=self._TR,
+                                 **self._kwargs)
 
     @property
     def model(self):
@@ -65,7 +99,7 @@ class Node(object):
         models = self._models
         return [models[x] for x in self._model]
 
-    def fit(self, X, y, TR=False, test_set=None, **kwargs):
+    def _fit(self, X, y, cache):
         """Create an EvoMSA's instance
 
         :param X: Training set - independent variables
@@ -79,20 +113,17 @@ class Node(object):
         :rtype: self
         """
 
-        self._evo = EvoMSA(TR=TR, models=self.model,
-                           **kwargs)
-        if test_set is not None:
-            self._evo.fit(X, y, test_set=test_set)
-        else:
-            self._evo.fit(X, y)
-        return self
+        self._evo = EvoMSA(TR=self._TR, models=self.model,
+                           cache=cache,
+                           **self._kwargs)
+        return self._evo.fit(X, y)
 
     @property
     def perf(self):
         """Performance"""
         return self._perf
 
-    def performance(self, X, y, **kwargs):
+    def performance(self, X, y):
         """Compute the performance on the dataset
 
         :param X: Test set - independent variables
@@ -105,9 +136,16 @@ class Node(object):
         try:
             return self._perf
         except AttributeError:
-            hy = self._evo.predict(X, **kwargs)
-            self._evo = None
-            self._perf = self._metric(y, hy)
+            perf = []
+            cache = self._cache
+            for index, (tr, vs) in enumerate(self._split_dataset.split(X)):
+                evo = self._fit([X[x] for x in tr],
+                                [y[x] for x in tr],
+                                cache=cache + "tr-" + str(index) + "-")
+                hy = evo.predict([X[x] for x in vs],
+                                 cache=cache + "vs-" + str(index) + "-")
+                perf.append(self._metric([y[x] for x in vs], hy))
+            self._perf = self._aggregate(perf)
         return self._perf
 
     def __cmp__(self, other):
@@ -117,22 +155,6 @@ class Node(object):
 
     def __gt__(self, other):
         return self.perf > other.perf
-
-
-class NodeNB(Node):
-    """
-    Using as stacked-method Naive Bayes with Gaussian distribution
-    """
-
-    def fit(self, X, y, stacked_method="sklearn.naive_bayes.GaussianNB",
-            **kwargs):
-        """
-        :param stacked_method: Stacked method used in :py:class:`EvoMSA.base.EvoMSA`
-        :type stacked_method: str
-        """
-
-        return super(NodeNB, self).fit(X, y, stacked_method=stacked_method,
-                                       **kwargs)
 
 
 class ForwardSelection(object):
@@ -180,16 +202,25 @@ class ForwardSelection(object):
     :type metric: function
     """
 
-    def __init__(self, models, node=NodeNB,
+    def __init__(self, models, node=Node,
                  output=None, verbose=logging.INFO,
-                 metric=lambda y, hy: f1_score(y, hy, average="macro")):
+                 metric=lambda y, hy: f1_score(y, hy, average="macro"),
+                 split_dataset=KFold(n_splits=3, random_state=1, shuffle=True),
+                 aggregate=np.mean,
+                 
+                 **kwargs):
         self._models = models
-        self._nodes = [node([k], models=models, metric=metric) for k in models.keys()]
+        self._nodes = [node([k], models=models,
+                            metric=metric,
+                            split_dataset=split_dataset,
+                            aggregate=aggregate,
+                            cache=os.path.join("cache", "fw"),
+                            **kwargs) for k in models.keys()]
         self._output = output
         self._logger = logging.getLogger("text_models.model_selection")
         self._logger.setLevel(verbose)
 
-    def fit(self, X, y, **kwargs):
+    def fit(self, X, y, cache, **kwargs):
         """Train the nodes having only one model
 
         :param X: Training set - independent variables
@@ -203,7 +234,7 @@ class ForwardSelection(object):
         self._y = y
         self._kwargs = kwargs
         self._logger.info("Training the initial models")
-        [x.fit(X, y, **kwargs) for x in self._nodes]
+        [x.fit(X, y, cache=cache, **kwargs) for x in self._nodes]
         return self
 
     def run(self, X, y, **kwargs):
