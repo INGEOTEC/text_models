@@ -113,10 +113,9 @@ class Node(object):
         :rtype: self
         """
 
-        self._evo = EvoMSA(TR=self._TR, models=self.model,
-                           cache=cache,
-                           **self._kwargs)
-        return self._evo.fit(X, y)
+        return EvoMSA(TR=self._TR, models=self.model,
+                      cache=cache,
+                      **self._kwargs).fit(X, y)
 
     @property
     def perf(self):
@@ -141,9 +140,9 @@ class Node(object):
             for index, (tr, vs) in enumerate(self._split_dataset.split(X)):
                 evo = self._fit([X[x] for x in tr],
                                 [y[x] for x in tr],
-                                cache=cache + "tr-" + str(index) + "-")
+                                cache=cache + "-tr-" + str(index))
                 hy = evo.predict([X[x] for x in vs],
-                                 cache=cache + "vs-" + str(index) + "-")
+                                 cache=cache + "-vs-" + str(index))
                 perf.append(self._metric([y[x] for x in vs], hy))
             self._perf = self._aggregate(perf)
         return self._perf
@@ -180,82 +179,66 @@ class ForwardSelection(object):
     >>> X = [x for x, y in D]
     >>> y = [y for x, y in D]
     >>> fwdSel = ForwardSelection(models)
-    >>> cache = os.path.join("cache", "train")
-    >>> _ = fwdSel.fit(X[:500], y[:500], cache=cache)
-
-    Using the latest 500 elements to guide the search
-
-    >>> cache = os.path.join("cache", "test")
-    >>> best = fwdSel.run(X[500:], y[500:], cache=cache)
+    >>> best = fwdSel.run(X, y)
     >>> best
     0-2
 
     :param models: Dictionary of pairs (see :py:attr:`EvoMSA.base.EvoMSA.models`)
     :type models: dict
     :param node: Node use to perform the search
-    :type node: :py:class:`EvoMSA.model_selection.Node`
+    :type node: :py:class:`text_models.model_selection.Node`
     :param output: Filename to store intermediate models
     :type output: str
     :param verbose: Level to inform the user
     :type verbose: int
     :param metric: Performance metric
     :type metric: function
+    :param split_dataset: Iterator to split dataset in training and validation
+    :type split_dataset: instance
+    :param aggregate: :math:`\\text{aggregate}: \\mathbb R^d \\rightarrow \\mathbb R`
+    :type aggregate: function
+    :param cache: Store the output of text models
+    :type cache: str
+
     """
 
     def __init__(self, models, node=Node,
                  output=None, verbose=logging.INFO,
                  metric=lambda y, hy: f1_score(y, hy, average="macro"),
                  split_dataset=KFold(n_splits=3, random_state=1, shuffle=True),
-                 aggregate=np.mean,
-                 
+                 aggregate=np.median,
+                 cache=os.path.join("cache", "fw"),
                  **kwargs):
         self._models = models
         self._nodes = [node([k], models=models,
                             metric=metric,
                             split_dataset=split_dataset,
                             aggregate=aggregate,
-                            cache=os.path.join("cache", "fw"),
+                            cache=cache,
                             **kwargs) for k in models.keys()]
         self._output = output
         self._logger = logging.getLogger("text_models.model_selection")
         self._logger.setLevel(verbose)
 
-    def fit(self, X, y, cache, **kwargs):
-        """Train the nodes having only one model
+    def run(self, X, y):
+        """Perform the search using X and y to guide it
 
-        :param X: Training set - independent variables
+        :param X: Dataset set - independent variables
         :type X: list
-        :param y: Training set - dependent variable
-        :type y: list or np.array
-        :rtype: self
-        """
-
-        self._X = X
-        self._y = y
-        self._kwargs = kwargs
-        self._logger.info("Training the initial models")
-        [x.fit(X, y, cache=cache, **kwargs) for x in self._nodes]
-        return self
-
-    def run(self, X, y, **kwargs):
-        """Start the search using X and y to guide it
-
-        :param X: Test set - independent variables
-        :type X: list
-        :param y: Test set - dependent variable
+        :param y: Dataset set - dependent variable
         :type y: list or np.array
         :rtype: :py:class:`EvoMSA.model_selection.Node`
         """
 
         self._logger.info("Starting the search")
-        r = [(node.performance(X, y, **kwargs), node) for node in self._nodes]
+        r = [(node.performance(X, y), node) for node in self._nodes]
         node = max(r, key=lambda x: x[0])[1]
         while True:
             self._logger.info("Model: %s perf: %0.4f" % (node, node.perf))
-            nodes = [xx.fit(self._X, self._y, **self._kwargs) for xx in node]
+            nodes = list(node)
             if len(nodes) == 0:
                 return node
-            r = [(xx.performance(X, y, **kwargs), xx) for xx in nodes]
+            r = [(xx.performance(X, y), xx) for xx in nodes]
             perf, comp = max(r, key=lambda x: x[0])
             if perf < node.perf:
                 break
@@ -279,20 +262,22 @@ class BeamSelection(ForwardSelection):
 
         return node.perf
 
-    def run(self, X, y, early_stopping=1000, **kwargs):
+    def run(self, X, y, early_stopping=1000):
         """
 
         :param early_stopping: Number of rounds to perform early stopping
         :type early_stopping: int
-        :rtype: :py:class:`EvoMSA.model_selection.Node`
+        :rtype: :py:class:`text_models.model_selection.Node`
         """
-        visited = set([(node.performance(X, y, **kwargs), node) for
-                       node in self._nodes])
+
+        visited = [(node.performance(X, y), node) for
+                   node in self._nodes]
         _ = max(visited, key=lambda x: x[0])[1]
         best = None
         nodes = LifoQueue()
         nodes.put(_)
         index = len(visited)
+        visited = set([x[1] for x in visited])
         while not nodes.empty() and (len(visited) - index) < early_stopping:
             node = nodes.get()
             if best is None or node > best:
@@ -304,11 +289,10 @@ class BeamSelection(ForwardSelection):
                               "visited: %s " % len(visited) +
                               "size: %s " % nodes.qsize() +
                               "Rounds: %s" % (len(visited) - index))
-            nn = [(xx, xx.fit(self._X, self._y,
-                              **self._kwargs).performance(X, y, **kwargs)) for
+            nn = [(xx, xx.performance(X, y)) for
                   xx in node if xx not in visited]
             [visited.add(x) for x, _ in nn]
-            nn = [xx for xx, perf in nn if perf >= self.perf(node)]
+            nn = [xx for xx, perf in nn if perf >= node.perf]
             if len(nn) == 0:
                 continue
             nn.sort()

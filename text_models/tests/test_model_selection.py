@@ -70,6 +70,9 @@ def test_ForwardSelection():
               1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernulli"],
               2: ["EvoMSA.model.AggressivenessEs", "EvoMSA.model.Identity"]}
     a = ForwardSelection(models)
+    node = a.run(X, y)
+    assert isinstance(node, Node)
+    assert node.perf > 0 and node.perf < 1
 
 
 def test_BeamSelection():
@@ -78,8 +81,7 @@ def test_BeamSelection():
               1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernulli"],
               2: ["EvoMSA.model.AggressivenessEs", "EvoMSA.model.Identity"]}
 
-    a = BeamSelection(models,
-                      node=NodeNB).fit(X[:500], y[:500],
-                                       cache=os.path.join("tm", "fw"))
-    a.run(X[500:], y[500:], cache=os.path.join("tm", "fw-test"),
-          early_stopping=2)
+    a = BeamSelection(models)
+    node = a.run(X, y, early_stopping=2)
+    assert isinstance(node, Node)
+    assert node.perf > 0 and node.perf < 1
