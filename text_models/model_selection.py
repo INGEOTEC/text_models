@@ -238,12 +238,16 @@ class ForwardSelection(object):
             self._logger.info("Model: %s perf: %0.4f" % (node, node.perf))
             nodes = list(node)
             if len(nodes) == 0:
+                if self._output:
+                    save_model(node, self._output)
                 return node
             r = [(xx.performance(X, y), xx) for xx in nodes]
             perf, comp = max(r, key=lambda x: x[0])
             if perf < node.perf:
                 break
             node = comp
+        if self._output:
+            save_model(node, self._output)
         return node
 
 
