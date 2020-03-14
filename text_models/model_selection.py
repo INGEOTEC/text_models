@@ -148,10 +148,10 @@ class Node(object):
             self._perf = self._aggregate(perf)
         return self._perf
 
-    def __cmp__(self, other):
-        x = self.perf
-        y = other.perf
-        return (x > y) - (x < y)
+ #   def __cmp__(self, other):
+ #       x = self.perf
+ #       y = other.perf
+ #       return (x > y) - (x < y)
 
     def __gt__(self, other):
         return self.perf > other.perf
