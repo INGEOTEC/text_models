@@ -69,10 +69,11 @@ def test_ForwardSelection():
     models = {0: ["EvoMSA.model.Corpus", "sklearn.svm.LinearSVC"],
               1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernulli"],
               2: ["EvoMSA.model.AggressivenessEs", "EvoMSA.model.Identity"]}
-    a = ForwardSelection(models)
+    a = ForwardSelection(models, output="fw.node")
     node = a.run(X, y)
     assert isinstance(node, Node)
     assert node.perf > 0 and node.perf < 1
+    assert os.path.isfile("fw.node")
 
 
 def test_BeamSelection():
@@ -81,7 +82,8 @@ def test_BeamSelection():
               1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernulli"],
               2: ["EvoMSA.model.AggressivenessEs", "EvoMSA.model.Identity"]}
 
-    a = BeamSelection(models)
+    a = BeamSelection(models, output="beam.node")
     node = a.run(X, y, early_stopping=2)
     assert isinstance(node, Node)
     assert node.perf > 0 and node.perf < 1
+    assert os.path.isfile("beam.node")
