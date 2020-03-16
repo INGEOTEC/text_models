@@ -13,6 +13,7 @@
 # limitations under the License.
 from sklearn.metrics import f1_score, recall_score
 from scipy.stats import pearsonr
+import numpy as np
 
 
 def macro_f1(y, hy):
@@ -48,4 +49,7 @@ def pearson(y, hy):
     0.5773502691896258
     """
 
-    return pearsonr(y, hy)[0]
+    r = pearsonr(y, hy)[0]
+    if np.isfinite(r):
+        return r
+    return 0
