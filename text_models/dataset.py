@@ -14,6 +14,7 @@
 from microtc.utils import load_model
 from microtc import emoticons
 from EvoMSA.utils import download
+from collections import OrderedDict
 
 
 class Dataset(object):
@@ -27,8 +28,8 @@ class Dataset(object):
     >>> dataset.add(dataset.load_emojis())
     >>> dataset.add(dataset.tm_words())
     >>> result = dataset.klass("good morning Mexico")
-    >>> dataset.process("good morning Mexico", "~morning~")
-    ['~god~', '~mexico~']
+    >>> dataset.process("good morning Mexico")
+    ['~', '~mexico~']
     """
     def __init__(self, lang="En"):
         self._lang = lang
@@ -65,12 +66,18 @@ class Dataset(object):
         return emos
 
     def tm_words(self):
+        """
+        Text model words
+        :rtype: dict
+        """
+
         tm = self.textModel.text_transformations
         emos = self.load_emojis()
-        words = {tm(k): True for k in
-                 self.textModel.model.word2id.keys() if k[:2] != "q:" and
-                 k.count("~") == 0 and k not in emos}
-        return words
+        words = [tm(k) for k in self.textModel.model.word2id.keys()
+                 if k[:2] != "q:" and k.count("~") == 0 and k not in emos]
+        words.sort()
+        _ = OrderedDict([(w, True) for w in words])
+        return _
 
     def aggress_words(self):
         from EvoMSA import base
@@ -105,7 +112,7 @@ class Dataset(object):
         try:
             return self._words
         except AttributeError:
-            self._words = dict()
+            self._words = OrderedDict()
         return self._words
 
     def add(self, data):
@@ -126,7 +133,8 @@ class Dataset(object):
         try:
             return self._data_structure
         except AttributeError:
-            self._data_structure = emoticons.create_data_structure(self.klasses)
+            _ = emoticons.create_data_structure
+            self._data_structure = _(self.klasses)
         return self._data_structure
 
     def klass(self, text):
@@ -181,7 +189,7 @@ class Dataset(object):
             blocks.append([init, end])
         return blocks
 
-    def process(self, text, klass):
+    def process(self, text, klass=None):
         """
         Remove klass from text
 
@@ -193,7 +201,9 @@ class Dataset(object):
         """
 
         text = self.textModel.text_transformations(text)
-        lst = [[a, b] for a, b in self.find_klass(text) if text[a:b] == klass]
+        lst = self.find_klass(text)
+        if klass is not None:
+            lst = [[a, b] for a, b in lst if text[a:b] == klass]
         lst.reverse()
         init = 0
         B = []

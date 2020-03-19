@@ -34,6 +34,7 @@ def test_load_emojis():
 def test_tm_words():
     words = Dataset().tm_words()
     assert len(words) > 1000
+    assert isinstance(words, dict)
 
 
 def test_aggress_words():
