@@ -61,7 +61,7 @@ def download(fname, lang="Es"):
     >>> from microtc.utils import tweet_iterator, load_model
     >>> config = list(tweet_iterator(download("config.json")))
     >>> [list(x.keys())[0] for x in config]
-    ['weekday_Es', 'b4msa_Es']
+    ['weekday_Es', 'b4msa_Es', 'weekday_En', 'b4msa_En']
 
     >>> voc = load_model(download("191225.voc", lang="Es"))
     >>> voc2 = load_model(download(config[0]["weekday_Es"]["0"][0]))

@@ -36,8 +36,7 @@ class Vocabulary(object):
     :type tm_args: dict
 
     >>> from text_models.vocabulary import Vocabulary
-    >>> from text_models.utils import download
-    >>> voc = Vocabulary(download("191225.voc", lang="En"))
+    >>> voc = Vocabulary("191225.voc", lang="En")
     """
 
     def __init__(self, data, lang="Es",
@@ -58,7 +57,8 @@ class Vocabulary(object):
         """
 
         if isinstance(data, str):
-            self._data = load_model(download(data, lang=self._lang))
+            self._fname = download(data, lang=self._lang)
+            self._data = load_model(self._fname)
             self._date = self.get_date(data)
         elif isinstance(data, list):
             cum = data.pop()
@@ -98,9 +98,24 @@ class Vocabulary(object):
         """Vocabulary, i.e., tokens and their frequencies"""
         return self._data
 
+    def common_words(self):
+        from EvoMSA.utils import download
+        return load_model(download("b4msa_%s.tm" % self._lang)).model.word2id
+       
     def weekday_words(self):
         from EvoMSA.utils import download
         return load_model(download("weekday-%s_%s.voc" % (self.weekday, self._lang)))
+
+    def remove(self, words):
+        """
+        Remove the words from the current vocabulary
+        
+        :param words: Tokens
+        """
+
+        for x in words:
+            if x in self.voc:
+                del self.voc[x]
 
     def create_text_model(self):
         from b4msa.textmodel import TextModel

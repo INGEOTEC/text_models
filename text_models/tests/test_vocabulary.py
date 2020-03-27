@@ -35,3 +35,19 @@ def test_weekday_words():
     voc = Vocabulary("191225.voc")
     words = voc.weekday_words()
     assert len(words) > 10000
+
+
+def test_common_words():
+    voc = Vocabulary("191225.voc")
+    words = voc.common_words()
+    assert len(words) > 10000
+
+
+def test_remove():
+    voc = Vocabulary("191225.voc")
+    numterms = len(voc.voc)
+    voc.remove(voc.weekday_words())
+    assert numterms > len(voc.voc)
+    numterms = len(voc.voc)
+    voc.remove(voc.common_words())
+    assert numterms > len(voc.voc)
