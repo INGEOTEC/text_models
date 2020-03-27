@@ -98,15 +98,3 @@ def test_process():
     for a, b in zip(xx, ["~x~god~", "~morning~x~fax~x~la~"]):
         assert a == b
 
-
-# def test_clone():
-#     from dataset import Dataset
-#     from microtc.utils import tweet_iterator
-
-#     dset = Dataset()
-#     assert len(dset.klasses) == 0
-#     for x in tweet_iterator("en.json"):
-#         dset.add(x)
-#     assert len(dset.klasses)
-#     dd = dset.clone("be")
-#     assert len(dd.klasses) == 1

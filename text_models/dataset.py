@@ -197,7 +197,7 @@ class Dataset(object):
         :type text: str
         :param klass:
         :type klass: str
-        :rtyte: list
+        :rtype: list
         """
 
         text = self.textModel.text_transformations(text)

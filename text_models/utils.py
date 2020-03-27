@@ -53,3 +53,40 @@ def pearson(y, hy):
     if np.isfinite(r):
         return r
     return 0
+
+
+def download(fname, lang="Es"):
+    """
+    >>> from text_models.utils import download
+    >>> from microtc.utils import tweet_iterator, load_model
+    >>> config = list(tweet_iterator(download("config.json")))
+    >>> [list(x.keys())[0] for x in config]
+    ['weekday_Es', 'b4msa_Es']
+
+    >>> voc = load_model(download("191225.voc", lang="Es"))
+    """
+
+    from os.path import isdir, join, isfile, dirname
+    import os
+    from urllib import request    
+    assert lang in ["Ar", "En", "Es"]
+    diroutput = join(dirname(__file__), 'data')
+    if not isdir(diroutput):
+        os.mkdir(diroutput)
+    if fname == "config.json":
+        output = join(diroutput, fname)
+        if not isfile(output):
+            request.urlretrieve("http://ingeotec.mx/~mgraffg/vocabulary/%s" % fname,
+                                output)            
+        return output
+    diroutput = join(diroutput, lang)
+    if not isdir(diroutput):
+        os.mkdir(diroutput)
+    output =  join(diroutput, fname)
+    if not isfile(output):
+        request.urlretrieve("http://ingeotec.mx/~mgraffg/vocabulary/%s/%s" % (lang, fname),
+                            output)          
+    return output
+    
+
+        
