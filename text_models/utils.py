@@ -64,6 +64,7 @@ def download(fname, lang="Es"):
     ['weekday_Es', 'b4msa_Es']
 
     >>> voc = load_model(download("191225.voc", lang="Es"))
+    >>> voc2 = load_model(download(config[0]["weekday_Es"]["0"][0]))
     """
 
     from os.path import isdir, join, isfile, dirname
@@ -79,6 +80,8 @@ def download(fname, lang="Es"):
             request.urlretrieve("http://ingeotec.mx/~mgraffg/vocabulary/%s" % fname,
                                 output)            
         return output
+    if fname.count("/") == 1:
+        lang, fname = fname.split("/")
     diroutput = join(diroutput, lang)
     if not isdir(diroutput):
         os.mkdir(diroutput)

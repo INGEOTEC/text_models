@@ -1,0 +1,112 @@
+# Copyright 2020 Mario Graff Guerrero
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+from microtc.utils import load_model
+from text_models.utils import download
+
+
+class Vocabulary(object):
+    """
+    Vocabulary class is used to transform the tokens and their 
+    respective frequencies in a Text Model, as well as, to analyze 
+    the tokens obtained from tweets collected.
+
+    This class can be used to replicate some of the Text Models
+    developed for :py:class:`EvoMSA.base.EvoMSA`.
+
+    :param data: Tokens and their frequencies  
+    :type data: str or list
+    :param lang: Language (Ar, En, or Es)
+    :type lang: str
+    :token_min_filter: Minimum frequency
+    :type token_min_filter: float | int
+    :token_max_filter: Maximum frequency
+    :type token_max_filter: float | int
+    :param tm_args: Text model parameters
+    :type tm_args: dict
+
+    >>> from text_models.vocabulary import Vocabulary
+    >>> from text_models.utils import download
+    >>> voc = Vocabulary(download("191225.voc", lang="En"))
+    """
+
+    def __init__(self, data, lang="Es",
+                 token_min_filter=0.001,
+                 token_max_filter=0.999,
+                 tm_args=dict(usr_option="delete", num_option="none",
+                              url_option="delete", emo_option="none",
+                              del_dup=False, del_punc=True)):
+        self._lang = lang
+        self._min = token_min_filter
+        self._max = token_max_filter
+        self._tm_args = tm_args
+        self._init(data)
+
+    def _init(self, data):
+        """
+        Process the :py:attr:`data` to create a :py:class:`microtc.utils.Counter` 
+        """
+
+        if isinstance(data, str):
+            self._data = load_model(download(data, lang=self._lang))
+            self._date = self.get_date(data)
+        elif isinstance(data, list):
+            cum = data.pop()
+            if isinstance(cum, str):
+                cum = load_model(download(cum, lang=self._lang))
+            for x in data:
+                xx = load_model(download(x, lang=self._lang)) if isinstance(x, str) else x
+                cum = cum + xx
+            self._data = cum
+        
+    @staticmethod
+    def get_date(filename):
+        """
+        Obtain the date from the filename. The format is YYMMDD.
+
+        :param filename: Filename
+        :type filename: str
+        :rtype: datetime
+        """
+        import datetime
+
+        d = filename.split("/")[-1].split(".")[0]
+        return datetime.datetime(year=int(d[:2]) + 2000,
+                                 month=int(d[2:4]),
+                                 day=int(d[-2:]))
+
+    @property
+    def date(self):
+        return self._date
+
+    @property
+    def weekday(self):
+        return str(self.date.weekday())
+
+    @property
+    def voc(self):
+        """Vocabulary, i.e., tokens and their frequencies"""
+        return self._data
+
+    def weekday_words(self):
+        from EvoMSA.utils import download
+        return load_model(download("weekday-%s_%s.voc" % (self.weekday, self._lang)))
+
+    def create_text_model(self):
+        from b4msa.textmodel import TextModel
+        from microtc.weighting import TFIDF
+        tm = TextModel(**self._tm_args)
+        tm.model = TFIDF.counter(self.voc, token_min_filter=self._min,
+                                 token_max_filter=self._max)
+        return tm
+

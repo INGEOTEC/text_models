@@ -58,3 +58,9 @@ The labeled dataset can be created using self-supervised learning.
 
 .. automodule:: text_models.dataset
    :members:   
+
+:mod:`text_models.vocabulary`
+==================================
+
+.. automodule:: text_models.vocabulary
+   :members:  
