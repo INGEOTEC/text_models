@@ -79,11 +79,11 @@ def test_remove():
     dset.add(dset.tm_words())
     xx = dset.klass("xxx good morning xxx asdfa")
     print(xx)
-    assert len(xx) == 3
-    dset.remove("~god~")
+    assert len(xx) == 2
+    dset.remove("~good~")
     xx = dset.klass("xxx good xxx morning xxx")
     print(xx)
-    assert len(xx) == 2
+    assert len(xx) == 1
 
 
 def test_process():
@@ -91,10 +91,11 @@ def test_process():
     dset.add(dset.load_emojis())
     dset.add(dset.tm_words())
     xx = dset.process("xxx good 9 morning xxx fax x la", "~x~")
-    for a, b in zip(xx, ["~god~9~morning~", "~fax~", "~la~"]):
+    for a, b in zip(xx, ["~xxx~good~9~morning~xxx~fax~", "~la~", "~la~"]):
+        print(a, b)
         assert a == b
     xx = dset.process("xxx good 9 morning xxx fax x la", "9")
     print(xx)
-    for a, b in zip(xx, ["~x~god~", "~morning~x~fax~x~la~"]):
+    for a, b in zip(xx, ["~xxx~good~", "~morning~xxx~fax~x~la~"]):
         assert a == b
 

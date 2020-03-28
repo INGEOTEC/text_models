@@ -27,7 +27,7 @@ def test_create_text_model():
     nterms = len(voc.voc)
     tm = voc.create_text_model()
     assert len(tm["buenos dias"]) > 4
-    assert nterms > tm.num_terms
+    assert nterms == tm.num_terms
     # assert nterms == len(voc.voc)
 
 

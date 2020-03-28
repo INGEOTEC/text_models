@@ -59,7 +59,7 @@ class Vocabulary(object):
 
         if isinstance(data, str):
             self._fname = download(data, lang=self._lang)
-            self._data = load_model(self._fname)
+            self.voc = load_model(self._fname)
             self._date = self.get_date(data)
         elif isinstance(data, list):
             cum = data.pop()
@@ -68,7 +68,7 @@ class Vocabulary(object):
             for x in data:
                 xx = load_model(download(x, lang=self._lang)) if isinstance(x, str) else x
                 cum = cum + xx
-            self._data = cum
+            self.voc = cum
         
     @staticmethod
     def get_date(filename):
