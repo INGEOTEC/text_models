@@ -55,7 +55,7 @@ def pearson(y, hy):
     return 0
 
 
-def download(fname, lang="Es"):
+def download(fname, lang="Es", cache=True):
     """
     >>> from text_models.utils import download
     >>> from microtc.utils import tweet_iterator, load_model
@@ -76,7 +76,7 @@ def download(fname, lang="Es"):
         os.mkdir(diroutput)
     if fname in ["config.json", "data.json"]:
         output = join(diroutput, fname)
-        if not isfile(output):
+        if not isfile(output) and cache:
             request.urlretrieve("http://ingeotec.mx/~mgraffg/vocabulary/%s" % fname,
                                 output)            
         return output
@@ -86,7 +86,7 @@ def download(fname, lang="Es"):
     if not isdir(diroutput):
         os.mkdir(diroutput)
     output =  join(diroutput, fname)
-    if not isfile(output):
+    if not isfile(output) and cache:
         request.urlretrieve("http://ingeotec.mx/~mgraffg/vocabulary/%s/%s" % (lang, fname),
                             output)          
     return output
