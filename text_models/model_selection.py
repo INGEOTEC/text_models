@@ -182,7 +182,7 @@ class ForwardSelection(object):
     >>> fwdSel = ForwardSelection(models)
     >>> best = fwdSel.run(X, y)
     >>> best
-    0-2
+    0-1-2
 
     :param models: Dictionary of pairs (see :py:attr:`EvoMSA.base.EvoMSA.models`)
     :type models: dict
