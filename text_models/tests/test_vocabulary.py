@@ -51,3 +51,15 @@ def test_remove():
     numterms = len(voc.voc)
     voc.remove(voc.common_words())
     assert numterms > len(voc.voc)
+
+
+def test_day_words():
+    voc = Vocabulary("191225.voc")
+    words = voc.day_words()
+    assert len(words) > 10000
+
+
+def test_remove_qgrams():
+    voc = Vocabulary("191225.voc")
+    voc.remove_qgrams()
+    assert len([x for x in voc.voc if x[:2] == "q:"]) == 0

@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from microtc.utils import load_model
+from microtc.utils import load_model, tweet_iterator
 from text_models.utils import download
+from collections import defaultdict
 
 
 class Vocabulary(object):
@@ -98,6 +99,12 @@ class Vocabulary(object):
         """Vocabulary, i.e., tokens and their frequencies"""
         return self._data
 
+    @voc.setter
+    def voc(self, d):
+        from microtc.weighting import TFIDF
+        TFIDF.filter(d, token_min_filter=self._min, token_max_filter=self._max)
+        self._data = d
+
     def common_words(self):
         from EvoMSA.utils import download
         return load_model(download("b4msa_%s.tm" % self._lang)).model.word2id
@@ -105,6 +112,16 @@ class Vocabulary(object):
     def weekday_words(self):
         from EvoMSA.utils import download
         return load_model(download("weekday-%s_%s.voc" % (self.weekday, self._lang)))
+
+    def day_words(self):
+        dd = list(tweet_iterator(download("data.json")))[0][self._lang]
+        day = defaultdict(list)
+        [day[x[2:6]].append(x) for x in dd]
+        date = self.date
+        dd = day["%02i%i" % (date.month, date.day)]
+        dd = [download(x) for x in dd]
+        dd = [x for x in dd if x != self._fname]
+        return self.__class__(dd).voc
 
     def remove(self, words):
         """
@@ -116,6 +133,11 @@ class Vocabulary(object):
         for x in words:
             if x in self.voc:
                 del self.voc[x]
+
+    def remove_qgrams(self):
+        keys = [k for k in self.voc if k[:2] == "q:"]
+        for k in keys:
+            del self.voc[k]
 
     def create_text_model(self):
         from b4msa.textmodel import TextModel

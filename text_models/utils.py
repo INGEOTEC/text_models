@@ -74,7 +74,7 @@ def download(fname, lang="Es"):
     diroutput = join(dirname(__file__), 'data')
     if not isdir(diroutput):
         os.mkdir(diroutput)
-    if fname == "config.json":
+    if fname in ["config.json", "data.json"]:
         output = join(diroutput, fname)
         if not isfile(output):
             request.urlretrieve("http://ingeotec.mx/~mgraffg/vocabulary/%s" % fname,
