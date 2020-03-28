@@ -3,10 +3,9 @@ Text Models
 .. image:: https://travis-ci.org/INGEOTEC/text_models.svg?branch=master
 	   :target: https://travis-ci.org/INGEOTEC/text_models
 
-..
-   .. image:: https://ci.appveyor.com/api/projects/status/wg01w00evm7pb8po?svg=true
-      :target: https://ci.appveyor.com/project/mgraffg/evomsa
-		       
+.. image:: https://coveralls.io/repos/github/INGEOTEC/text_models/badge.svg?branch=master
+	   :target: https://coveralls.io/github/INGEOTEC/text_models?branch=master
+		    
 
 INGEOTEC Text Model package deals with the creation of labeled
 datasets using a self-supervised approach. It includes different text

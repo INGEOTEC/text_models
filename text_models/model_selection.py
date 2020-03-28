@@ -17,6 +17,7 @@ from queue import LifoQueue
 from microtc.utils import save_model
 from sklearn.metrics import f1_score
 from sklearn.model_selection import KFold
+from .utils import macro_f1
 import numpy as np
 import os
 
@@ -147,10 +148,10 @@ class Node(object):
             self._perf = self._aggregate(perf)
         return self._perf
 
-    def __cmp__(self, other):
-        x = self.perf
-        y = other.perf
-        return (x > y) - (x < y)
+ #   def __cmp__(self, other):
+ #       x = self.perf
+ #       y = other.perf
+ #       return (x > y) - (x < y)
 
     def __gt__(self, other):
         return self.perf > other.perf
@@ -181,7 +182,7 @@ class ForwardSelection(object):
     >>> fwdSel = ForwardSelection(models)
     >>> best = fwdSel.run(X, y)
     >>> best
-    0-2
+    0-1-2
 
     :param models: Dictionary of pairs (see :py:attr:`EvoMSA.base.EvoMSA.models`)
     :type models: dict
@@ -204,7 +205,7 @@ class ForwardSelection(object):
 
     def __init__(self, models, node=Node,
                  output=None, verbose=logging.INFO,
-                 metric=lambda y, hy: f1_score(y, hy, average="macro"),
+                 metric=macro_f1,
                  split_dataset=KFold(n_splits=3, random_state=1, shuffle=True),
                  aggregate=np.median,
                  cache=os.path.join("cache", "fw"),
@@ -237,12 +238,16 @@ class ForwardSelection(object):
             self._logger.info("Model: %s perf: %0.4f" % (node, node.perf))
             nodes = list(node)
             if len(nodes) == 0:
+                if self._output:
+                    save_model(node, self._output)
                 return node
             r = [(xx.performance(X, y), xx) for xx in nodes]
             perf, comp = max(r, key=lambda x: x[0])
             if perf < node.perf:
                 break
             node = comp
+        if self._output:
+            save_model(node, self._output)
         return node
 
 
