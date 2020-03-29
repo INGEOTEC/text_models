@@ -140,6 +140,21 @@ class Vocabulary(object):
             del self.voc[k]
 
     def create_text_model(self):
+        """
+        Create a text model using :py:class:`b4msa.textmodel.TextModel`
+
+        >>> from text_models.utils import download
+        >>> from microtc.utils import tweet_iterator
+        >>> from text_models.vocabulary import Vocabulary
+        >>> conf = tweet_iterator(download("config.json", cache=False))
+        >>> conf = [x for x in conf if "b4msa_En" in x][0]
+        >>> # Files to create b4msa_En.tm text model
+        >>> data = conf["b4msa_En"]
+        >>> # Taking only a few to reduce the time
+        >>> data = data[:10]
+        >>> voc = Vocabulary(data, lang="En")
+        >>> tm = voc.create_text_model()
+        """
         from b4msa.textmodel import TextModel
         from microtc.weighting import TFIDF
         tm = TextModel(**self._tm_args)
