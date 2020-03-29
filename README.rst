@@ -3,8 +3,8 @@ Text Models
 .. image:: https://travis-ci.org/INGEOTEC/text_models.svg?branch=master
 	  :target: https://travis-ci.org/INGEOTEC/text_models
 
-.. image:: https://badge.fury.io/py/text_models.svg
-	  :target: https://badge.fury.io/py/text_models
+.. image:: https://badge.fury.io/py/text-models.svg
+	  :target: https://badge.fury.io/py/text-models
 
 .. image:: https://coveralls.io/repos/github/INGEOTEC/text_models/badge.svg?branch=master
 	  :target: https://coveralls.io/github/INGEOTEC/text_models?branch=master
