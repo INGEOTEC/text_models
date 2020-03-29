@@ -29,9 +29,9 @@ class Vocabulary(object):
     :type data: str or list
     :param lang: Language (Ar, En, or Es)
     :type lang: str
-    :token_min_filter: Minimum frequency
+    :param token_min_filter: Minimum frequency
     :type token_min_filter: float | int
-    :token_max_filter: Maximum frequency
+    :param token_max_filter: Maximum frequency
     :type token_max_filter: float | int
     :param tm_args: Text model parameters
     :type tm_args: dict
