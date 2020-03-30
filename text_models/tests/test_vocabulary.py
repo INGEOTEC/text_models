@@ -63,3 +63,21 @@ def test_remove_qgrams():
     voc = Vocabulary("191225.voc")
     voc.remove_qgrams()
     assert len([x for x in voc.voc if x[:2] == "q:"]) == 0
+
+
+def test_previous_day():
+    from os.path import basename
+
+    voc = Vocabulary("200301.voc")
+    prev = voc.previous_day()
+    assert basename(prev._fname) == "200229.voc"
+
+
+def test_dict_functions():
+    voc = Vocabulary("200301.voc")
+
+    assert len(voc) == len([x for x in voc])
+    data = [k for k, v in voc.items()]
+    assert len(voc) == len(data)
+    assert data[0] in voc
+
