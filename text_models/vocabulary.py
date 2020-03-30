@@ -128,7 +128,7 @@ class Vocabulary(object):
         [day[x[2:6]].append(x) for x in dd]
         date = self.date
         dd = day["%02i%i" % (date.month, date.day)]
-        dd = [download(x) for x in dd]
+        dd = [download(x, lang=self._lang) for x in dd]
         dd = [x for x in dd if x != self._fname]
         return self.__class__(dd).voc
 
