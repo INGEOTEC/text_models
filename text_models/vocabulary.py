@@ -29,11 +29,11 @@ class Vocabulary(object):
     :type data: str or list
     :param lang: Language (Ar, En, or Es)
     :type lang: str
-    :token_min_filter: Minimum frequency
+    :param token_min_filter: Minimum frequency
     :type token_min_filter: float | int
-    :token_max_filter: Maximum frequency
+    :param token_max_filter: Maximum frequency
     :type token_max_filter: float | int
-    :param tm_args: Text model parameters
+    :param tm_args: Text-model parameters
     :type tm_args: dict
 
     >>> from text_models.vocabulary import Vocabulary
@@ -88,15 +88,24 @@ class Vocabulary(object):
 
     @property
     def date(self):
+        """
+        Date obtained from the filename, on multiple files, this is not available.
+        """
+
         return self._date
 
     @property
     def weekday(self):
+        """
+        Weekday
+        """
+
         return str(self.date.weekday())
 
     @property
     def voc(self):
         """Vocabulary, i.e., tokens and their frequencies"""
+
         return self._data
 
     @voc.setter
@@ -119,7 +128,7 @@ class Vocabulary(object):
         [day[x[2:6]].append(x) for x in dd]
         date = self.date
         dd = day["%02i%i" % (date.month, date.day)]
-        dd = [download(x) for x in dd]
+        dd = [download(x, lang=self._lang) for x in dd]
         dd = [x for x in dd if x != self._fname]
         return self.__class__(dd).voc
 
@@ -140,6 +149,21 @@ class Vocabulary(object):
             del self.voc[k]
 
     def create_text_model(self):
+        """
+        Create a text model using :py:class:`b4msa.textmodel.TextModel`
+
+        >>> from text_models.utils import download
+        >>> from microtc.utils import tweet_iterator
+        >>> from text_models.vocabulary import Vocabulary
+        >>> conf = tweet_iterator(download("config.json", cache=False))
+        >>> conf = [x for x in conf if "b4msa_En" in x][0]
+        >>> # Files to create b4msa_En.tm text model
+        >>> data = conf["b4msa_En"]
+        >>> # Taking only a few to reduce the time
+        >>> data = data[:10]
+        >>> voc = Vocabulary(data, lang="En")
+        >>> tm = voc.create_text_model()
+        """
         from b4msa.textmodel import TextModel
         from microtc.weighting import TFIDF
         tm = TextModel(**self._tm_args)
