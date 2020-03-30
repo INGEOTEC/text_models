@@ -33,7 +33,7 @@ class Vocabulary(object):
     :type token_min_filter: float | int
     :param token_max_filter: Maximum frequency
     :type token_max_filter: float | int
-    :param tm_args: Text model parameters
+    :param tm_args: Text-model parameters
     :type tm_args: dict
 
     >>> from text_models.vocabulary import Vocabulary
@@ -88,15 +88,24 @@ class Vocabulary(object):
 
     @property
     def date(self):
+        """
+        Date obtained from the filename, on multiple files, this is not available.
+        """
+
         return self._date
 
     @property
     def weekday(self):
+        """
+        Weekday
+        """
+
         return str(self.date.weekday())
 
     @property
     def voc(self):
         """Vocabulary, i.e., tokens and their frequencies"""
+
         return self._data
 
     @voc.setter

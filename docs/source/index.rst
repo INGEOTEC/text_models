@@ -51,10 +51,10 @@ problem.
    :members:   
 
 
-.. _voc:
+Content
+==================
 
-:mod:`text_models.vocabulary`
-==================================
+.. toctree::
+   :maxdepth: 2
 
-.. automodule:: text_models.vocabulary
-   :members:  
+   voc
