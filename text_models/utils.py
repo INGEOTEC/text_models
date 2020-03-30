@@ -76,7 +76,7 @@ def download(fname, lang="Es", cache=True):
         os.mkdir(diroutput)
     if fname in ["config.json", "data.json"]:
         output = join(diroutput, fname)
-        if not isfile(output) and cache:
+        if not isfile(output) or not cache:
             request.urlretrieve("http://ingeotec.mx/~mgraffg/vocabulary/%s" % fname,
                                 output)            
         return output
@@ -86,7 +86,7 @@ def download(fname, lang="Es", cache=True):
     if not isdir(diroutput):
         os.mkdir(diroutput)
     output =  join(diroutput, fname)
-    if not isfile(output) and cache:
+    if not isfile(output) or not cache:
         request.urlretrieve("http://ingeotec.mx/~mgraffg/vocabulary/%s/%s" % (lang, fname),
                             output)          
     return output

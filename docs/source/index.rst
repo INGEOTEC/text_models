@@ -36,25 +36,13 @@ Beam selection technique, tailored to text classification, that chooses
 those text models that are more suitable for a given text classification 
 problem.
 
-
-
-:mod:`text_models.model_selection`
-==================================
-
-.. automodule:: text_models.model_selection
-   :members:
-
-:mod:`text_models.dataset`
-==================================
-
-.. automodule:: text_models.dataset
-   :members:   
-
-
-Content
+Table of Contents
 ==================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
+   :titlesonly:
 
    voc
+   model_selection
+   dataset
