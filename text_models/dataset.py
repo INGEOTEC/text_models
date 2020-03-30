@@ -152,7 +152,7 @@ class Dataset(object):
         return set([text[a:b] for a, b in lst])
 
     def find_klass(self, text):
-        """Test whether text has an label
+        """Obtain the position of each label in the text
 
         :param text: text
         :type text: str

@@ -80,4 +80,12 @@ def test_dict_functions():
     data = [k for k, v in voc.items()]
     assert len(voc) == len(data)
     assert data[0] in voc
+    assert "BLABLA" not in voc
+    assert voc.get("BLABLA") == 0
+    assert voc[data[0]] == voc.get(data[0])
 
+
+def test_remove_emojis():
+    voc = Vocabulary("200301.voc")
+    voc.remove_qgrams()
+    voc.remove_emojis()
