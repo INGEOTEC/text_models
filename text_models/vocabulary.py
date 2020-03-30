@@ -115,14 +115,20 @@ class Vocabulary(object):
         self._data = d
 
     def common_words(self):
+        """Words used frequently; these correspond to py:attr:`EvoMSA.base.EvoMSA(B4MSA=True)`"""
+
         from EvoMSA.utils import download
         return load_model(download("b4msa_%s.tm" % self._lang)).model.word2id
        
     def weekday_words(self):
+        """Words group by weekday"""
+
         from EvoMSA.utils import download
         return load_model(download("weekday-%s_%s.voc" % (self.weekday, self._lang)))
 
     def day_words(self):
+        """Words used on the same day of different years"""
+
         dd = list(tweet_iterator(download("data.json")))[0][self._lang]
         day = defaultdict(list)
         [day[x[2:6]].append(x) for x in dd]
@@ -131,6 +137,51 @@ class Vocabulary(object):
         dd = [download(x, lang=self._lang) for x in dd]
         dd = [x for x in dd if x != self._fname]
         return self.__class__(dd).voc
+
+    def __iter__(self):
+        for x in self.voc:
+            yield x
+
+    def remove_emojis(self):
+        """Remove emojis"""
+        from .dataset import Dataset
+        data = Dataset()
+        data.add(data.load_emojis())
+        keys = [(k, [x for x in data.klass(k) if not x.isnumeric()])  for k in self]
+        keys = [(k, v) for k, v in keys if len(v) and v[0] != "#"]
+        for k, v in keys:
+            del self.voc[k]
+
+    def previous_day(self):
+        """Previous day"""
+
+        import datetime
+
+        one_day = datetime.timedelta(days=1)
+        r = self.date - one_day
+        fname = "%s%02i%02i.voc" % (str(r.year)[-2:], r.month, r.day)
+        _ = self.__class__(fname, lang=self._lang,
+                           token_min_filter=self._min, token_max_filter=self._max)
+        return _
+
+    def __len__(self):
+        return len(self.voc)
+
+    def __getitem__(self, key):
+        return self.voc[key]
+
+    def __contains__(self, key):
+        return key in self.voc
+
+    def get(self, data, defaultvalue=0):
+        """Frequency of data"""
+
+        return self.voc.get(data, defaultvalue)
+
+    def items(self):
+        """Items of :py:attr:`self.voc`"""
+
+        return self.voc.items()
 
     def remove(self, words):
         """
@@ -144,6 +195,8 @@ class Vocabulary(object):
                 del self.voc[x]
 
     def remove_qgrams(self):
+        """Remove the q-grams in the vocabulary"""
+
         keys = [k for k in self.voc if k[:2] == "q:"]
         for k in keys:
             del self.voc[k]
@@ -164,6 +217,7 @@ class Vocabulary(object):
         >>> voc = Vocabulary(data, lang="En")
         >>> tm = voc.create_text_model()
         """
+
         from b4msa.textmodel import TextModel
         from microtc.weighting import TFIDF
         tm = TextModel(**self._tm_args)
