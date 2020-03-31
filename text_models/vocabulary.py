@@ -128,15 +128,24 @@ class Vocabulary(object):
 
     def day_words(self):
         """Words used on the same day of different years"""
+        
+        import datetime
 
-        dd = list(tweet_iterator(download("data.json")))[0][self._lang]
+        dd = list(tweet_iterator(download("data.json", cache=False)))[0][self._lang]
         day = defaultdict(list)
         [day[x[2:6]].append(x) for x in dd]
         date = self.date
         dd = day["%02i%i" % (date.month, date.day)]
+        curr = "%s%02i%02i.voc" % (str(date.year)[:2],
+                                   date.month, date.day)
+        dd = [x for x in dd if x != curr]
+        if len(dd) == 0:
+            one_day = datetime.timedelta(days=1)
+            r = date - one_day
+            dd = day["%02i%i" % (r.month, r.day)]
         dd = [download(x, lang=self._lang) for x in dd]
-        dd = [x for x in dd if x != self._fname]
-        return self.__class__(dd).voc
+        return self.__class__(dd, token_min_filter=self._min,
+                              token_max_filter=self._max)
 
     def __iter__(self):
         for x in self.voc:
@@ -161,7 +170,8 @@ class Vocabulary(object):
         r = self.date - one_day
         fname = "%s%02i%02i.voc" % (str(r.year)[-2:], r.month, r.day)
         _ = self.__class__(fname, lang=self._lang,
-                           token_min_filter=self._min, token_max_filter=self._max)
+                           token_min_filter=self._min,
+                           token_max_filter=self._max)
         return _
 
     def __len__(self):
