@@ -135,14 +135,14 @@ class Vocabulary(object):
         day = defaultdict(list)
         [day[x[2:6]].append(x) for x in dd]
         date = self.date
-        dd = day["%02i%i" % (date.month, date.day)]
+        dd = day["%02i%02i" % (date.month, date.day)]
         curr = "%s%02i%02i.voc" % (str(date.year)[:2],
                                    date.month, date.day)
         dd = [x for x in dd if x != curr]
         if len(dd) == 0:
             one_day = datetime.timedelta(days=1)
             r = date - one_day
-            dd = day["%02i%i" % (r.month, r.day)]
+            dd = day["%02i%02i" % (r.month, r.day)]
         dd = [download(x, lang=self._lang) for x in dd]
         return self.__class__(dd, token_min_filter=self._min,
                               token_max_filter=self._max)
