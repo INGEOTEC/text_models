@@ -54,7 +54,7 @@ def test_remove():
 
 
 def test_day_words():
-    voc = Vocabulary("191225.voc")
+    voc = Vocabulary("200229.voc", lang="En")
     words = voc.day_words()
     assert len(words) > 10000
 
