@@ -99,3 +99,10 @@ def test_process():
     for a, b in zip(xx, ["~xxx~good~", "~morning~xxx~fax~x~la~"]):
         assert a == b
 
+
+def test_map():
+    dset = Dataset()
+    dset.add(dict(buenos="malos"))
+    res = dset.klass("en estos buenos dias")
+    print(res)
+    assert "malos" in res
