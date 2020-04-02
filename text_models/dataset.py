@@ -64,7 +64,7 @@ class Dataset(object):
         emoticons.read_emoji_standard(download(sec), emos)
         emoticons.read_emoji_standard(download(var), emos)
         emoticons.read_emoji_standard(download(zwj), emos)
-        return emos
+        return {x: True for x in emos.keys()}
 
     def tm_words(self):
         """
