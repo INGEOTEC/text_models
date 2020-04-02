@@ -33,6 +33,7 @@ class Dataset(object):
     """
     def __init__(self, lang="En"):
         self._lang = lang
+        self._map = dict()
 
     @property
     def textModel(self):
@@ -123,6 +124,7 @@ class Dataset(object):
         :type data: dict
         """
         
+        self._map.update({k: v for k, v in data.items() if not isinstance(v, bool)})
         words = self.klasses
         words.update(data)
         if hasattr(self, "_data_structure"):
@@ -147,9 +149,11 @@ class Dataset(object):
         :rtype: set
         """
 
+        get = self._map.get
         text = self.textModel.text_transformations(text)
         lst = self.find_klass(text)
-        return set([text[a:b] for a, b in lst])
+        _ = [text[a:b] for a, b in lst]
+        return set([get(x, x) for x in _])
 
     def find_klass(self, text):
         """Obtain the position of each label in the text
