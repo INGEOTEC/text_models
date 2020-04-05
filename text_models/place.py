@@ -39,13 +39,19 @@ class Country(object):
 
         res = self._country.klass(text)
         if len(res) == 1:
-            return list(res)[0]
+            cc = list(res)[0]
+            if len(cc) == 2:
+                return cc
         res2 = self._location.klass(text)
         if len(res2) == 1:
-            return list(res2)[0]
+            cc = list(res2)[0]
+            if len(cc) == 2:
+                return cc
         r = res.intersection(res2)
         if len(r) == 1:
-            return list(r)[0]
+            cc = list(r)[0]
+            if len(cc) == 2:
+                return cc
         return None
 
 
@@ -60,6 +66,6 @@ class Country(object):
         if place is None:
             return self.country(tw["user"]["location"])
         country_code = place.get("country_code")
-        if country_code is None:
+        if country_code is None or len(country_code) < 2:
             return self.country(tw["user"]["location"])
         return country_code

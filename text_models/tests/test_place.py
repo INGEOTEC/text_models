@@ -25,7 +25,17 @@ def test_country():
 
 def test_country_from_twitter():
     cntr = Country()
-    r = cntr.country_from_twitter(dict(place=dict(country_code="ALGO")))
-    assert r == "ALGO"
+    r = cntr.country_from_twitter(dict(place=dict(country_code="Xx")))
+    assert r == "Xx"
     r = cntr.country_from_twitter(dict(user=dict(location="morelia, mich., mexico")))
     assert r == "MX"
+    r = cntr.country_from_twitter(dict(place=dict(country_code=""),
+                                       user=dict(location="morelia, mich., mexico")))
+    assert r == "MX"                                           
+
+
+def test_bug_empty():
+    cntr = Country()
+    r = cntr.country("~sudsudan~")
+    print("**", r)
+    assert r is None or len(r) == 2
