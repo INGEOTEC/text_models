@@ -29,6 +29,8 @@ class Vocabulary(object):
     :type data: str or list
     :param lang: Language (Ar, En, or Es)
     :type lang: str
+    :param country: Two letter country code
+    :type country: str
     :param token_min_filter: Minimum frequency
     :type token_min_filter: float | int
     :param token_max_filter: Maximum frequency
@@ -40,13 +42,14 @@ class Vocabulary(object):
     >>> voc = Vocabulary("191225.voc", lang="En")
     """
 
-    def __init__(self, data, lang="Es",
+    def __init__(self, data, lang="Es", country=None,
                  token_min_filter=0.001,
                  token_max_filter=0.999,
                  tm_args=dict(usr_option="delete", num_option="none",
                               url_option="delete", emo_option="none",
                               del_dup=False, del_punc=True)):
         self._lang = lang
+        self._country = country
         self._min = token_min_filter
         self._max = token_max_filter
         self._tm_args = tm_args
@@ -58,15 +61,15 @@ class Vocabulary(object):
         """
 
         if isinstance(data, str):
-            self._fname = download(data, lang=self._lang)
+            self._fname = download(data, lang=self._lang, country=self._country)
             self.voc = load_model(self._fname)
             self._date = self.get_date(data)
         elif isinstance(data, list):
             cum = data.pop()
             if isinstance(cum, str):
-                cum = load_model(download(cum, lang=self._lang))
+                cum = load_model(download(cum, lang=self._lang, country=self._country))
             for x in data:
-                xx = load_model(download(x, lang=self._lang)) if isinstance(x, str) else x
+                xx = load_model(download(x, lang=self._lang, country=self._country)) if isinstance(x, str) else x
                 cum = cum + xx
             self.voc = cum
         
@@ -143,7 +146,7 @@ class Vocabulary(object):
             one_day = datetime.timedelta(days=1)
             r = date - one_day
             dd = day["%02i%02i" % (r.month, r.day)]
-        dd = [download(x, lang=self._lang) for x in dd]
+        dd = [download(x, lang=self._lang, country=self._country) for x in dd]
         return self.__class__(dd, token_min_filter=self._min,
                               token_max_filter=self._max)
 
@@ -169,7 +172,7 @@ class Vocabulary(object):
         one_day = datetime.timedelta(days=1)
         r = self.date - one_day
         fname = "%s%02i%02i.voc" % (str(r.year)[-2:], r.month, r.day)
-        _ = self.__class__(fname, lang=self._lang,
+        _ = self.__class__(fname, lang=self._lang, country=self._country,
                            token_min_filter=self._min,
                            token_max_filter=self._max)
         return _
