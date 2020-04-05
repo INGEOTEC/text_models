@@ -89,3 +89,12 @@ def test_remove_emojis():
     voc = Vocabulary("200301.voc")
     voc.remove_qgrams()
     voc.remove_emojis()
+
+
+def test_country():
+    date = "151219.voc"
+    voc = Vocabulary(date, lang="Es", country="MX")
+    assert len(voc)
+    voc2 = Vocabulary(date, lang="Es")
+    print(len(voc2), len(voc))
+    assert voc2.voc.update_calls > voc.voc.update_calls
