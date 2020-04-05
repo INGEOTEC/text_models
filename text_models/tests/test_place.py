@@ -11,4 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-__version__ = '0.4.0'
+from text_models.place import Country
+
+
+def test_country():
+    cntr = Country()
+    assert cntr.country("Estoy en mexico") == "MX"
+    r = cntr.country("no se donde estoy")
+    assert r is None
+    r = cntr.country("georgia usa")
+    assert r == "US"
+
+
+def test_country_from_twitter():
+    cntr = Country()
+    r = cntr.country_from_twitter(dict(place=dict(country_code="ALGO")))
+    assert r == "ALGO"
+    r = cntr.country_from_twitter(dict(user=dict(location="morelia, mich., mexico")))
+    assert r == "MX"

@@ -185,7 +185,10 @@ class Dataset(object):
                     else:
                         init = i = end
                 elif i > init:
-                    init = end = i
+                    if (i - init) > 2 and text[i - 1] == '~':
+                        init = end = i = (i - 1)
+                    else:                    
+                        init = end = i
                 else:
                     init += 1
                     i = end = init

@@ -106,3 +106,11 @@ def test_map():
     res = dset.klass("en estos buenos dias")
     print(res)
     assert "malos" in res
+
+
+def test_bug_two_cons_klass():
+    from EvoMSA.utils import download
+    from microtc.utils import load_model
+    dset = load_model(download("country.ds"))
+    r = dset.klass("mexico y usa")
+    assert len(r.intersection(set(["US", "MX"]))) == 2
