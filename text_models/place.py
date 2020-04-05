@@ -22,7 +22,7 @@ class Country(object):
     >>> from text_models.place import Country
     >>> cntr = Country()
     >>> cntr.country("I live in Mexico.")
-    {"MX"}
+    'MX'
     """
     def __init__(self):
         self._country = load_model(download("country.ds"))
