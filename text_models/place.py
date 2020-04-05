@@ -16,6 +16,14 @@ from microtc.utils import load_model
 
 
 class Country(object):
+    """
+    Obtain the country from a text.
+
+    >>> from text_models.place import Country
+    >>> cntr = Country()
+    >>> cntr.country("I live in Mexico.")
+    {"MX"}
+    """
     def __init__(self):
         self._country = load_model(download("country.ds"))
         self._location = load_model(download("country-loc.ds"))
@@ -42,6 +50,12 @@ class Country(object):
 
 
     def country_from_twitter(self, tw):
+        """
+        Identify the country from a tweet.
+
+        :param tw: Tweet
+        :type tw: dict
+        """
         place = tw.get("place", None)
         if place is None:
             return self.country(tw["user"]["location"])
