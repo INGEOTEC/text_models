@@ -15,6 +15,7 @@ from microtc.utils import load_model
 from microtc import emoticons
 from EvoMSA.utils import download
 from collections import OrderedDict
+from os.path import isfile, join
 
 
 class Dataset(object):
@@ -55,6 +56,9 @@ class Dataset(object):
                 return output
             request.urlretrieve(fname, output)
             return output
+
+        if isfile(join("data", "emojis.dict")):
+            return load_model(join("data", "emojis.dict"))        
 
         data = "https://www.unicode.org/Public/emoji/12.1/emoji-data.txt"
         sec = "https://www.unicode.org/Public/emoji/12.1/emoji-sequences.txt"
