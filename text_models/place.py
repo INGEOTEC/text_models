@@ -180,6 +180,7 @@ class CP(object):
         >>> from text_models.place import CP
         >>> cp = CP()
         >>> cp.state("20900")
+        'Aguascalientes'
         """
 
         return self.postal_code_names[postal_code][1]
