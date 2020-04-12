@@ -36,6 +36,7 @@ setup(
     url='https://github.com/ingeotec/text_models',
     author="Mario Graff",
     author_email="mgraffg@ieee.org",
+    include_package_data=True,
     packages=['text_models', 'text_models/tests'],
     zip_safe=False,    
     install_requires=['EvoMSA']
