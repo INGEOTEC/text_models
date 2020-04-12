@@ -39,3 +39,18 @@ def test_bug_empty():
     r = cntr.country("~sudsudan~")
     print("**", r)
     assert r is None or len(r) == 2
+
+
+def test_postal_code_names():
+    from text_models.place import CP
+    import os
+
+    with open("t.cp", "w") as fpt:
+        print("", file=fpt)
+        print("d_codigo|c_estado|d_estado|c_mnpio|D_mnpio|otro", file=fpt)
+        print("000|01|MM|010|NN|X", file=fpt)
+        print("001|09|MM|010|NN|X", file=fpt)
+
+    res = CP._postal_code_names("t.cp")
+    assert res["001"] != "MM"
+    os.unlink("t.cp")    

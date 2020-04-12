@@ -140,5 +140,47 @@ class CP(object):
             b = bbox.mean(axis=0).tolist()            
         else:
             b = point(*long_lat)
-        d = distance(lat, lon, *b)
+        d = distance(lat, lon, b[0], b[1])
         return cluster[np.argmin(d)]
+
+    @staticmethod
+    def _postal_code_names(path):
+        # path = join(dirname(__file__), "data", "CP.txt")
+        with open(path, encoding="latin-1", errors="ignore") as fpt:
+            lines = fpt.readlines()
+        lines = [x.split("|") for x in lines[1:]]
+        header = {v: k for k, v in enumerate(lines[0])}
+        pc_names = dict()
+        for line in lines[1:]:
+            code = line[header["d_codigo"]]
+            state_c = line[header["c_estado"]]
+            if state_c == "09":
+                state = "Ciudad de México"
+            else:
+                state = line[header["d_estado"]]
+            mun_c = line[header["c_mnpio"]]
+            mun = line[header["D_mnpio"]]
+            data = [state_c, state, mun_c, mun]
+            if code in pc_names:
+                print("Error: (%s) %s - %s" % (code, pc_names[code], data))
+            pc_names[code] = data
+        return pc_names
+
+    @property
+    def postal_code_names(self):
+        try:
+            return self._pc_names
+        except AttributeError:
+            path = join(dirname(__file__), "data", "CP.desc")
+            self._pc_names = load_model(path)
+        return self._pc_names
+
+    def state(self, postal_code):
+        """
+        >>> from text_models.place import CP
+        >>> cp = CP()
+        >>> cp.state("20900")
+        """
+
+        return self.postal_code_names[postal_code][1]
+
