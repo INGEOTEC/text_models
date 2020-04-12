@@ -13,6 +13,9 @@
 # limitations under the License.
 from EvoMSA.utils import download
 from microtc.utils import load_model
+import numpy as np
+from os.path import join, dirname
+EARTH_RADIUS = 6371.009
 
 
 class Country(object):
@@ -69,3 +72,73 @@ class Country(object):
         if country_code is None or len(country_code) < 2:
             return self.country(tw["user"]["location"])
         return country_code
+
+
+def distance(lat1, lng1, lat2, lng2):
+    # lat1, lng1 = a
+    # lat2, lng2 = b
+    sin_lat1, cos_lat1 = np.sin(lat1), np.cos(lat1)
+    sin_lat2, cos_lat2 = np.sin(lat2), np.cos(lat2)
+
+    delta_lng = lng2 - lng1
+    cos_delta_lng, sin_delta_lng = np.cos(delta_lng), np.sin(delta_lng)
+
+    d = np.arctan2(np.sqrt((cos_lat2 * sin_delta_lng) ** 2 +
+                           (cos_lat1 * sin_lat2 -
+                            sin_lat1 * cos_lat2 * cos_delta_lng) ** 2),
+                   sin_lat1 * sin_lat2 + cos_lat1 * cos_lat2 * cos_delta_lng)
+
+    return EARTH_RADIUS * d
+
+
+def point(longitude, latitude):
+    # longitude, latitude = x['lat'], x['long']
+    if latitude < -90:
+        latitude = -180 - latitude
+        longitude = longitude + 180
+    if latitude > 90:
+        latitude = 180 - latitude
+        longitude = longitude + 180
+    return np.radians(latitude), np.radians(longitude)
+
+
+class CP(object):
+    """
+    Mexico Postal Codes
+    
+    >>> from text_models.place import CP
+    >>> cp = CP()
+    >>> tw = dict(coordinates=[-99.191996,19.357102])
+    >>> codigo = cp.convert(tw)
+    >>> box = dict(place=dict(bounding_box=dict(coordinates=[[[-99.191996,19.357102],[-99.191996,19.404124],[-99.130965,19.404124],[-99.130965,19.357102]]])))
+    >>> cp.convert(box)
+    '03100'
+    """
+    def __init__(self):
+        path = join(dirname(__file__), "data", "CP.info")
+        m = load_model(path)
+        self.cp = [x[0] for x in m]
+        self.lat = np.radians([x[1] for x in m])
+        self.lon = np.radians([x[2] for x in m])
+
+    def convert(self, x):
+        """
+        Obtain the postal code from a tweet
+
+        :param x: Tweet
+        :type x: dict
+        :return: Postal Code
+        :rtype: str
+        """
+        lat, lon = self.lat, self.lon
+        cluster = self.cp
+        long_lat = x.get('coordinates', None)
+        if long_lat is None:
+            place = x["place"]
+            bbox = place.get("bounding_box", dict()).get("coordinates")
+            bbox = np.array([point(*x) for x in bbox[0]])
+            b = bbox.mean(axis=0).tolist()            
+        else:
+            b = point(*long_lat)
+        d = distance(lat, lon, *b)
+        return cluster[np.argmin(d)]
