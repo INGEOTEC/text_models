@@ -1,1 +1,3 @@
 include text_models/data/emojis.dict
+include text_models/data/CP.info
+include text_models/data/CP.desc
