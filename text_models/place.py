@@ -109,7 +109,8 @@ class CP(object):
     >>> from text_models.place import CP
     >>> cp = CP()
     >>> tw = dict(coordinates=[-99.191996,19.357102])
-    >>> codigo = cp.convert(tw)
+    >>> cp.convert(tw)
+    '01040'
     >>> box = dict(place=dict(bounding_box=dict(coordinates=[[[-99.191996,19.357102],[-99.191996,19.404124],[-99.130965,19.404124],[-99.130965,19.357102]]])))
     >>> cp.convert(box)
     '03100'
@@ -121,6 +122,27 @@ class CP(object):
         self.lat = np.radians([x[1] for x in m])
         self.lon = np.radians([x[2] for x in m])
 
+    def postal_code(self, lat, lon, degrees=True):
+        """
+        Postal code
+
+        :param lat: Latitude
+        :type lat: float
+        :param lon: Longitude
+        :type lon: float
+        :param degrees: Indicates whether the point is in degrees
+        :type degrees: bool
+
+        >>> from text_models.place import CP
+        >>> cp = CP()
+        >>> cp.postal_code(19.357102, -99.191996)
+        '01040'
+        """
+        if degrees:
+            lat, lon = point(lon, lat)
+        d = distance(self.lat, self.lon, lat, lon)
+        return self.cp[np.argmin(d)]
+
     def convert(self, x):
         """
         Obtain the postal code from a tweet
@@ -130,8 +152,6 @@ class CP(object):
         :return: Postal Code
         :rtype: str
         """
-        lat, lon = self.lat, self.lon
-        cluster = self.cp
         long_lat = x.get('coordinates', None)
         if long_lat is None:
             place = x["place"]
@@ -140,8 +160,7 @@ class CP(object):
             b = bbox.mean(axis=0).tolist()            
         else:
             b = point(*long_lat)
-        d = distance(lat, lon, b[0], b[1])
-        return cluster[np.argmin(d)]
+        return self.postal_code(b[0], b[1], degrees=False)
 
     @staticmethod
     def _postal_code_names(path):
@@ -168,6 +187,14 @@ class CP(object):
 
     @property
     def postal_code_names(self):
+        """
+        Dictionary containing a descripcion of a postal code
+
+        >>> from text_models.place import CP
+        >>> cp = CP()
+        >>> cp.postal_code_names["58000"]
+        ['16', 'Michoacán de Ocampo', '053', 'Morelia']
+        """
         try:
             return self._pc_names
         except AttributeError:
