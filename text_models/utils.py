@@ -55,6 +55,32 @@ def pearson(y, hy):
     return 0
 
 
+def download_geo(day):
+    """
+    >>> from text_models.utils import download_geo
+    >>> fname = download_geo("200101.travel")
+    """
+    from os.path import isdir, join, isfile, dirname
+    import os
+    from urllib import request
+    from urllib.error import HTTPError
+
+    diroutput = dirname(__file__)
+    for d in ["data", "geo"]:
+        diroutput = join(diroutput, d)
+        if not isdir(diroutput):
+            os.mkdir(diroutput)
+    fname = join(diroutput, day)
+    if isfile(fname):
+      return fname
+    path = "http://ingeotec.mx/~mgraffg/geo/%s" % day
+    try:
+      request.urlretrieve(path, fname)
+    except HTTPError:
+      raise Exception(path)
+    return fname
+
+
 def download(fname, lang="Es", country=None, cache=True):
     """
     >>> from text_models.utils import download
