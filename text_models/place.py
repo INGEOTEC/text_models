@@ -208,6 +208,7 @@ class CP(object):
 
     def state(self, postal_code):
         """
+        
         >>> from text_models.place import CP
         >>> cp = CP()
         >>> cp.state("20900")
@@ -282,6 +283,7 @@ class Travel(object):
     def country(self, key):
         """
         Country that correspond to the key.
+        
         >>> from text_models.place import Travel
         >>> travel = Travel(window=1)
         >>> travel.country("20900")
