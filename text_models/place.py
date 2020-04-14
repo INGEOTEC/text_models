@@ -15,6 +15,10 @@ from EvoMSA.utils import download
 from microtc.utils import load_model
 import numpy as np
 from os.path import join, dirname
+import time
+import datetime
+from .utils import download_geo
+from collections import defaultdict, Counter
 EARTH_RADIUS = 6371.009
 
 
@@ -211,4 +215,89 @@ class CP(object):
         """
 
         return self.postal_code_names[postal_code][1]
+
+
+class Travel(object):
+    """
+    Mobility on twitter
+
+    :param day: Starting day default yesterday
+    :type day: datetime
+    :param window: Window used to perform the analysis
+    :type window: int
+
+    >>> from text_models.place import Travel
+    >>> travel = Travel(window=5)
+    >>> output = travel.displacement(level=travel.state)
+    """
+
+    def __init__(self, day=None, window=30):
+        self._cp = CP()
+        delta = datetime.timedelta(days=1)
+        if day is None:
+            _ = time.localtime()
+            day = datetime.datetime(year=_.tm_year,
+                                    month=_.tm_mon,
+                                    day=_.tm_mday) - delta
+                                           
+        days = []
+        while len(days) < window:
+            try:
+                fname = download_geo("%s%02i%02i.travel" % (str(day.year)[-2:],
+                                                            day.month,
+                                                            day.day))
+            except Exception:
+                day = day - delta
+                continue
+            day = day - delta
+            days.append(load_model(fname))
+        self._days = [x for x, _ in days]
+        self.num_users = [x for _, x in days]
+
+    def state(self, key):
+        """
+        State that correspons to the postal code.
+        It works only for Mexico.
+
+        >>> from text_models.place import Travel
+        >>> travel = Travel(window=1)
+        >>> travel.state("20900")
+        '01'
+        """
+        if len(key) == 2:
+            return None
+        return self._cp.postal_code_names[key][0]
+
+    
+    def displacement(self, level=None):
+        """
+        Displacement matrix
+
+        :param level: Aggregation function 
+        """
+
+        if level is None:
+            level = self.state
+
+        output = []
+        for day in self._days:
+            matriz = Counter()
+            for origen, destino in day.items():
+                for dest, cnt in destino.items():
+                    ori_code = level(origen)
+                    if ori_code is not None:
+                        matriz.update({ori_code: cnt})
+                    dest_code = level(dest)
+                    if dest_code is not None and dest_code != ori_code:
+                        matriz.update({dest_code: cnt})
+            output.append(matriz)
+        todos = set()
+        [todos.update(list(x.keys())) for x in output]
+        O = defaultdict(list)
+        for matriz in output:
+            s = set(list(matriz.keys()))
+            for x in todos - s:
+                O[x].append(0)
+            [O[k].append(v) for k, v in matriz.items()]
+        return O
 

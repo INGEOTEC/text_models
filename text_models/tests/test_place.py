@@ -53,4 +53,21 @@ def test_postal_code_names():
 
     res = CP._postal_code_names("t.cp")
     assert res["001"] != "MM"
-    os.unlink("t.cp")    
+    os.unlink("t.cp")  
+
+
+def test_travel():
+    from text_models.place import Travel, CP
+    travel = Travel(window=3)
+    assert len(travel._days) == 3
+    print(travel.num_users)
+    assert isinstance(travel._cp, CP)
+
+
+def test_travel_displacement():
+    from text_models.place import Travel, CP
+    travel = Travel(window=3)
+    assert len(travel._days) == 3
+    output = travel.displacement()
+    for v in output.values():
+        assert len(v) == 3
