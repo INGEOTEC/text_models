@@ -287,9 +287,10 @@ class Travel(object):
         >>> travel.country("20900")
         'MX'
         >>> travel.country("US")
-        'US'        
-        """
+        'US'
         
+        """
+
         if len(key) == 5:
             return "MX"
         return key
