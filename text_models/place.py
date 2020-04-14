@@ -233,6 +233,7 @@ class Travel(object):
 
     def __init__(self, day=None, window=30):
         self._cp = CP()
+        self._dates = list()
         delta = datetime.timedelta(days=1)
         if day is None:
             _ = time.localtime()
@@ -249,10 +250,19 @@ class Travel(object):
             except Exception:
                 day = day - delta
                 continue
+            self._dates.append(day)
             day = day - delta
             days.append(load_model(fname))
         self._days = [x for x, _ in days]
         self.num_users = [x for _, x in days]
+        self._days.reverse()
+        self.num_users.reverse()
+        self._dates.reverse()
+
+    @property
+    def dates(self):
+        """Dates used on the analysis"""
+        return self._dates
 
     def state(self, key):
         """

@@ -71,3 +71,14 @@ def test_travel_displacement():
     output = travel.displacement()
     for v in output.values():
         assert len(v) == 3
+
+
+def test_travel_dates():
+    from text_models.place import Travel, CP
+    from datetime import datetime
+    travel = Travel(datetime(year=2020, month=4, day=4),
+                    window=4)
+    print(travel.dates[-1].day, 4)
+    assert travel.dates[-1].day == 4
+    print(travel.dates[0].day, 1)
+    assert travel.dates[0].day == 1
