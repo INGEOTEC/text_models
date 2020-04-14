@@ -278,6 +278,21 @@ class Travel(object):
             return None
         return self._cp.postal_code_names[key][0]
 
+
+    def country(self, key):
+        """
+        Country that correspond to the key.
+        >>> from text_models.place import Travel
+        >>> travel = Travel(window=1)
+        >>> travel.country("20900")
+        'MX'
+        >>> travel.country("US")
+        'US'        
+        """
+        
+        if len(key) == 5:
+            return "MX"
+        return key
     
     def displacement(self, level=None):
         """
