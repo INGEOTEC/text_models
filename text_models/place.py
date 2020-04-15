@@ -236,6 +236,7 @@ class Travel(object):
         self._cp = CP()
         self._dates = list()
         delta = datetime.timedelta(days=1)
+        init = datetime.datetime(year=2015, month=12, day=16)
         if day is None:
             _ = time.localtime()
             day = datetime.datetime(year=_.tm_year,
@@ -243,7 +244,7 @@ class Travel(object):
                                     day=_.tm_mday) - delta
                                            
         days = []
-        while len(days) < window:
+        while len(days) < window and day >= init:
             try:
                 fname = download_geo("%s%02i%02i.travel" % (str(day.year)[-2:],
                                                             day.month,
