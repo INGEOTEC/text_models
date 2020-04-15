@@ -82,3 +82,12 @@ def test_travel_dates():
     assert travel.dates[-1].day == 4
     print(travel.dates[0].day, 1)
     assert travel.dates[0].day == 1
+
+
+def test_travel_init():
+    from text_models.place import Travel, CP
+    from datetime import datetime
+    travel = Travel(datetime(year=2015, month=12, day=18),
+                    window=4)
+    print(len(travel.dates))
+    assert len(travel.dates) == 3
