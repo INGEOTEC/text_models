@@ -16,10 +16,14 @@ from text_models.vocabulary import Vocabulary
 
 
 def test_init():
+    from datetime import datetime
     voc = Vocabulary("191225.voc", lang="En")
     assert voc.date.day == 25
     voc2 = Vocabulary(["191225.voc", "191226.voc"], lang="En")
     assert len(voc2.voc) > len(voc.voc)
+    voc = Vocabulary(datetime(year=2018, month=12, day=24), lang="Es")
+    assert voc.date.day == 24 and voc.date.year == 2018
+
 
 
 def test_create_text_model():

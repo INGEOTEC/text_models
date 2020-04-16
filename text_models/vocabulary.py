@@ -14,6 +14,7 @@
 from microtc.utils import load_model, tweet_iterator
 from text_models.utils import download
 from collections import defaultdict
+from datetime import datetime
 
 
 class Vocabulary(object):
@@ -55,20 +56,36 @@ class Vocabulary(object):
         self._tm_args = tm_args
         self._init(data)
 
+    def __filename(self, date):
+        """
+        :param date: Transform datetime instance into the filename
+        :type date: str or datetime
+        """
+        
+        if isinstance(date, datetime):
+            return "%s%02i%02i.voc" % (str(date.year)[-2:], date.month, date.day)
+        return date
+
     def _init(self, data):
         """
         Process the :py:attr:`data` to create a :py:class:`microtc.utils.Counter` 
         """
 
-        if isinstance(data, str):
-            self._fname = download(data, lang=self._lang, country=self._country)
+        if isinstance(data, str) or isinstance(data, datetime):
+            self._fname = download(self.__filename(data),
+                                   lang=self._lang, country=self._country)
             self.voc = load_model(self._fname)
-            self._date = self.get_date(data)
+            if isinstance(data, str):
+                self._date = self.get_date(data)
+            else:
+                self._date = data
         elif isinstance(data, list):
             cum = data.pop()
-            if isinstance(cum, str):
-                cum = load_model(download(cum, lang=self._lang, country=self._country))
+            if isinstance(cum, str) or isinstance(data, datetime):
+                cum = load_model(download(self.__filename(cum),
+                                          lang=self._lang, country=self._country))
             for x in data:
+                x = self.__filename(x)
                 xx = load_model(download(x, lang=self._lang, country=self._country)) if isinstance(x, str) else x
                 cum = cum + xx
             self.voc = cum
