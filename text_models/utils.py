@@ -91,11 +91,14 @@ def download(fname, lang="Es", country=None, cache=True):
 
     >>> voc = load_model(download("191225.voc", lang="Es"))
     >>> voc2 = load_model(download(config[0]["weekday_Es"]["0"][0]))
+
     """
 
     from os.path import isdir, join, isfile, dirname
     import os
-    from urllib import request    
+    from urllib import request
+    from urllib.error import HTTPError
+
     assert lang in ["Ar", "En", "Es"]
     diroutput = join(dirname(__file__), 'data')
     if not isdir(diroutput):
@@ -121,7 +124,10 @@ def download(fname, lang="Es", country=None, cache=True):
             path = "http://ingeotec.mx/~mgraffg/vocabulary/%s/%s/%s" % (lang, country, fname)
         else:
             path = "http://ingeotec.mx/~mgraffg/vocabulary/%s/%s" % (lang, fname)
-        request.urlretrieve(path, output)          
+        try:
+            request.urlretrieve(path, output)
+        except HTTPError:
+            raise Exception(path)                     
     return output
     
 

@@ -91,3 +91,12 @@ def test_travel_init():
                     window=4)
     print(len(travel.dates))
     assert len(travel.dates) == 3
+
+
+def test_utils_download():
+    from text_models.utils import download
+    try:
+        download("fail")
+    except Exception:
+        return
+    assert False
