@@ -106,6 +106,25 @@ def point(longitude, latitude):
     return np.radians(latitude), np.radians(longitude)
 
 
+def location(x):
+    """
+    Location of a tweet. In the case, it is a bounding box
+    the location is the average.
+    :param x: Tweet
+    :type x: dict
+    :rtype: tuple
+    """
+    long_lat = x.get('coordinates', None)
+    if long_lat is None:
+        place = x["place"]
+        bbox = place.get("bounding_box", dict()).get("coordinates")
+        bbox = np.array([point(*x) for x in bbox[0]])
+        b = bbox.mean(axis=0).tolist()            
+    else:
+        b = point(*long_lat)
+    return b    
+
+
 class CP(object):
     """
     Mexico Postal Codes
@@ -156,14 +175,8 @@ class CP(object):
         :return: Postal Code
         :rtype: str
         """
-        long_lat = x.get('coordinates', None)
-        if long_lat is None:
-            place = x["place"]
-            bbox = place.get("bounding_box", dict()).get("coordinates")
-            bbox = np.array([point(*x) for x in bbox[0]])
-            b = bbox.mean(axis=0).tolist()            
-        else:
-            b = point(*long_lat)
+
+        b = location(x)
         return self.postal_code(b[0], b[1], degrees=False)
 
     @staticmethod
