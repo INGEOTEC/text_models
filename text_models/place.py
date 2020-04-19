@@ -281,6 +281,14 @@ class Travel(object):
         """Dates used on the analysis"""
         return self._dates
 
+    @property
+    def travel_matrices(self):
+        """
+        List of origin-destination matrix
+        """
+
+        return self._days
+
     def state(self, key):
         """
         State that correspons to the postal code.
@@ -324,7 +332,7 @@ class Travel(object):
             level = self.state
 
         output = []
-        for day in self._days:
+        for day in self.travel_matrices:
             matriz = Counter()
             for origen, destino in day.items():
                 for dest, cnt in destino.items():
@@ -344,4 +352,31 @@ class Travel(object):
                 O[x].append(0)
             [O[k].append(v) for k, v in matriz.items()]
         return O
+
+    def outward(self, level=None):
+        """
+        Outward travels in an origin-destination matrix
+        
+        :param level: Aggregation function
+        :rtype: list
+        """
+
+        if level is None:
+            level = self.state
+
+        output = []
+        for day in self.travel_matrices:
+            matrix = defaultdict(Counter)
+            for origen, destino in day.items():
+                ori_code = level(origen)
+                if ori_code is None:
+                    continue
+                for dest, cnt in destino.items():
+                    dest_code = level(dest)
+                    if dest_code is None:
+                        continue
+                    travel = matrix[ori_code]
+                    travel.update({dest_code: cnt})
+            output.append(matrix)
+        return output
 

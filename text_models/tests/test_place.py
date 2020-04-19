@@ -100,3 +100,11 @@ def test_utils_download():
     except Exception:
         return
     assert False
+
+
+def test_travel_outward():
+    from text_models.place import Travel
+    from datetime import datetime
+    travel = Travel(window=4)
+    matrix = travel.outward(travel.country)
+    assert matrix[-1]["MX"]
