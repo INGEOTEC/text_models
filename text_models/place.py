@@ -110,6 +110,7 @@ def location(x):
     """
     Location of a tweet. In the case, it is a bounding box
     the location is the average.
+
     :param x: Tweet
     :type x: dict
     :rtype: tuple
@@ -121,6 +122,7 @@ def location(x):
         bbox = np.array([point(*x) for x in bbox[0]])
         b = bbox.mean(axis=0).tolist()            
     else:
+        long_lat = long_lat.get("coordinates")
         b = point(*long_lat)
     return b    
 
@@ -131,7 +133,7 @@ class CP(object):
     
     >>> from text_models.place import CP
     >>> cp = CP()
-    >>> tw = dict(coordinates=[-99.191996,19.357102])
+    >>> tw = dict(coordinates=dict(coordinates=[-99.191996,19.357102]))
     >>> cp.convert(tw)
     '01040'
     >>> box = dict(place=dict(bounding_box=dict(coordinates=[[[-99.191996,19.357102],[-99.191996,19.404124],[-99.130965,19.404124],[-99.130965,19.357102]]])))
