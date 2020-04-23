@@ -61,7 +61,6 @@ def test_travel():
     travel = Travel(window=3)
     assert len(travel._days) == 3
     print(travel.num_users)
-    assert isinstance(travel._cp, CP)
 
 
 def test_travel_displacement():
@@ -108,3 +107,42 @@ def test_travel_outward():
     travel = Travel(window=4)
     matrix = travel.outward(travel.country)
     assert matrix[-1]["MX"]
+
+
+def test_bounding_box_label():
+    from text_models.place import BoundingBox, CP
+
+    bbox = BoundingBox()
+    cp = CP()
+    position = [cp.lat[0], cp.lon[0]]
+    label = bbox.label(dict(country="MX", position=position))
+    assert label[:2] == "MX"
+    label = bbox.label(dict(country="xX", position=position))
+    assert label == "xX"
+
+
+def test_bounding_box_postal_code():
+    from text_models.place import BoundingBox
+
+    bbox = BoundingBox()
+    label = bbox.label(dict(country="MX",
+                            position=[0.34387610272769614,
+                                      -1.76610232121455]))
+    pc = bbox.postal_code(label)
+    assert pc == "58000"
+
+
+def test_bounding_box_city():
+    from text_models.place import BoundingBox
+
+    bbox = BoundingBox()
+    city = bbox.city('MX:6435')
+    assert city == "16053"
+    city = bbox.city('MX:6435')
+    assert city == "16053"
+    city = bbox.city("US")
+    assert city == "US"
+
+
+# if __name__ == "__main__":
+#     test_bounding_box_city()

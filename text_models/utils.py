@@ -73,7 +73,7 @@ def download_geo(day):
     fname = join(diroutput, day)
     if isfile(fname):
       return fname
-    path = "http://ingeotec.mx/~mgraffg/geo/%s" % day
+    path = "http://ingeotec.mx/~mgraffg/geov2/%s" % day
     try:
       request.urlretrieve(path, fname)
     except HTTPError:
