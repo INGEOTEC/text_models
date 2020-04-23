@@ -248,7 +248,7 @@ class Travel(object):
     """
 
     def __init__(self, day=None, window=30):
-        self._cp = CP()
+        self._bbox = BoundingBox()
         self._dates = list()
         delta = datetime.timedelta(days=1)
         init = datetime.datetime(year=2015, month=12, day=16)
@@ -277,6 +277,12 @@ class Travel(object):
         self._dates.reverse()
 
     @property
+    def bounding_box(self):
+        """Bounding box"""
+
+        return self._bbox
+
+    @property
     def dates(self):
         """Dates used on the analysis"""
         return self._dates
@@ -296,13 +302,14 @@ class Travel(object):
 
         >>> from text_models.place import Travel
         >>> travel = Travel(window=1)
-        >>> travel.state("20900")
-        '01'
+        >>> travel.state('MX:6435')
+        '16'
         """
-        if len(key) == 2:
-            return None
-        return self._cp.postal_code_names[key][0]
 
+        res = self.bounding_box.city(key)
+        if res == key:
+            return None
+        return res[:2]
 
     def country(self, key):
         """
@@ -310,16 +317,12 @@ class Travel(object):
         
         >>> from text_models.place import Travel
         >>> travel = Travel(window=1)
-        >>> travel.country("20900")
+        >>> travel.country('MX:6435')
         'MX'
-        >>> travel.country("US")
-        'US'
         
         """
 
-        if len(key) == 5:
-            return "MX"
-        return key
+        return key[:2]
     
     def displacement(self, level=None):
         """
@@ -380,3 +383,94 @@ class Travel(object):
             output.append(matrix)
         return output
 
+
+class BoundingBox(object):
+    """
+    The lowest resolution, on mobility, is the centroids of
+    the bounding box provided by Twitter. Each centroid is
+    associated with a label. This class provides this mapping
+    between the geo-localization and the centroids label. 
+    """
+
+    def __init__(self):
+        path = join(dirname(__file__), "data", "bbox.dict")
+        self._bbox = load_model(path)
+
+    @property
+    def bounding_box(self):
+        """
+        Bounding box data
+        """
+
+        return self._bbox
+
+    @property
+    def pc(self):
+        """Postal code"""
+
+        try:
+            return self._cp
+        except AttributeError:
+            cp = CP()
+            self._postal_code_names = cp.postal_code_names
+            label = self.label
+            self._cp = {label(dict(country="MX", position=[lat, lon])): cp
+                        for cp, lat, lon in zip(cp.cp, cp.lat, cp.lon)}
+        return self._cp
+
+    def city(self, label):
+        """
+        Mexico cities 
+        """
+
+        try:
+            code = self.postal_code(label)
+            data = self._postal_code_names[code]
+            return "%s%s" % (data[0], data[2])
+        except KeyError:
+            return label
+
+    def postal_code(self, label):
+        """
+        Mexico postal code given a label
+
+        :param label: Bounding box label
+        :type label: str
+
+        >>> from text_models.place import BoundingBox
+        >>> bbox = BoundingBox()
+        >>> bbox.postal_code('MX:6435')
+        '58000'
+
+        """
+        return self.pc[label]
+
+    def label(self, data):
+        """
+        The label of the closest bounding-box centroid to data
+
+        :param data: A dictionary containing the country and the position
+        :type data: dict
+
+        >>> from text_models.place import BoundingBox
+        >>> bbox = BoundingBox()
+        >>> bbox.label(dict(country="MX", position=[0.34387610272769614, -1.76610232121455]))
+        'MX:6435'
+
+        """ 
+
+        country = data["country"]
+        try:
+            bbox = self.bounding_box[country]
+            pos = data["position"]
+            mask = np.fabs(bbox - pos).sum(axis=1) == 0
+            index = np.where(mask)[0]
+            if index.shape[0] == 1:
+                acl = "%s:%s" % (country, index[0])
+            else:
+                acl = np.argmin(distance(bbox[:, 0], bbox[:, 1],
+                                         pos[0], pos[1]))
+                acl = "%s:%s" % (country, acl)            
+            return acl
+        except KeyError:
+            return country
