@@ -144,5 +144,15 @@ def test_bounding_box_city():
     assert city == "US"
 
 
+def test_bounding_box_city_bug():
+    from text_models.place import BoundingBox
+
+    bbox = BoundingBox()
+    code = "MX:8680"
+    city = bbox.city(code)
+    print(code, city)
+    assert city != code
+
+
 # if __name__ == "__main__":
 #     test_bounding_box_city()

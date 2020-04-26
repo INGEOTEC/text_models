@@ -413,9 +413,11 @@ class BoundingBox(object):
         except AttributeError:
             cp = CP()
             self._postal_code_names = cp.postal_code_names
-            label = self.label
-            self._cp = {label(dict(country="MX", position=[lat, lon])): cp
-                        for cp, lat, lon in zip(cp.cp, cp.lat, cp.lon)}
+            d = dict()
+            for key, (lat, lon) in enumerate(self.bounding_box["MX"]):
+                index = np.argmin(distance(cp.lat, cp.lon, lat, lon))
+                d["MX:%s" % key] = cp.cp[index]
+            self._cp = d
         return self._cp
 
     def city(self, label):
