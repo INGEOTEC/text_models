@@ -323,6 +323,23 @@ class Travel(object):
         """
 
         return key[:2]
+
+    @staticmethod
+    def fill_with_zero(output):
+        """
+        Fill mobility matrix with zero when a particular destination
+        is not present in everyday.
+        """
+
+        todos = set()
+        [todos.update(list(x.keys())) for x in output]
+        O = defaultdict(list)
+        for matriz in output:
+            s = set(list(matriz.keys()))
+            for x in todos - s:
+                O[x].append(0)
+            [O[k].append(v) for k, v in matriz.items()]
+        return O
     
     def displacement(self, level=None):
         """
@@ -338,23 +355,39 @@ class Travel(object):
         for day in self.travel_matrices:
             matriz = Counter()
             for origen, destino in day.items():
+                ori_code = level(origen)
                 for dest, cnt in destino.items():
-                    ori_code = level(origen)
                     if ori_code is not None:
                         matriz.update({ori_code: cnt})
                     dest_code = level(dest)
                     if dest_code is not None and dest_code != ori_code:
                         matriz.update({dest_code: cnt})
             output.append(matriz)
-        todos = set()
-        [todos.update(list(x.keys())) for x in output]
-        O = defaultdict(list)
-        for matriz in output:
-            s = set(list(matriz.keys()))
-            for x in todos - s:
-                O[x].append(0)
-            [O[k].append(v) for k, v in matriz.items()]
-        return O
+        return self.fill_with_zero(output)
+
+    def inside_mobility(self, level=None):
+        """
+        Mobility inside the region defined by level
+
+        :param level: Aggregation function
+        """
+
+        if level is None:
+            level = self.state
+
+        output = []
+        for day in self.travel_matrices:
+            matriz = Counter()
+            for origen, destino in day.items():
+                ori_code = level(origen)
+                if ori_code is None:
+                    continue
+                for dest, cnt in destino.items():
+                    dest_code = level(dest)
+                    if dest_code == ori_code:
+                        matriz.update({ori_code: cnt})
+            output.append(matriz)
+        return self.fill_with_zero(output)        
 
     def outward(self, level=None):
         """

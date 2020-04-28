@@ -154,5 +154,13 @@ def test_bounding_box_city_bug():
     assert city != code
 
 
+def test_travel_inside_movility():
+    from text_models.place import Travel
+    from datetime import datetime
+    travel = Travel(window=4)
+    dis = travel.displacement(travel.country)
+    inside = travel.inside_mobility(travel.country)
+    assert sum(dis["MX"]) > sum(inside["MX"])
+
 # if __name__ == "__main__":
 #     test_bounding_box_city()
