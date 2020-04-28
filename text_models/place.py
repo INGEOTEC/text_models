@@ -349,7 +349,7 @@ class Travel(object):
         """
 
         if level is None:
-            level = self.state
+            level = self.country
 
         output = []
         for day in self.travel_matrices:
@@ -373,7 +373,7 @@ class Travel(object):
         """
 
         if level is None:
-            level = self.state
+            level = self.country
 
         output = []
         for day in self.travel_matrices:
@@ -398,7 +398,7 @@ class Travel(object):
         """
 
         if level is None:
-            level = self.state
+            level = self.country
 
         output = []
         for day in self.travel_matrices:
@@ -414,6 +414,37 @@ class Travel(object):
                     travel = matrix[ori_code]
                     travel.update({dest_code: cnt})
             output.append(matrix)
+        return output
+
+    def group_by_weekday(self, data):
+        """
+        Group the data by weekday works on a list of dictionaries
+        where the value of the dictionary is a number.
+
+        :param data: List of dictionaries, e.g., :py:func:`text_models.Place.inside_mobility`
+        :type data: list
+        :rtype: dict
+        """
+        output = dict()
+        for key, values in data.items():
+            weekday = defaultdict(list)
+            [weekday[d.weekday()].append(v)
+             for d, v in zip(self.dates, values)]
+            output[key] = weekday
+        return output
+
+    def median_weekday(self, weekday_data):
+        """
+        Apply the median to the weekday data.
+
+        :param weekday_data: Data from :py:func:`text_models.Place.group_by_weekday`
+        :type weekday_data: dict
+        :rtype: dict
+        """
+
+        output = dict()
+        for key, data in weekday_data.items():
+            output[key] = {k: np.median(v) for k, v in data.items()}
         return output
 
 

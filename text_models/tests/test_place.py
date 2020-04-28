@@ -162,5 +162,25 @@ def test_travel_inside_movility():
     inside = travel.inside_mobility(travel.country)
     assert sum(dis["MX"]) > sum(inside["MX"])
 
-# if __name__ == "__main__":
-#     test_bounding_box_city()
+
+def test_travel_weekday():
+    from text_models.place import Travel
+    travel = Travel(window=21)
+    inside = travel.inside_mobility(travel.country)
+    baseline = travel.group_by_weekday(inside)
+    for wk in range(7):
+        _ = baseline["MX"][wk]
+        print(_)
+        assert sum(_) > 0
+
+
+def test_travel_median_weekday():
+    from text_models.place import Travel
+    travel = Travel(window=21)
+    inside = travel.inside_mobility(travel.country)
+    _ = travel.group_by_weekday(inside)
+    baseline = travel.median_weekday(_)    
+    for wk in range(7):
+        _ = baseline["MX"][wk]
+        print(_)
+        assert _ > 0    
