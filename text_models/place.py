@@ -17,7 +17,7 @@ import numpy as np
 from os.path import join, dirname
 import time
 import datetime
-from .utils import download_geo
+from .utils import download_geo, Gaussian
 from collections import defaultdict, Counter
 EARTH_RADIUS = 6371.009
 
@@ -124,7 +124,33 @@ def location(x):
     else:
         long_lat = long_lat.get("coordinates")
         b = point(*long_lat)
-    return b    
+    return b
+
+
+def length(x):
+    """
+    Bounding box length
+
+    :param x: Tweet
+    :type x: dict
+    :rtype: float
+
+    >>> from text_models.place import length
+    >>> bbox = dict(place=dict(bounding_box=dict(coordinates=[[[-99.191996,19.357102],[-99.191996,19.404124],[-99.130965,19.404124],[-99.130965,19.357102]]])))
+    >>> length(bbox)
+    8.26567850078472
+
+    """  
+    long_lat = x.get('coordinates', None)
+    if long_lat is not None:
+        return 0
+
+    place = x["place"]
+    bbox = place.get("bounding_box", dict()).get("coordinates")
+    bbox = np.array([point(*x) for x in bbox[0]])
+    uno = bbox[0]
+    dos = bbox[2]
+    return distance(uno[0], uno[1], dos[0], dos[1])
 
 
 class CP(object):
@@ -421,7 +447,7 @@ class Travel(object):
         Group the data by weekday works on a list of dictionaries
         where the value of the dictionary is a number.
 
-        :param data: List of dictionaries, e.g., :py:func:`text_models.Place.inside_mobility`
+        :param data: List of dictionaries, e.g., :py:func:`text_models.place.Travel.inside_mobility`
         :type data: list
         :rtype: dict
         """
@@ -437,7 +463,7 @@ class Travel(object):
         """
         Apply the median to the weekday data.
 
-        :param weekday_data: Data from :py:func:`text_models.Place.group_by_weekday`
+        :param weekday_data: Data from :py:func:`text_models.place.Travel.group_by_weekday`
         :type weekday_data: dict
         :rtype: dict
         """
@@ -445,6 +471,63 @@ class Travel(object):
         output = dict()
         for key, data in weekday_data.items():
             output[key] = {k: np.median(v) for k, v in data.items()}
+        return output
+
+    def percentage_by_weekday(self, data, baseline):
+        """
+        Computes the percentage of :py:attr:`data` using the baseline
+
+        :param data: Mobility data
+        :type data: dict
+        :param baseline: Baseline used to compute the percentage, e.g., :py:func:`text_models.place.Travel.median_weekday`
+        :type baseline: dict
+
+        """
+
+        wdays = [d.weekday() for d in self.dates]
+        output = dict()
+        for key, value in data.items():
+            base = baseline[key]
+            _ = [100 * (v - base[wd]) / base[wd] for wd, v in zip(wdays, value)]
+            output[key] = _
+        return output
+
+    def prob_weekday(self, weekday_data):
+        """
+        Normal distribution of weekday data.
+
+        :param weekday_data: Data from :py:func:`text_models.place.Travel.group_by_weekday`
+        :type weekday_data: dict
+        :rtype: dict
+        """
+
+        output = dict()
+        for key, data in weekday_data.items():
+            output[key] = {k: Gaussian().fit(v) for k, v in data.items()}
+        return output
+
+    def probability_by_weekday(self, data, baseline):
+        """
+        Computes the probability of :py:attr:`data` using the baseline
+
+        :param data: Mobility data
+        :type data: dict
+        :param baseline: Baseline used to compute the percentage, e.g., :py:func:`text_models.place.Travel.prob_weekday`
+        :type baseline: dict
+
+        """
+
+        wdays = np.array([d.weekday() for d in self.dates])
+        output = dict()
+        for key, value in data.items():
+            base = baseline[key]
+            value = np.atleast_1d(value)
+            r = np.zeros(value.shape)
+            for wd in range(7):
+                m = wdays == wd
+                _ = base[wd].predict_proba(value[m])
+                r[m] = _
+            output[key] = r
         return output
 
 
