@@ -183,4 +183,44 @@ def test_travel_median_weekday():
     for wk in range(7):
         _ = baseline["MX"][wk]
         print(_)
-        assert _ > 0    
+        assert _ > 0
+
+
+def test_travel_percentage_by_weekday():
+    from text_models.place import Travel
+    import numpy as np
+    travel = Travel(window=21)
+    inside = travel.inside_mobility(travel.country)
+    _ = travel.group_by_weekday(inside)
+    baseline = travel.median_weekday(_)
+    print(len(inside), inside["MX"])
+    output = travel.percentage_by_weekday(inside, baseline)
+    for k in ["MX", "US"]:
+        v = output[k]
+        print(v)
+        assert len([1 for x in v if x == 0]) == 7
+
+
+def test_travel_prob_weekday():
+    from text_models.utils import Gaussian
+    from text_models.place import Travel
+    import numpy as np
+    travel = Travel(window=21)
+    inside = travel.inside_mobility(travel.country)
+    _ = travel.group_by_weekday(inside)
+    baseline = travel.prob_weekday(_)
+    print(baseline["MX"][0])
+    for wk in range(7):
+        assert isinstance(baseline["MX"][wk], Gaussian)
+    output = travel.probability_by_weekday(inside, baseline)
+    assert np.all(output["MX"] > 0.01)
+
+
+def test_gaussian():
+    import numpy as np
+    from text_models.utils import Gaussian
+    g = Gaussian().fit(np.random.random(100))
+    print(g._mu, g._std)
+    _ = g.predict_proba([0.1, 0.4, 0.41, 0.5, 10., -10])
+    assert np.all(_[-2:] < 1e-6)
+    assert np.all(_[:-2] > 0)

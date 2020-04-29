@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from sklearn.metrics import f1_score, recall_score
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, norm
 import numpy as np
+
 
 
 def macro_f1(y, hy):
@@ -131,4 +132,40 @@ def download(fname, lang="Es", country=None, cache=True):
     return output
     
 
+class Gaussian(object):
+    """
+    Gaussian distribution
+    
+    >>> from text_models.utils import Gaussian
+    >>> g = Gaussian().fit([1, 2, 1.4, 2.1, 2.3])
+    >>> g.predict_proba([2.15])
+    array([0.42050953])
+
+    """
+    def fit(self, X):
+        """
+        Fit the model 
+        
+        :param X: Data
+        :type X: list
+
+        """
+
+        self._mu = np.mean(X)
+        self._std = np.std(X)
+        return self
+
+    def predict_proba(self, X):
+        """
+        Predict the probability of X
+
+        :param X: Data
+        :type X: list
+        """
+
+        X = np.atleast_1d(X)
+        r = norm.cdf(X, loc=self._mu, scale=self._std)
+        m = r > 0.5
+        r[m] = 1 - r[m]
+        return 2 * r
         
