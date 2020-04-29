@@ -354,7 +354,7 @@ class Travel(object):
     def fill_with_zero(output):
         """
         Fill mobility matrix with zero when a particular destination
-        is not present in everyday.
+        is not present.
         """
 
         todos = set()
@@ -459,15 +459,16 @@ class Travel(object):
             output[key] = weekday
         return output
 
-    def median_weekday(self, weekday_data):
+    def median_weekday(self, data):
         """
         Apply the median to the weekday data.
 
-        :param weekday_data: Data from :py:func:`text_models.place.Travel.group_by_weekday`
-        :type weekday_data: dict
+        :param weekday_data: Data, e.g., :py:func:`text_models.place.Travel.displacement`
+        :type data: dict
         :rtype: dict
         """
 
+        weekday_data = self.group_by_weekday(data)
         output = dict()
         for key, data in weekday_data.items():
             output[key] = {k: np.median(v) for k, v in data.items()}
@@ -492,15 +493,16 @@ class Travel(object):
             output[key] = _
         return output
 
-    def prob_weekday(self, weekday_data):
+    def prob_weekday(self, data):
         """
         Normal distribution of weekday data.
 
-        :param weekday_data: Data from :py:func:`text_models.place.Travel.group_by_weekday`
-        :type weekday_data: dict
+        :param data: Data, e.g., :py:func:`text_models.place.Travel.inside_mobility`
+        :type data: dict
         :rtype: dict
         """
 
+        weekday_data = self.group_by_weekday(data)
         output = dict()
         for key, data in weekday_data.items():
             output[key] = {k: Gaussian().fit(v) for k, v in data.items()}
@@ -533,10 +535,10 @@ class Travel(object):
 
 class BoundingBox(object):
     """
-    The lowest resolution, on mobility, is the centroids of
+    The lowest resolution, on mobility, is the centroid of
     the bounding box provided by Twitter. Each centroid is
-    associated with a label. This class provides this mapping
-    between the geo-localization and the centroids label. 
+    associated with a label. This class provides the mapping
+    between the geo-localization and the centroid's label. 
     """
 
     def __init__(self):
@@ -596,7 +598,7 @@ class BoundingBox(object):
 
     def label(self, data):
         """
-        The label of the closest bounding-box centroid to data
+        The label of the closest bounding-box centroid to the data
 
         :param data: A dictionary containing the country and the position
         :type data: dict
