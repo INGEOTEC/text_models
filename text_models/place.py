@@ -467,11 +467,25 @@ class Travel(object):
         :type data: dict
         :rtype: dict
         """
+        class T(object):
+            def __init__(this, data):
+                this.data = data
+                this.wdays = np.array([d.weekday() for d in self.dates])
+
+            def transform(self, value):
+                wdays = self.wdays
+                value = np.atleast_1d(value)
+                r = np.zeros(value.shape)
+                for wd in range(7):
+                    m = wdays == wd
+                    _ = (value[m] - self.data[wd]) / self.data[wd]
+                    r[m] = _
+                return r * 100.
 
         weekday_data = self.group_by_weekday(data)
         output = dict()
         for key, data in weekday_data.items():
-            output[key] = {k: np.median(v) for k, v in data.items()}
+            output[key] = T({k: np.median(v) for k, v in data.items()})
         return output
 
     def percentage_by_weekday(self, data, baseline):
@@ -485,13 +499,7 @@ class Travel(object):
 
         """
 
-        wdays = [d.weekday() for d in self.dates]
-        output = dict()
-        for key, value in data.items():
-            base = baseline[key]
-            _ = [100 * (v - base[wd]) / base[wd] for wd, v in zip(wdays, value)]
-            output[key] = _
-        return output
+        return self._apply(data, baseline)
 
     def prob_weekday(self, data):
         """
@@ -501,11 +509,24 @@ class Travel(object):
         :type data: dict
         :rtype: dict
         """
+        class T(object):
+            def __init__(this, data):
+                this.data = data
+                this.wdays = np.array([d.weekday() for d in self.dates])
+
+            def transform(self, value):
+                wdays = self.wdays
+                value = np.atleast_1d(value)
+                r = np.zeros(value.shape)
+                for wd in range(7):
+                    m = wdays == wd
+                    r[m] = self.data[wd].predict_proba(value[m])
+                return r
 
         weekday_data = self.group_by_weekday(data)
         output = dict()
         for key, data in weekday_data.items():
-            output[key] = {k: Gaussian().fit(v) for k, v in data.items()}
+            output[key] = T({k: Gaussian().fit(v) for k, v in data.items()})
         return output
 
     def probability_by_weekday(self, data, baseline):
@@ -519,18 +540,18 @@ class Travel(object):
 
         """
 
-        wdays = np.array([d.weekday() for d in self.dates])
-        output = dict()
-        for key, value in data.items():
-            base = baseline[key]
-            value = np.atleast_1d(value)
-            r = np.zeros(value.shape)
-            for wd in range(7):
-                m = wdays == wd
-                _ = base[wd].predict_proba(value[m])
-                r[m] = _
-            output[key] = r
-        return output
+        return self._apply(data, baseline)
+
+    @staticmethod
+    def _apply(data, func):
+        """
+        :param data: Data to apply :py:attr:`func`
+        :type data: dict
+        :param func: Functions with method transform
+        :type func: dict
+        """
+
+        return {k: func[k].transform(v) for k, v in data.items()}
 
 
 class BoundingBox(object):
