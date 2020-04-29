@@ -183,6 +183,8 @@ def test_travel_median_weekday():
         _ = baseline["MX"]
         print(_)
         assert _.data[wk] > 0
+    for v in baseline.values():
+        v.wdays = [d.weekday() for d in travel.dates]
     y = baseline["MX"].transform(inside["MX"])
     assert len(y) == len(travel.dates)
 
