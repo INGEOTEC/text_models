@@ -468,9 +468,9 @@ class Travel(object):
         :rtype: dict
         """
         class T(object):
-            def __init__(this, data):
-                this.data = data
-                this.wdays = np.array([d.weekday() for d in self.dates])
+            def __init__(self, data):
+                self.data = data
+                # this.wdays = np.array([d.weekday() for d in self.dates])
 
             def transform(self, value):
                 wdays = self.wdays
@@ -499,6 +499,8 @@ class Travel(object):
 
         """
 
+        for v in baseline.values():
+            v.wdays = np.array([d.weekday() for d in self.dates])
         return self._apply(data, baseline)
 
     def prob_weekday(self, data):
@@ -510,9 +512,8 @@ class Travel(object):
         :rtype: dict
         """
         class T(object):
-            def __init__(this, data):
-                this.data = data
-                this.wdays = np.array([d.weekday() for d in self.dates])
+            def __init__(self, data):
+                self.data = data
 
             def transform(self, value):
                 wdays = self.wdays
@@ -539,6 +540,9 @@ class Travel(object):
         :type baseline: dict
 
         """
+
+        for v in baseline.values():
+            v.wdays = np.array([d.weekday() for d in self.dates])
 
         return self._apply(data, baseline)
 
