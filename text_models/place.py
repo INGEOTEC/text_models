@@ -471,7 +471,10 @@ class Mobility(object):
         weekday_data = self.group_by_weekday(data)
         output = dict()
         for key, data in weekday_data.items():
-            output[key] = MobilityTransform({k: np.median(v) for k, v in data.items()})
+            _ = {k: np.median(v) for k, v in data.items()}
+            if sum([1 for v in _.values() if v != 0]) < len(data):
+                continue 
+            output[key] = MobilityTransform(_)
         return output
 
     def weekday_probability(self, data):
@@ -510,7 +513,7 @@ class Mobility(object):
         """
 
         for v in baseline.values():
-            v.travel_instance = self
+            v.mobility_instance = self
         return self._apply(data, baseline)
 
     @staticmethod
@@ -522,7 +525,7 @@ class Mobility(object):
         :type func: dict
         """
 
-        return {k: func[k].transform(v) for k, v in data.items()}
+        return {k: func[k].transform(v) for k, v in data.items() if k in func}
 
 Travel = Mobility
 
