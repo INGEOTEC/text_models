@@ -154,7 +154,7 @@ def test_bounding_box_city_bug():
     assert city != code
 
 
-def test_travel_inside_movility():
+def test_travel_inside_mobility():
     from text_models.place import Travel
     from datetime import datetime
     travel = Travel(window=4)
@@ -174,17 +174,17 @@ def test_travel_weekday():
         assert sum(_) > 0
 
 
-def test_travel_median_weekday():
+def test_travel_weekday_percentage():
     from text_models.place import Travel
     travel = Travel(window=21)
     inside = travel.inside_mobility(travel.country)
-    baseline = travel.median_weekday(inside)    
+    baseline = travel.weekday_percentage(inside)    
     for wk in range(7):
         _ = baseline["MX"]
         print(_)
-        assert _.data[wk] > 0
+        assert _._data[wk] > 0
     for v in baseline.values():
-        v.wdays = [d.weekday() for d in travel.dates]
+        v.travel_instance = travel
     y = baseline["MX"].transform(inside["MX"])
     assert len(y) == len(travel.dates)
 
@@ -194,26 +194,26 @@ def test_travel_percentage_by_weekday():
     import numpy as np
     travel = Travel(window=21)
     inside = travel.inside_mobility(travel.country)
-    baseline = travel.median_weekday(inside)
+    baseline = travel.weekday_percentage(inside)
     print(len(inside), inside["MX"])
-    output = travel.percentage_by_weekday(inside, baseline)
+    output = travel.transform(inside, baseline)
     for k in ["MX", "US"]:
         v = output[k]
         print(v)
         assert len([1 for x in v if x == 0]) == 7
 
 
-def test_travel_prob_weekday():
+def test_travel_weekday_probability():
     from text_models.utils import Gaussian
     from text_models.place import Travel
     import numpy as np
     travel = Travel(window=21)
     inside = travel.inside_mobility(travel.country)
-    baseline = travel.prob_weekday(inside)
-    print(baseline["MX"].data[0])
+    baseline = travel.weekday_probability(inside)
+    print(baseline["MX"]._data[0])
     for wk in range(7):
-        assert isinstance(baseline["MX"].data[wk], Gaussian)
-    output = travel.probability_by_weekday(inside, baseline)
+        assert isinstance(baseline["MX"]._data[wk], Gaussian)
+    output = travel.transform(inside, baseline)
     print(output["MX"])
     assert np.all(output["MX"] > 0.01)
 

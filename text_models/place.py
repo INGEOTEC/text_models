@@ -17,7 +17,7 @@ import numpy as np
 from os.path import join, dirname
 import time
 import datetime
-from .utils import download_geo, Gaussian
+from .utils import download_geo, Gaussian, MobilityTransform
 from collections import defaultdict, Counter
 EARTH_RADIUS = 6371.009
 
@@ -259,7 +259,7 @@ class CP(object):
         return self.postal_code_names[postal_code][1]
 
 
-class Travel(object):
+class Mobility(object):
     """
     Mobility on twitter
 
@@ -268,9 +268,9 @@ class Travel(object):
     :param window: Window used to perform the analysis
     :type window: int
 
-    >>> from text_models.place import Travel
-    >>> travel = Travel(window=5)
-    >>> output = travel.displacement(level=travel.state)
+    >>> from text_models.place import Mobility
+    >>> mobility = Mobility(window=5)
+    >>> output = mobility.displacement(level=mobility.state)
     """
 
     def __init__(self, day=None, window=30):
@@ -326,9 +326,9 @@ class Travel(object):
         State that correspons to the postal code.
         It works only for Mexico.
 
-        >>> from text_models.place import Travel
-        >>> travel = Travel(window=1)
-        >>> travel.state('MX:6435')
+        >>> from text_models.place import Mobility
+        >>> mobility = Mobility(window=1)
+        >>> mobility.state('MX:6435')
         '16'
         """
 
@@ -341,9 +341,9 @@ class Travel(object):
         """
         Country that correspond to the key.
         
-        >>> from text_models.place import Travel
-        >>> travel = Travel(window=1)
-        >>> travel.country('MX:6435')
+        >>> from text_models.place import Mobility
+        >>> mobility = Mobility(window=1)
+        >>> mobility.country('MX:6435')
         'MX'
         
         """
@@ -417,7 +417,7 @@ class Travel(object):
 
     def outward(self, level=None):
         """
-        Outward travels in an origin-destination matrix
+        Outward mobility in an origin-destination matrix
         
         :param level: Aggregation function
         :rtype: list
@@ -447,7 +447,7 @@ class Travel(object):
         Group the data by weekday works on a list of dictionaries
         where the value of the dictionary is a number.
 
-        :param data: List of dictionaries, e.g., :py:func:`text_models.place.Travel.inside_mobility`
+        :param data: List of dictionaries, e.g., :py:func:`text_models.place.Mobility.inside_mobility`
         :type data: list
         :rtype: dict
         """
@@ -459,69 +459,37 @@ class Travel(object):
             output[key] = weekday
         return output
 
-    def median_weekday(self, data):
+    def weekday_percentage(self, data):
         """
-        Apply the median to the weekday data.
+        Compute the percentage of each weekday using the median.
 
-        :param weekday_data: Data, e.g., :py:func:`text_models.place.Travel.displacement`
+        :param data: Data, e.g., :py:func:`text_models.place.Mobility.displacement`
         :type data: dict
         :rtype: dict
         """
-        class T(object):
-            def __init__(self, data):
-                self.data = data
-                # this.wdays = np.array([d.weekday() for d in self.dates])
-
-            def transform(self, value):
-                wdays = self.wdays
-                value = np.atleast_1d(value)
-                r = np.zeros(value.shape)
-                for wd in range(7):
-                    m = wdays == wd
-                    _ = (value[m] - self.data[wd]) / self.data[wd]
-                    r[m] = _
-                return r * 100.
 
         weekday_data = self.group_by_weekday(data)
         output = dict()
         for key, data in weekday_data.items():
-            output[key] = T({k: np.median(v) for k, v in data.items()})
+            output[key] = MobilityTransform({k: np.median(v) for k, v in data.items()})
         return output
 
-    def percentage_by_weekday(self, data, baseline):
-        """
-        Computes the percentage of :py:attr:`data` using the baseline
-
-        :param data: Mobility data
-        :type data: dict
-        :param baseline: Baseline used to compute the percentage, e.g., :py:func:`text_models.place.Travel.median_weekday`
-        :type baseline: dict
-
-        """
-
-        for v in baseline.values():
-            v.wdays = np.array([d.weekday() for d in self.dates])
-        return self._apply(data, baseline)
-
-    def prob_weekday(self, data):
+    def weekday_probability(self, data):
         """
         Normal distribution of weekday data.
 
-        :param data: Data, e.g., :py:func:`text_models.place.Travel.inside_mobility`
+        :param data: Data, e.g., :py:func:`text_models.place.Mobility.inside_mobility`
         :type data: dict
         :rtype: dict
         """
-        class T(object):
-            def __init__(self, data):
-                self.data = data
-
+        class T(MobilityTransform):
             def transform(self, value):
-                wdays = self.wdays
+                wdays = self._wdays
                 value = np.atleast_1d(value)
                 r = np.zeros(value.shape)
                 for wd in range(7):
                     m = wdays == wd
-                    r[m] = self.data[wd].predict_proba(value[m])
+                    r[m] = self._data[wd].predict_proba(value[m])
                 return r
 
         weekday_data = self.group_by_weekday(data)
@@ -530,20 +498,19 @@ class Travel(object):
             output[key] = T({k: Gaussian().fit(v) for k, v in data.items()})
         return output
 
-    def probability_by_weekday(self, data, baseline):
+    def transform(self, data, baseline):
         """
-        Computes the probability of :py:attr:`data` using the baseline
+        Transform data using the baseline
 
         :param data: Mobility data
         :type data: dict
-        :param baseline: Baseline used to compute the percentage, e.g., :py:func:`text_models.place.Travel.prob_weekday`
+        :param baseline: Baseline used to compute the percentage, e.g., :py:func:`text_models.place.Mobility.median_weekday`
         :type baseline: dict
 
         """
 
         for v in baseline.values():
-            v.wdays = np.array([d.weekday() for d in self.dates])
-
+            v.travel_instance = self
         return self._apply(data, baseline)
 
     @staticmethod
@@ -557,6 +524,7 @@ class Travel(object):
 
         return {k: func[k].transform(v) for k, v in data.items()}
 
+Travel = Mobility
 
 class BoundingBox(object):
     """

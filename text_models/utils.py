@@ -168,4 +168,34 @@ class Gaussian(object):
         m = r > 0.5
         r[m] = 1 - r[m]
         return 2 * r
-        
+
+
+class MobilityTransform(object):
+    """
+    Transform travel data
+    """
+
+    def __init__(self, data):
+        self._data = data
+        self._travel_ins = None
+
+    @property
+    def travel_instance(self):
+        """Travel instance"""
+
+        return self._travel_ins
+
+    @travel_instance.setter
+    def travel_instance(self, data):
+        self._travel_ins = data
+        self._wdays = np.array([d.weekday() for d in data.dates])
+
+    def transform(self, data):
+        wdays = self._wdays
+        data = np.atleast_1d(data)
+        r = np.zeros(data.shape)
+        for wd in range(7):
+            m = wdays == wd
+            _ = (data[m] - self._data[wd]) / self._data[wd]
+            r[m] = _
+        return r * 100.
