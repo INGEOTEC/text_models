@@ -126,6 +126,26 @@ def location(x):
         b = point(*long_lat)
     return b
 
+def _length(x):
+    """
+    Lenght between two points
+
+    :param x: Two points
+    :type x: list
+    :rtype: float
+
+    >>> from text_models.place import _length
+    >>> points = [[-103.7420245057158, 17.915988111000047], [-100.1228494938091, 20.403147690813284]]
+    >>> _length(points)
+    470.06161477088165
+
+    """
+
+    points = [point(*_) for _ in x]
+    uno = points[0]
+    dos = points[1]
+    return distance(uno[0], uno[1], dos[0], dos[1])
+
 
 def length(x):
     """
@@ -146,11 +166,8 @@ def length(x):
         return 0
 
     place = x["place"]
-    bbox = place.get("bounding_box", dict()).get("coordinates")
-    bbox = np.array([point(*x) for x in bbox[0]])
-    uno = bbox[0]
-    dos = bbox[2]
-    return distance(uno[0], uno[1], dos[0], dos[1])
+    bbox = place.get("bounding_box", dict()).get("coordinates")[0]
+    return _length([bbox[0], bbox[2]])
 
 
 class CP(object):
