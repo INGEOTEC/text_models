@@ -180,13 +180,13 @@ class MobilityTransform(object):
         self._travel_ins = None
 
     @property
-    def travel_instance(self):
-        """Travel instance"""
+    def mobility_instance(self):
+        """Mobility instance"""
 
         return self._travel_ins
 
-    @travel_instance.setter
-    def travel_instance(self, data):
+    @mobility_instance.setter
+    def mobility_instance(self, data):
         self._travel_ins = data
         self._wdays = np.array([d.weekday() for d in data.dates])
 

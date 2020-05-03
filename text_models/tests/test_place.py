@@ -184,7 +184,7 @@ def test_travel_weekday_percentage():
         print(_)
         assert _._data[wk] > 0
     for v in baseline.values():
-        v.travel_instance = travel
+        v.mobility_instance = travel
     y = baseline["MX"].transform(inside["MX"])
     assert len(y) == len(travel.dates)
 
@@ -201,6 +201,16 @@ def test_travel_percentage_by_weekday():
         v = output[k]
         print(v)
         assert len([1 for x in v if x == 0]) == 7
+
+
+def test_travel_percentage_by_weekday2():
+    from text_models.place import Travel
+    import numpy as np
+    travel = Travel(window=21)
+    inside = travel.inside_mobility(travel.bounding_box.city)
+    baseline = travel.weekday_percentage(inside)
+    print(len(baseline))
+    assert len(baseline) < 14347 
 
 
 def test_travel_weekday_probability():
