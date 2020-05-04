@@ -291,6 +291,8 @@ class Mobility(object):
     """
 
     def __init__(self, day=None, window=30):
+        path = join(dirname(__file__), "data", "bbox.dict")
+        self._states = load_model(path)
         self._bbox = BoundingBox()
         self._dates = list()
         delta = datetime.timedelta(days=1)
@@ -340,15 +342,21 @@ class Mobility(object):
 
     def state(self, key):
         """
-        State that correspons to the postal code.
-        It works only for Mexico.
+        State that correspons to the label.
 
         >>> from text_models.place import Mobility
         >>> mobility = Mobility(window=1)
         >>> mobility.state('MX:6435')
         '16'
-        """
+        >>> mobility.state("CA:12")
+        'CA-ON'
 
+        """
+        if key[:2] != "MX":
+            try:
+                return self._states[key]
+            except KeyError:
+                return None
         res = self.bounding_box.city(key)
         if res == key:
             return None
