@@ -236,3 +236,19 @@ def test_gaussian():
     _ = g.predict_proba([0.1, 0.4, 0.41, 0.5, 10., -10])
     assert np.all(_[-2:] < 1e-6)
     assert np.all(_[:-2] > 0)
+
+
+def test_states():
+    from text_models.place import States, BoundingBox
+
+    bbox = BoundingBox()
+    states = States()
+    data = bbox.bounding_box["MX"]
+    res = states.associate(data, country="MX")
+    assert len(res) == data.shape[0]
+    ags = [[k, x] for k, x in enumerate(res) if x == "MX-AGU"]
+    for k, _ in ags:
+        key = "MX:%s" % k
+        postal_code = bbox.postal_code(key)
+        print(postal_code, k)
+        assert bbox._postal_code_names[postal_code][0] == "01"

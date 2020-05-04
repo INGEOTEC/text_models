@@ -610,6 +610,7 @@ class BoundingBox(object):
         return self.pc[label]
 
     def label(self, data):
+
         """
         The label of the closest bounding-box centroid to the data
 
@@ -638,3 +639,45 @@ class BoundingBox(object):
             return acl
         except KeyError:
             return country
+
+
+class States(object):
+    def __init__(self):
+        from cartopy.io import shapereader
+        fname = shapereader.natural_earth(resolution='10m',
+                                          category='cultural',
+                                          name='admin_1_states_provinces')
+        _ = shapereader.Reader(fname)
+        self._records = {x.attributes["iso_3166_2"]: x for x in _.records()}
+
+    def associate(self, data, country=None):
+        """
+        Associate a array of points with the states. 
+
+        :param data: Array of points in radians (lat, lon)
+        :type data: list
+        :param country: Country using two letters code
+        :type country: str
+
+        """
+        from shapely.geometry import Point
+        records = self._records
+        data = np.rad2deg(data)
+        data = data[:, ::-1]
+        data = [[k, Point(a, b)] for k, (a, b) in enumerate(data)]
+        country = country.upper()
+        keys = {k for k in records.keys() if k[:2] == country}
+        output = []
+        for k in keys:
+            if len(data) == 0:
+                break
+            d = records[k].geometry
+            res = [[i, d.contains(x)] for i, x in data]
+            output.extend([[i, k] for i, flag in res if flag])
+            data = [d for d, (_, flag) in zip(data, res) if not flag]
+        for i, point in data:
+            _ = [[k, records[k].geometry.distance(point)] for k in keys]
+            _.sort(key=lambda x: x[1])
+            output.append([i, _[0][0]])
+        output.sort(key=lambda x: x[0])
+        return [o for _, o in output]
