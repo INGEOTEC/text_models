@@ -291,6 +291,8 @@ class Mobility(object):
     """
 
     def __init__(self, day=None, window=30):
+        path = join(dirname(__file__), "data", "state.dict")
+        self._states = load_model(path)
         self._bbox = BoundingBox()
         self._dates = list()
         delta = datetime.timedelta(days=1)
@@ -340,15 +342,21 @@ class Mobility(object):
 
     def state(self, key):
         """
-        State that correspons to the postal code.
-        It works only for Mexico.
+        State that correspons to the label.
 
         >>> from text_models.place import Mobility
         >>> mobility = Mobility(window=1)
         >>> mobility.state('MX:6435')
         '16'
-        """
+        >>> mobility.state("CA:12")
+        'CA-ON'
 
+        """
+        if key[:2] != "MX":
+            try:
+                return self._states[key]
+            except KeyError:
+                return None
         res = self.bounding_box.city(key)
         if res == key:
             return None
@@ -610,6 +618,7 @@ class BoundingBox(object):
         return self.pc[label]
 
     def label(self, data):
+
         """
         The label of the closest bounding-box centroid to the data
 
@@ -638,3 +647,45 @@ class BoundingBox(object):
             return acl
         except KeyError:
             return country
+
+
+class States(object):
+    def __init__(self):
+        from cartopy.io import shapereader
+        fname = shapereader.natural_earth(resolution='10m',
+                                          category='cultural',
+                                          name='admin_1_states_provinces')
+        _ = shapereader.Reader(fname)
+        self._records = {x.attributes["iso_3166_2"]: x for x in _.records()}
+
+    def associate(self, data, country=None):
+        """
+        Associate a array of points with the states. 
+
+        :param data: Array of points in radians (lat, lon)
+        :type data: list
+        :param country: Country using two letters code
+        :type country: str
+
+        """
+        from shapely.geometry import Point
+        records = self._records
+        data = np.rad2deg(data)
+        data = data[:, ::-1]
+        data = [[k, Point(a, b)] for k, (a, b) in enumerate(data)]
+        country = country.upper()
+        keys = {k for k in records.keys() if k[:2] == country}
+        output = []
+        for k in keys:
+            if len(data) == 0:
+                break
+            d = records[k].geometry
+            res = [[i, d.contains(x)] for i, x in data]
+            output.extend([[i, k] for i, flag in res if flag])
+            data = [d for d, (_, flag) in zip(data, res) if not flag]
+        for i, point in data:
+            _ = [[k, records[k].geometry.distance(point)] for k in keys]
+            _.sort(key=lambda x: x[1])
+            output.append([i, _[0][0]])
+        output.sort(key=lambda x: x[0])
+        return [o for _, o in output]
