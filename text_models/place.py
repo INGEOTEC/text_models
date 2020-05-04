@@ -291,7 +291,7 @@ class Mobility(object):
     """
 
     def __init__(self, day=None, window=30):
-        path = join(dirname(__file__), "data", "bbox.dict")
+        path = join(dirname(__file__), "data", "state.dict")
         self._states = load_model(path)
         self._bbox = BoundingBox()
         self._dates = list()
