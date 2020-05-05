@@ -351,7 +351,7 @@ class Mobility(object):
 
         >>> from text_models.place import Mobility
         >>> mobility = Mobility(window=1)
-        >>> mobility.state('MX:6435', mex_pc=True)
+        >>> mobility.state('MX:6435', mex=True)
         '16'
         >>> mobility.state("CA:12")
         'CA-ON'
