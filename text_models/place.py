@@ -340,27 +340,34 @@ class Mobility(object):
 
         return self._days
 
-    def state(self, key):
+    def state(self, label, mex=False):
         """
         State that correspons to the label.
 
+        :param label: Label of the point
+        :type label: str
+        :param mex_pc: Use Mexico's state identifier
+        :type mex_pc: bool
+
         >>> from text_models.place import Mobility
         >>> mobility = Mobility(window=1)
-        >>> mobility.state('MX:6435')
+        >>> mobility.state('MX:6435', mex_pc=True)
         '16'
         >>> mobility.state("CA:12")
         'CA-ON'
-
+        >>> mobility.state("MX:0")
+        'MX-CHP'
         """
-        if key[:2] != "MX":
-            try:
-                return self._states[key]
-            except KeyError:
+        
+        if label[:2] != "MX" and mex:
+            res = self.bounding_box.city(label)
+            if res == label:
                 return None
-        res = self.bounding_box.city(key)
-        if res == key:
+            return res[:2]
+        try:
+            return self._states[label]
+        except KeyError:
             return None
-        return res[:2]
 
     def country(self, key):
         """
@@ -397,6 +404,15 @@ class Mobility(object):
         Displacement matrix
 
         :param level: Aggregation function 
+        """
+        return self.overall(level=level)
+
+    def overall(self, level=None):
+        """
+        Overall mobility, this counts for outward, inward and inside travels
+        in the region of interest (i.e., level).
+
+        :param level: Aggregation function
         """
 
         if level is None:
@@ -650,6 +666,10 @@ class BoundingBox(object):
 
 
 class States(object):
+    """
+    Auxiliary function to retrieve 
+    the States or Provinces geometries and attributes from Natural Earth.
+    """
     def __init__(self):
         from cartopy.io import shapereader
         fname = shapereader.natural_earth(resolution='10m',
@@ -657,6 +677,12 @@ class States(object):
                                           name='admin_1_states_provinces')
         _ = shapereader.Reader(fname)
         self._records = {x.attributes["iso_3166_2"]: x for x in _.records()}
+
+    def __getitem__(self, key):
+        return self._records[key]
+
+    def name(self, key):
+        return self[key].attributes["name_en"]
 
     def associate(self, data, country=None):
         """

@@ -250,5 +250,8 @@ def test_states():
     for k, _ in ags:
         key = "MX:%s" % k
         postal_code = bbox.postal_code(key)
-        print(postal_code, k)
+        # print(postal_code, k)
         assert bbox._postal_code_names[postal_code][0] == "01"
+    assert states["MX-AGU"] is not None
+    print(states.name("MX-AGU"))
+    assert states.name("MX-AGU") == "Aguascalientes"
