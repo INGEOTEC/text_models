@@ -359,7 +359,7 @@ class Mobility(object):
         'MX-CHP'
         """
         
-        if label[:2] != "MX" and mex:
+        if label[:2] == "MX" and mex:
             res = self.bounding_box.city(label)
             if res == label:
                 return None
