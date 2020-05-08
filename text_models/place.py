@@ -500,6 +500,22 @@ class Mobility(object):
             output[key] = weekday
         return output
 
+    def create_transform(self, data, transformation):
+        """
+        Instantiate the transform class
+        """
+        from .utils import MobilityException
+
+        output = dict()
+        for key, d in data.items():
+            try:
+                ins = transformation()
+                ins.data = d
+                output[key] = ins
+            except MobilityException:
+                continue
+        return output
+
     def weekday_percentage(self, data):
         """
         Compute the percentage of each weekday using the median.
@@ -510,13 +526,7 @@ class Mobility(object):
         """
 
         weekday_data = self.group_by_weekday(data)
-        output = dict()
-        for key, data in weekday_data.items():
-            _ = {k: np.median(v) for k, v in data.items()}
-            if sum([1 for v in _.values() if v != 0]) < len(data):
-                continue 
-            output[key] = MobilityTransform(_)
-        return output
+        return self.create_transform(weekday_data, MobilityTransform)
 
     def weekday_probability(self, data):
         """
@@ -533,14 +543,19 @@ class Mobility(object):
                 r = np.zeros(value.shape)
                 for wd in range(7):
                     m = wdays == wd
-                    r[m] = self._data[wd].predict_proba(value[m])
+                    r[m] = self.data[wd].predict_proba(value[m])
                 return r
 
+            @property
+            def data(self):
+                return self._data
+
+            @data.setter
+            def data(self, value):
+                self._data = {k: Gaussian().fit(v) for k, v in value.items()}
+
         weekday_data = self.group_by_weekday(data)
-        output = dict()
-        for key, data in weekday_data.items():
-            output[key] = T({k: Gaussian().fit(v) for k, v in data.items()})
-        return output
+        return self.create_transform(weekday_data, T)
 
     def transform(self, data, baseline):
         """
@@ -680,6 +695,12 @@ class States(object):
 
     def __getitem__(self, key):
         return self._records[key]
+
+    def keys(self):
+        return self._records.keys()
+
+    def items(self):
+        return self._records.items()
 
     def name(self, key):
         return self[key].attributes["name_en"]

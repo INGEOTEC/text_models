@@ -170,12 +170,16 @@ class Gaussian(object):
         return 2 * r
 
 
+class MobilityException(Exception):
+    pass
+
+
 class MobilityTransform(object):
     """
     Transform travel data
     """
 
-    def __init__(self, data):
+    def __init__(self, data=None):
         self._data = data
         self._travel_ins = None
 
@@ -184,6 +188,18 @@ class MobilityTransform(object):
         """Mobility instance"""
 
         return self._travel_ins
+
+    @property
+    def data(self):
+        """Data to be used on the transformation"""
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        _ = {k: np.median(v) for k, v in value.items()}
+        if sum([1 for v in _.values() if v != 0]) < len(value):
+            raise MobilityException("%s" % len(value))
+        self._data = _
 
     @mobility_instance.setter
     def mobility_instance(self, data):
@@ -196,6 +212,6 @@ class MobilityTransform(object):
         r = np.zeros(data.shape)
         for wd in range(7):
             m = wdays == wd
-            _ = (data[m] - self._data[wd]) / self._data[wd]
+            _ = (data[m] - self.data[wd]) / self.data[wd]
             r[m] = _
         return r * 100.
