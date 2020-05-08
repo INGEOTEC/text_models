@@ -454,18 +454,14 @@ class Mobility(object):
                     if dest_code == ori_code:
                         matriz.update({ori_code: cnt})
             output.append(matriz)
-        return self.fill_with_zero(output)        
+        return self.fill_with_zero(output)
 
-    def outward(self, level=None):
+    def inside_outward(self, level):
         """
-        Outward mobility in an origin-destination matrix
-        
+        Inside and outward mobility
+
         :param level: Aggregation function
-        :rtype: list
         """
-
-        if level is None:
-            level = self.country
 
         output = []
         for day in self.travel_matrices:
@@ -481,6 +477,24 @@ class Mobility(object):
                     travel = matrix[ori_code]
                     travel.update({dest_code: cnt})
             output.append(matrix)
+        return output
+
+    def outward(self, level=None):
+        """
+        Outward mobility in an origin-destination matrix
+        
+        :param level: Aggregation function
+        :rtype: list
+        """
+
+        if level is None:
+            level = self.country
+
+        output = self.inside_outward(level=level)
+        for data in output:
+          for k, dest in data.items():
+            if k in dest:
+              del dest[k]
         return output
 
     def group_by_weekday(self, data):
