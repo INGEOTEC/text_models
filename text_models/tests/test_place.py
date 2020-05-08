@@ -220,9 +220,9 @@ def test_travel_weekday_probability():
     travel = Travel(window=21)
     inside = travel.inside_mobility(travel.country)
     baseline = travel.weekday_probability(inside)
-    print(baseline["MX"]._data[0])
+    print(baseline["MX"].data[0])
     for wk in range(7):
-        assert isinstance(baseline["MX"]._data[wk], Gaussian)
+        assert isinstance(baseline["MX"].data[wk], Gaussian)
     output = travel.transform(inside, baseline)
     print(output["MX"])
     assert np.all(output["MX"] > 0.01)
@@ -255,3 +255,5 @@ def test_states():
     assert states["MX-AGU"] is not None
     print(states.name("MX-AGU"))
     assert states.name("MX-AGU") == "Aguascalientes"
+    assert states.keys()
+    assert states.items()
