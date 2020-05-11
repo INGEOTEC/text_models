@@ -16,7 +16,7 @@ Mobility
       :alt: Documentation Status
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-		:target: https://colab.research.google.com/github/INGEOTEC/EvoMSA/blob/develop/docs/Mobility.ipynb	 
+		:target: https://colab.research.google.com/github/INGEOTEC/text_models/blob/develop/docs/Mobility.ipynb	 
 
 This module deals with the process of measuring human mobility 
 through Twitter's data. It processes the information provided 
