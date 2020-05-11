@@ -20,9 +20,12 @@ Mobility
 
 This module deals with the process of measuring human mobility 
 through Twitter's data. It processes the information provided 
-by Twitter and provides the displacement in the different ways, 
+by Twitter and provides the displacement in different ways, 
 such as the number of travels in an origin-destination matrix, 
-the overall mobility, and the outward mobility. 
+the overall mobility, and the outward mobility. To have an overview 
+of the information that can be obtained from this module, we refer 
+the reader to the 
+`notebook <https://colab.research.google.com/github/INGEOTEC/text_models/blob/develop/docs/Mobility.ipynb>`_.  
 
 
 :mod:`text_models.place`
