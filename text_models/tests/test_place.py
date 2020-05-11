@@ -106,7 +106,9 @@ def test_travel_outward():
     from datetime import datetime
     travel = Travel(window=4)
     matrix = travel.outward(travel.country)
-    assert matrix[-1]["MX"]
+    outward = matrix[-1]["MX"]
+    assert outward
+    assert "MX" not in outward
 
 
 def test_bounding_box_label():
