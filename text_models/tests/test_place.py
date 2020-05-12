@@ -156,6 +156,12 @@ def test_bounding_box_city_bug():
     assert city != code
 
 
+def test_mobility_state_bug():
+    from text_models.place import Mobility
+    mob = Mobility(window=1)
+    assert mob.state("CA:12824") is None
+
+
 def test_travel_inside_mobility():
     from text_models.place import Travel
     from datetime import datetime
