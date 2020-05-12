@@ -44,6 +44,6 @@ Table of Contents
    :titlesonly:
 
    voc
+   place
    model_selection
    dataset
-   place

@@ -293,6 +293,8 @@ class Mobility(object):
     def __init__(self, day=None, window=30):
         path = join(dirname(__file__), "data", "state.dict")
         self._states = load_model(path)
+        path = join(dirname(__file__), "data", "bbox_country.dict")
+        self._n_states = load_model(path)
         self._bbox = BoundingBox()
         self._dates = list()
         delta = datetime.timedelta(days=1)
@@ -365,6 +367,9 @@ class Mobility(object):
                 return None
             return res[:2]
         try:
+            xx = self._n_states.get(label[:2], set())
+            if label in xx:
+                return None
             return self._states[label]
         except KeyError:
             return None

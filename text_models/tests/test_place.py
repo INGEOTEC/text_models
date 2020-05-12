@@ -106,7 +106,9 @@ def test_travel_outward():
     from datetime import datetime
     travel = Travel(window=4)
     matrix = travel.outward(travel.country)
-    assert matrix[-1]["MX"]
+    outward = matrix[-1]["MX"]
+    assert outward
+    assert "MX" not in outward
 
 
 def test_bounding_box_label():
@@ -152,6 +154,12 @@ def test_bounding_box_city_bug():
     city = bbox.city(code)
     print(code, city)
     assert city != code
+
+
+def test_mobility_state_bug():
+    from text_models.place import Mobility
+    mob = Mobility(window=1)
+    assert mob.state("CA:12824") is None
 
 
 def test_travel_inside_mobility():
