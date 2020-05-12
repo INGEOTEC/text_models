@@ -360,6 +360,10 @@ class Mobility(object):
         >>> mobility.state("MX:0")
         'MX-CHP'
         """
+
+        xx = self._n_states.get(label[:2], set())
+        if label in xx:
+            return None
         
         if label[:2] == "MX" and mex:
             res = self.bounding_box.city(label)
@@ -367,9 +371,6 @@ class Mobility(object):
                 return None
             return res[:2]
         try:
-            xx = self._n_states.get(label[:2], set())
-            if label in xx:
-                return None
             return self._states[label]
         except KeyError:
             return None
