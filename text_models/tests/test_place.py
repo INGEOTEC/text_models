@@ -197,6 +197,19 @@ def test_travel_weekday_percentage():
     assert len(y) == len(travel.dates)
 
 
+def test_travel_cluster_percentage():
+    from sklearn.cluster import KMeans
+    from text_models.place import Mobility
+    mobility = Mobility(window=21)
+    inside = mobility.overall(mobility.country)
+    baseline = mobility.cluster_percentage(inside)
+    assert isinstance(baseline["MX"].data, KMeans)
+    for v in baseline.values():
+        v.mobility_instance = mobility
+    y = baseline["MX"].transform(inside["MX"])
+    assert len(y) == len(mobility.dates)    
+
+
 def test_travel_percentage_by_weekday():
     from text_models.place import Travel
     import numpy as np

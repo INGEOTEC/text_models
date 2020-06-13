@@ -577,6 +577,32 @@ class Mobility(object):
         weekday_data = self.group_by_weekday(data)
         return self.create_transform(weekday_data, T)
 
+    def cluster_percentage(self, data):
+        """
+        Compute the percentage using KMeans with K=7.
+
+        :param data: Data, e.g., :py:func:`text_models.place.Mobility.inside_mobility`
+        :type data: dict
+        :rtype: dict
+        """
+
+        class K(MobilityTransform):
+            def transform(self, value):
+                X = np.atleast_2d(value).T
+                m = self.data.cluster_centers_[self.data.predict(X)]
+                return (100 * (m - X) / X).flatten()
+
+            @property
+            def data(self):
+                return self._data
+
+            @data.setter
+            def data(self, value):
+                from sklearn.cluster import KMeans
+                self._data = KMeans(n_clusters=7).fit(np.atleast_2d(value).T)
+
+        return self.create_transform(data, K)
+
     def transform(self, data, baseline):
         """
         Transform data using the baseline
