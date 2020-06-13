@@ -590,7 +590,7 @@ class Mobility(object):
             def transform(self, value):
                 X = np.atleast_2d(value).T
                 m = self.data.cluster_centers_[self.data.predict(X)]
-                return (100 * (m - X) / X).flatten()
+                return (100 * (X - m) / m).flatten()
 
             @property
             def data(self):
