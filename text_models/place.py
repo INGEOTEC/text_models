@@ -17,7 +17,7 @@ import numpy as np
 from os.path import join, dirname
 import time
 import datetime
-from .utils import download_geo, Gaussian, MobilityTransform
+from .utils import download_geo, Gaussian, MobilityTransform, remove_outliers
 from collections import defaultdict, Counter
 EARTH_RADIUS = 6371.009
 
@@ -599,6 +599,7 @@ class Mobility(object):
             @data.setter
             def data(self, value):
                 from sklearn.cluster import KMeans
+                value = remove_outliers(value)
                 self._data = KMeans(n_clusters=7).fit(np.atleast_2d(value).T)
 
         return self.create_transform(data, K)
