@@ -170,6 +170,23 @@ class Gaussian(object):
         return 2 * r
 
 
+def remove_outliers(data):
+    """Remove outliers using boxplot algorithm
+
+    >>> from text_models.utils import remove_outliers
+    >>> _ = remove_outliers([0.2, 3.0, 2, 2.5, 5.4, 3.2])
+    """
+    import numpy as np
+    data = np.atleast_1d(data)
+    q1 = np.quantile(data, q=0.25)
+    q3 = np.quantile(data, q=0.75)
+    iqr = q3 - q1
+    upper = q3 + iqr * 1.5 
+    lower = q1 - iqr * 1.5
+    m = (data > lower) & (data < upper)
+    return data[m]
+
+
 class MobilityException(Exception):
     pass
 
