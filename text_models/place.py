@@ -599,7 +599,10 @@ class Mobility(object):
             @data.setter
             def data(self, value):
                 from sklearn.cluster import KMeans
+                from .utils import MobilityException
                 value = remove_outliers(value)
+                if len(value) == 0:
+                    raise MobilityException()              
                 self._data = KMeans(n_clusters=7).fit(np.atleast_2d(value).T)
 
         return self.create_transform(data, K)
