@@ -200,6 +200,7 @@ def test_travel_weekday_percentage():
 def test_travel_cluster_percentage():
     from sklearn.cluster import KMeans
     from text_models.place import Mobility
+    from sklearn.metrics import silhouette_score
     mobility = Mobility(window=21)
     inside = mobility.overall(mobility.country)
     baseline = mobility.cluster_percentage(inside)
@@ -207,7 +208,10 @@ def test_travel_cluster_percentage():
     for v in baseline.values():
         v.mobility_instance = mobility
     y = baseline["MX"].transform(inside["MX"])
-    assert len(y) == len(mobility.dates)    
+    assert len(y) == len(mobility.dates)
+    baseline2 = mobility.cluster_percentage(inside, n_clusters=silhouette_score)
+    n = [v.data.cluster_centers_.shape[0] for v in baseline2.values()]
+    assert min(n) < 7
 
 
 def test_travel_percentage_by_weekday():
