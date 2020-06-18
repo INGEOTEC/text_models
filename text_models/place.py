@@ -577,13 +577,15 @@ class Mobility(object):
         weekday_data = self.group_by_weekday(data)
         return self.create_transform(weekday_data, T)
 
-    def cluster_percentage(self, data):
+    def cluster_percentage(self, data, n_clusters=None):
         """
         Compute the percentage using KMeans with K=7.
 
         :param data: Data, e.g., :py:func:`text_models.place.Mobility.inside_mobility`
         :type data: dict
         :rtype: dict
+        :param n_clusters: Number of function to maximize
+        :type n_clusters: int or function
         """
 
         class K(MobilityTransform):
@@ -596,15 +598,32 @@ class Mobility(object):
             def data(self):
                 return self._data
 
+            def n_clusters(self, X):
+                from sklearn.metrics import silhouette_score
+                from sklearn.cluster import KMeans
+                from sklearn.utils import check_X_y
+                if n_clusters is None:
+                    return 7
+                if isinstance(n_clusters, int):
+                    return n_clusters
+                perf = []
+                for k in range(2, min(15, X.shape[0])):
+                    km = KMeans(n_clusters=k).fit(X)
+                    labels = km.predict(X)
+                    _ = n_clusters(X, labels)
+                    perf.append(_)
+                return np.argmax(perf) + 2
+
             @data.setter
             def data(self, value):
                 from sklearn.cluster import KMeans
                 from .utils import MobilityException
                 value = remove_outliers(value)
                 if len(value) == 0:
-                    raise MobilityException()              
-                self._data = KMeans(n_clusters=7).fit(np.atleast_2d(value).T)
-
+                    raise MobilityException()
+                X = np.atleast_2d(value).T
+                n_clu = self.n_clusters(X)              
+                self._data = KMeans(n_clusters=n_clu).fit(X)
         return self.create_transform(data, K)
 
     def transform(self, data, baseline):
