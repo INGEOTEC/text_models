@@ -607,7 +607,7 @@ class Mobility(object):
                 if isinstance(n_clusters, int):
                     return n_clusters
                 perf = []
-                for k in range(2, min(15, X.shape[0])):
+                for k in range(2, min(8, X.shape[0])):
                     km = KMeans(n_clusters=k).fit(X)
                     labels = km.predict(X)
                     _ = n_clusters(X, labels)
