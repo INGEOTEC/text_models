@@ -79,6 +79,9 @@ class Country(object):
 
 
 def distance(lat1, lng1, lat2, lng2):
+    """ Taken from http://www.samuelbosch.com/2018/09/great-circle-calculations-with-numpy.html
+    also available at: https://raw.githubusercontent.com/samuelbosch/blogbits/master/geosrc/numpy_greatcircle.py
+    """
     # lat1, lng1 = a
     # lat2, lng2 = b
     sin_lat1, cos_lat1 = np.sin(lat1), np.cos(lat1)
