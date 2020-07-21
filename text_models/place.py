@@ -340,6 +340,10 @@ class Mobility(object):
                                     month=_.tm_mon,
                                     day=_.tm_mday) - delta
             return day
+        if isinstance(day, dict):
+            return datetime.datetime(year=day["year"],
+                                     month=day["month"],
+                                     day=day["day"])
         if hasattr(day, "year") and hasattr(day, "month") and hasattr(day, "day"):
             return datetime.datetime(year=day.year,
                                      month=day.month,

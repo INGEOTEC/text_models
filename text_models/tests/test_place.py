@@ -285,7 +285,7 @@ def test_states():
 
 
 def test_mobility_day_wclass():
-    from text_models.place import Mobility
+    from text_models import Mobility
 
     class D(object):
         def __init__(self, year, month, day):
@@ -294,7 +294,7 @@ def test_mobility_day_wclass():
             self.day = day
 
     day = D(2020, 7, 19)
-    end = D(2020, 7, 18)
+    end = dict(year=2020, month=7, day=18)
     mob = Mobility(day, window=1, end=end)
     print(mob.dates[-1])
     assert mob.dates[-1].year == 2020
