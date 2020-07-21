@@ -285,7 +285,7 @@ def test_states():
 
 
 def test_mobility_day_wclass():
-    from text_models.place import Mobility
+    from text_models import Mobility
 
     class D(object):
         def __init__(self, year, month, day):
