@@ -282,3 +282,22 @@ def test_states():
     assert states.name("MX-AGU") == "Aguascalientes"
     assert states.keys()
     assert states.items()
+
+
+def test_mobility_day_wclass():
+    from text_models.place import Mobility
+
+    class D(object):
+        def __init__(self, year, month, day):
+            self.year = year
+            self.month = month
+            self.day = day
+
+    day = D(2020, 7, 19)
+    end = D(2020, 7, 18)
+    mob = Mobility(day, window=1, end=end)
+    print(mob.dates[-1])
+    assert mob.dates[-1].year == 2020
+    assert mob.dates[-1].month == 7
+    assert mob.dates[-1].day == 19
+    assert mob.dates[0].day == 18
