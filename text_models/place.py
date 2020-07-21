@@ -287,13 +287,15 @@ class Mobility(object):
     :type day: datetime
     :param window: Window used to perform the analysis
     :type window: int
+    :param end: End of the period, use to override window.
+    :type end: datetime
 
     >>> from text_models.place import Mobility
     >>> mobility = Mobility(window=5)
     >>> output = mobility.displacement(level=mobility.state)
     """
 
-    def __init__(self, day=None, window=30):
+    def __init__(self, day=None, window=30, end=None):
         path = join(dirname(__file__), "data", "state.dict")
         self._states = load_model(path)
         path = join(dirname(__file__), "data", "bbox_country.dict")
@@ -302,7 +304,10 @@ class Mobility(object):
         self._dates = list()
         delta = datetime.timedelta(days=1)
         init = datetime.datetime(year=2015, month=12, day=16)
-        day = self.__handle_day(day)                                           
+        day = self.__handle_day(day)
+        if end is not None:
+            end = self.__handle_day(end)
+            window = (day - end).days + 1
         days = []
         while len(days) < window and day >= init:
             try:
@@ -327,6 +332,8 @@ class Mobility(object):
         :param day: day
         :type day: None | instance
         """
+
+        delta = datetime.timedelta(days=1)
         if day is None:
             _ = time.localtime()
             day = datetime.datetime(year=_.tm_year,
