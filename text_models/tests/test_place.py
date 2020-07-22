@@ -301,3 +301,17 @@ def test_mobility_day_wclass():
     assert mob.dates[-1].month == 7
     assert mob.dates[-1].day == 19
     assert mob.dates[0].day == 18
+
+
+def test_mobility_overall_pandas():
+    from text_models import Mobility
+    mob = Mobility(window=2)
+    res = mob.overall(pandas=True)
+    assert hasattr(res, "head")
+
+
+def test_mobility_inside_mobilit_pandas():
+    from text_models import Mobility
+    mob = Mobility(window=2)
+    res = mob.inside_mobility(pandas=True)
+    assert hasattr(res, "head")    
