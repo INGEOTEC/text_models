@@ -19,6 +19,7 @@ import time
 import datetime
 from .utils import download_geo, Gaussian, MobilityTransform, remove_outliers
 from collections import defaultdict, Counter
+from sklearn.metrics import silhouette_score
 EARTH_RADIUS = 6371.009
 
 
@@ -693,6 +694,88 @@ class Mobility(object):
         """
 
         return {k: func[k].transform(v) for k, v in data.items() if k in func}
+
+
+class MobilityWeekday(Mobility):
+    """Represent mobility as the percentage of change
+    using the weekday information as the baseline
+    
+    :param baseline: Number of days to create the baseline
+    :type baseline: int
+    """
+
+    def __init__(self, day=None, baseline=91, **kwargs):
+        super(MobilityWeekday, self).__init__(day=day, **kwargs)
+        self._baseline = Mobility(day=self.dates[0], window=baseline)
+
+    @property
+    def baseline(self):
+        """Baseline used to compute the percentage"""
+
+        return self._baseline
+
+    def overall(self, level=None, pandas=False):
+        output = super(MobilityWeekday, self).overall(level=level)
+        _ = self.baseline.overall(level=level)
+        transform = self.baseline.weekday_percentage(_)
+        output = self.transform(output, transform)
+        if pandas:
+            import pandas as pd
+            return pd.DataFrame(output, index=self.dates)
+        return output
+
+    def inside_mobility(self, level=None, pandas=False):
+        output = super(MobilityWeekday, self).inside_mobility(level=level)
+        _ = self.baseline.inside_mobility(level=level)
+        transform = self.baseline.weekday_percentage(_)
+        output = self.transform(output, transform)
+        if pandas:
+            import pandas as pd
+            return pd.DataFrame(output, index=self.dates)
+        return output
+
+
+class MobilityCluster(Mobility):
+    """Represent mobility as the percentage of change
+    using KMeans to create the baseline information.
+    
+    :param baseline: Number of days to create the baseline
+    :type baseline: int
+    :param n_clusters: Either the number of clusters is given or a function to maximize
+    :type n_clusters: int | func
+    """
+
+    def __init__(self, day=None, baseline=91, n_clusters=silhouette_score, **kwargs):
+        super(MobilityCluster, self).__init__(day=day, **kwargs)
+        self._baseline = Mobility(day=self.dates[0], window=baseline)
+        self._n_clusters = n_clusters
+
+    @property
+    def baseline(self):
+        """Baseline used to compute the percentage"""
+
+        return self._baseline
+
+    def overall(self, level=None, pandas=False):
+        output = super(MobilityCluster, self).overall(level=level)
+        _ = self.baseline.overall(level=level)
+        transform = self.baseline.cluster_percentage(_, n_clusters=self._n_clusters)
+        output = self.transform(output, transform)
+        if pandas:
+            import pandas as pd
+            return pd.DataFrame(output, index=self.dates)
+        return output
+
+    def inside_mobility(self, level=None, pandas=False):
+        output = super(MobilityCluster, self).inside_mobility(level=level)
+        _ = self.baseline.inside_mobility(level=level)
+        transform = self.baseline.cluster_percentage(_, n_clusters=self._n_clusters)
+        output = self.transform(output, transform)
+        if pandas:
+            import pandas as pd
+            return pd.DataFrame(output, index=self.dates)
+        return output
+
 
 Travel = Mobility
 

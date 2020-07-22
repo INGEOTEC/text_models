@@ -314,4 +314,42 @@ def test_mobility_inside_mobilit_pandas():
     from text_models import Mobility
     mob = Mobility(window=2)
     res = mob.inside_mobility(pandas=True)
-    assert hasattr(res, "head")    
+    assert hasattr(res, "head")
+
+
+def test_mobilityWeekday():
+    from text_models import MobilityWeekday, Mobility
+    import pandas as pd
+    mob = MobilityWeekday(dict(year=2020, month=7, day=19), window=3,
+                          baseline=10)
+    d = mob.overall()
+    assert isinstance(mob.baseline, Mobility)
+    assert isinstance(d, dict)
+    base = mob.baseline.overall()
+    for a, b in zip(d, base["MX"]):
+        assert  a != b
+    d1 = mob.overall(pandas=True)
+    assert isinstance(d1, pd.DataFrame)
+    d = mob.inside_mobility()
+    assert isinstance(d, dict)
+    d = mob.inside_mobility(pandas=True)
+    assert isinstance(d, pd.DataFrame)
+
+
+def test_mobilityCluster():
+    from text_models import MobilityCluster, Mobility
+    import pandas as pd
+    mob = MobilityCluster(dict(year=2020, month=7, day=19), window=3,
+                          baseline=10)
+    d = mob.overall()
+    assert isinstance(mob.baseline, Mobility)
+    assert isinstance(d, dict)
+    base = mob.baseline.overall()
+    for a, b in zip(d, base["MX"]):
+        assert  a != b
+    d1 = mob.overall(pandas=True)
+    assert isinstance(d1, pd.DataFrame)
+    d = mob.inside_mobility()
+    assert isinstance(d, dict)
+    d = mob.inside_mobility(pandas=True)
+    assert isinstance(d, pd.DataFrame)    
