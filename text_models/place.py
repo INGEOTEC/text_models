@@ -440,12 +440,15 @@ class Mobility(object):
         """
         return self.overall(level=level)
 
-    def overall(self, level=None):
+    def overall(self, level=None, pandas=False):
         """
         Overall mobility, this counts for outward, inward and inside travels
         in the region of interest (i.e., level).
 
         :param level: Aggregation function
+        :type level: function
+        :param pandas: Mobility as a DataFrame
+        :type pandas: bool
         """
 
         if level is None:
@@ -463,13 +466,20 @@ class Mobility(object):
                     if dest_code is not None and dest_code != ori_code:
                         matriz.update({dest_code: cnt})
             output.append(matriz)
-        return self.fill_with_zero(output)
+        output = self.fill_with_zero(output)
+        if pandas is False:
+            return output
+        else:
+            import pandas as pd
+            return pd.DataFrame(output, index=self.dates)
 
-    def inside_mobility(self, level=None):
+    def inside_mobility(self, level=None, pandas=False):
         """
         Mobility inside the region defined by level
 
         :param level: Aggregation function
+        :param pandas: Mobility as a DataFrame
+        :type pandas: bool        
         """
 
         if level is None:
@@ -487,7 +497,12 @@ class Mobility(object):
                     if dest_code == ori_code:
                         matriz.update({ori_code: cnt})
             output.append(matriz)
-        return self.fill_with_zero(output)
+        output = self.fill_with_zero(output)
+        if pandas is False:
+            return output
+        else:
+            import pandas as pd
+            return pd.DataFrame(output, index=self.dates)
 
     def inside_outward(self, level):
         """
