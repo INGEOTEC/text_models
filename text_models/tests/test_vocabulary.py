@@ -102,3 +102,16 @@ def test_country():
     voc2 = Vocabulary(date, lang="Es")
     print(len(voc2), len(voc))
     assert voc2.voc.update_calls > voc.voc.update_calls
+
+
+def test_vocabulary_dict():
+    class D(object):
+        def __init__(self, year, month, day):
+            self.year = year
+            self.month = month
+            self.day = day
+
+    voc = Vocabulary(dict(year=2020, month=7, day=21))
+    assert voc["buenos"]
+    voc2 = Vocabulary(D(2020, 7, 21))
+    assert voc["buenos"] == voc2["buenos"]
