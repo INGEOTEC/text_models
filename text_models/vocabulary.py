@@ -71,6 +71,14 @@ class Vocabulary(object):
         Process the :py:attr:`data` to create a :py:class:`microtc.utils.Counter` 
         """
 
+        if isinstance(data, dict):
+            data = datetime(year=data["year"],
+                            month=data["month"],
+                            day=data["day"])
+        if hasattr(data, "year") and hasattr(data, "month") and hasattr(data, "day"):
+            data =  datetime(year=data.year,
+                             month=data.month,
+                             day=data.day)                        
         if isinstance(data, str) or isinstance(data, datetime):
             self._fname = download(self.__filename(data),
                                    lang=self._lang, country=self._country)
