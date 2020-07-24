@@ -115,3 +115,11 @@ def test_vocabulary_dict():
     assert voc["buenos"]
     voc2 = Vocabulary(D(2020, 7, 21))
     assert voc["buenos"] == voc2["buenos"]
+
+
+def test_vocabulary_data_lst():
+    import pandas as pd
+
+    _ = pd.date_range("2020-07-20", "2020-07-21")
+    vocs = Vocabulary(list(_))
+    assert vocs["buenos"]

@@ -66,19 +66,29 @@ class Vocabulary(object):
             return "%s%02i%02i.voc" % (str(date.year)[-2:], date.month, date.day)
         return date
 
+    def __handle_day(self, day):
+        """Inner function to handle the day
+        
+        :param day: day
+        :type day: None | instance
+        """
+
+        if isinstance(day, dict):
+            return datetime(year=day["year"],
+                            month=day["month"],
+                            day=day["day"])
+        if hasattr(day, "year") and hasattr(day, "month") and hasattr(day, "day"):
+            return datetime(year=day.year,
+                            month=day.month,
+                            day=day.day)
+        return day         
+
     def _init(self, data):
         """
         Process the :py:attr:`data` to create a :py:class:`microtc.utils.Counter` 
         """
 
-        if isinstance(data, dict):
-            data = datetime(year=data["year"],
-                            month=data["month"],
-                            day=data["day"])
-        if hasattr(data, "year") and hasattr(data, "month") and hasattr(data, "day"):
-            data =  datetime(year=data.year,
-                             month=data.month,
-                             day=data.day)                        
+        data = self.__handle_day(data)
         if isinstance(data, str) or isinstance(data, datetime):
             self._fname = download(self.__filename(data),
                                    lang=self._lang, country=self._country)
@@ -88,11 +98,12 @@ class Vocabulary(object):
             else:
                 self._date = data
         elif isinstance(data, list):
-            cum = data.pop()
-            if isinstance(cum, str) or isinstance(data, datetime):
+            cum = self.__handle_day(data.pop())
+            if isinstance(cum, str) or isinstance(cum, datetime):
                 cum = load_model(download(self.__filename(cum),
                                           lang=self._lang, country=self._country))
             for x in data:
+                x = self.__handle_day(x)
                 x = self.__filename(x)
                 xx = load_model(download(x, lang=self._lang, country=self._country)) if isinstance(x, str) else x
                 cum = cum + xx
