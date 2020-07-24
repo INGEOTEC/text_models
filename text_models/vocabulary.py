@@ -98,16 +98,18 @@ class Vocabulary(object):
             else:
                 self._date = data
         elif isinstance(data, list):
-            cum = self.__handle_day(data.pop())
+            cum = self.__handle_day(data[0])
             if isinstance(cum, str) or isinstance(cum, datetime):
                 cum = load_model(download(self.__filename(cum),
                                           lang=self._lang, country=self._country))
-            for x in data:
+            for x in data[1:]:
                 x = self.__handle_day(x)
                 x = self.__filename(x)
                 xx = load_model(download(x, lang=self._lang, country=self._country)) if isinstance(x, str) else x
                 cum = cum + xx
             self.voc = cum
+        else:
+            raise Exception("%s is not handled " % type(data))
         
     @staticmethod
     def get_date(filename):

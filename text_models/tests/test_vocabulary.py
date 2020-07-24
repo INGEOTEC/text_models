@@ -120,6 +120,8 @@ def test_vocabulary_dict():
 def test_vocabulary_data_lst():
     import pandas as pd
 
-    _ = pd.date_range("2020-07-20", "2020-07-21")
-    vocs = Vocabulary(list(_))
+    d = list(pd.date_range("2020-07-20", "2020-07-21"))
+    print(len(d))
+    vocs = Vocabulary(d)
     assert vocs["buenos"]
+    assert len(d) == 2
