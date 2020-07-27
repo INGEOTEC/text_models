@@ -53,8 +53,8 @@ The baseline statistics can be computed using different procedures;
 one uses the weekday, and the other uses a clustering algorithm, 
 particularly k-means. The text_models library has two classes; 
 one computes the percentage using weekday information, 
-namely :py:class:`text_models.MobilityWeekday`, and the other using a clustering algorithm, 
-i.e., :py:class:`text_models.MobilityCluster`. The following code computes 
+namely :py:class:`text_models.place.MobilityWeekday`, and the other using a clustering algorithm, 
+i.e., :py:class:`text_models.place.MobilityCluster`. The following code computes 
 the percentage using the weekday information; 
 the code is similar to the one used to produce the previous 
 figure being the only difference the class used.
