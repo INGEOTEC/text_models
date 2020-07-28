@@ -45,5 +45,3 @@ Table of Contents
 
    voc
    place
-   model_selection
-   dataset
