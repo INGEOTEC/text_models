@@ -2,6 +2,19 @@
 
 Vocabulary
 ==================================
+.. image:: https://travis-ci.org/INGEOTEC/text_models.svg?branch=master
+	   :target: https://travis-ci.org/INGEOTEC/text_models
+
+.. image:: https://coveralls.io/repos/github/INGEOTEC/text_models/badge.svg?branch=master
+	   :target: https://coveralls.io/github/INGEOTEC/text_models?branch=master
+
+.. image:: https://badge.fury.io/py/text-models.svg
+	   :target: https://badge.fury.io/py/text-models
+
+.. image:: https://readthedocs.org/projects/text-models/badge/?version=latest
+      :target: https://text-models.readthedocs.io/en/latest/?badge=latest
+      :alt: Documentation Status
+
 This module deals with the data of tokens and their frequency obtained 
 from collected tweets per day. It can be used to replicate 
 :py:attr:`EvoMSA.base.EvoMSA(B4MSA=True)` pre-trained model, 
@@ -20,7 +33,7 @@ pre-trained text models used on EvoMSA for English.
 
 >>> from text_models.utils import download
 >>> from microtc.utils import tweet_iterator
->>> from text_models.vocabulary import Vocabulary
+>>> from text_models import Vocabulary
 >>> conf = tweet_iterator(download("config.json", cache=False))
 >>> data = [x for x in conf if "b4msa_En" in x][0]["b4msa_En"]
 >>> voc = Vocabulary(data, lang="En")
@@ -33,7 +46,7 @@ Vocabulary class can also be used to analyze the tokens
 produced on a particular day or period. 
 In the next example, let us examine the February 14th, 2020.
 
->>> from text_models.vocabulary import Vocabulary
+>>> from text_models import Vocabulary
 >>> day = dict(year=2020, month=2, day=14)
 >>> voc = Vocabulary(day, lang="En")
 >>> voc.voc.most_common()[:3]
@@ -133,10 +146,11 @@ the dates needed.
 
 Once the date is selected, it is time to retrieve the tokens on the 
 specified dates from the Spanish-speaking countries. 
-The first instruction, from the following code, defines 
-the Spanish-speaking countries. The second instruction retrieves 
+The second instruction, from the following code, defines 
+the Spanish-speaking countries. The third instruction retrieves 
 the tokens and their frequency for each country.
 
+>>> from text_models import Vocabulary
 >>> countries = ['MX', 'CO', 'ES', 'AR', 'PE', 'VE', 'CL', 'EC',
                  'GT', 'CU', 'BO', 'DO', 'HN', 'PY', 'SV', 'NI', 
                  'CR', 'PA', 'UY', 'GQ']
