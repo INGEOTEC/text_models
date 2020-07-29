@@ -28,13 +28,10 @@ We decided to make public the data (tokens and their frequency)
 used to established B4MSA models and included, as well, different 
 methods that allow the analysis of this information (see :ref:`voc`).
 
-B4MSA's models are used to develop self-supervised models. 
-The starting point, of a self-supervised approach, is to transform 
-a corpus into a labeled dataset. This package includes the classes 
-used to create labeled datasets. Finally, it consists of a modified 
-Beam selection technique, tailored to text classification, that chooses 
-those text models that are more suitable for a given text classification 
-problem.
+The data collected has geographic information as well as a unique user 
+identifier that can be used for another purpose different from creating 
+the text models. In particular, the :ref:`place` module uses the geographic 
+information collected to estimate the mobility of different regions.
 
 Table of Contents
 ==================
