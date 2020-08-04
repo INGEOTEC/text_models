@@ -125,3 +125,25 @@ def test_vocabulary_data_lst():
     vocs = Vocabulary(d)
     assert vocs["buenos"]
     assert len(d) == 2
+
+
+def test_add():
+    voc1 = Vocabulary(dict(year=2020, month=7, day=21), token_min_filter=0)
+    voc2 = Vocabulary(dict(year=2020, month=7, day=1), token_min_filter=0)
+    r = voc1 + voc2
+    r2 = Vocabulary([dict(year=2020, month=7, day=21),
+                     dict(year=2020, month=7, day=1)])
+    print(len(r.voc), len(voc1.voc), len(voc2.voc))
+    print(len(r.voc), len(r2.voc))
+    assert len(r.voc) > len(voc1.voc) and len(r.voc) > len(voc2.voc)
+
+
+def test_sub():
+    voc1 = Vocabulary(dict(year=2020, month=7, day=21), token_min_filter=0)
+    voc2 = Vocabulary(dict(year=2020, month=7, day=1), token_min_filter=0)
+    r = voc1 - voc2
+    r2 = Vocabulary([dict(year=2020, month=7, day=21),
+                     dict(year=2020, month=7, day=1)])
+    print(len(r.voc), len(voc1.voc), len(voc2.voc))
+    print(len(r.voc), len(r2.voc))
+    assert len(r.voc) < len(voc1.voc) and len(r.voc) < len(voc2.voc)    
