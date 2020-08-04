@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from microtc.utils import load_model, tweet_iterator
+from microtc.utils import load_model, tweet_iterator, Counter
 from text_models.utils import download
 from collections import defaultdict
 from datetime import datetime
@@ -73,6 +73,8 @@ class Vocabulary(object):
         :type day: None | instance
         """
 
+        if isinstance(day, Counter):
+            return day
         if isinstance(day, dict):
             return datetime(year=day["year"],
                             month=day["month"],
@@ -276,3 +278,20 @@ class Vocabulary(object):
                                  token_max_filter=self._max)
         return tm
 
+    def __add__(self, otro):
+        _ = self.__class__([self.voc, otro.voc], lang=self._lang,
+                           country=self._country, token_min_filter=self._min,
+                           token_max_filter=self._max,
+                           tm_args=self._tm_args)
+        return _
+
+    def __sub__(self, otro):
+        voc = self.voc.copy()
+        for k in otro.voc.keys():
+            del voc[k]
+        # - otro.voc
+        _ = self.__class__([voc], lang=self._lang,
+                           country=self._country, token_min_filter=self._min,
+                           token_max_filter=self._max,
+                           tm_args=self._tm_args)
+        return _
