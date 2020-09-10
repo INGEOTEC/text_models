@@ -308,6 +308,8 @@ class Mobility(object):
         day = self.__handle_day(day)
         if end is not None:
             end = self.__handle_day(end)
+            if end > day:
+                end, day = day, end
             window = (day - end).days + 1
         days = []
         while len(days) < window and day >= init:
@@ -825,7 +827,7 @@ class BoundingBox(object):
             data = self._postal_code_names[code]
             return "%s%s" % (data[0], data[2])
         except KeyError:
-            return label
+            return None
 
     def postal_code(self, label):
         """
