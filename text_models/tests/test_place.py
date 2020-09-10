@@ -352,4 +352,14 @@ def test_mobilityCluster():
     d = mob.inside_mobility()
     assert isinstance(d, dict)
     d = mob.inside_mobility(pandas=True)
-    assert isinstance(d, pd.DataFrame)    
+    assert isinstance(d, pd.DataFrame)
+
+
+def test_mobility_day_end():
+    from text_models import Mobility
+
+    day = dict(year=2020, month=7, day=17)
+    end = dict(year=2020, month=7, day=19)
+    mob = Mobility(day=day, end=end)
+    d = mob.overall(pandas=True)
+    assert d.shape[0]
