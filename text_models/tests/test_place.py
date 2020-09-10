@@ -143,7 +143,7 @@ def test_bounding_box_city():
     city = bbox.city('MX:6435')
     assert city == "16053"
     city = bbox.city("US")
-    assert city == "US"
+    assert city is None
 
 
 def test_bounding_box_city_bug():
