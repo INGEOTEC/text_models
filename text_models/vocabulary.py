@@ -309,7 +309,7 @@ class Tokenize(object):
     >>> from text_models import Tokenize
     >>> tok = Tokenize().fit(["hi~mario", "mario"])
     >>> tok.transform("good morning mario")
-    [1] 
+    [1]
     """
     def __init__(self, tm_args: Dict[str, Any]=TM_ARGS):
         self._head = dict()
