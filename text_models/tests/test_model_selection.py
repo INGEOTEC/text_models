@@ -49,7 +49,7 @@ def test_node_performance():
     X, y = get_data()
     kf = KFold(n_splits=2, random_state=1, shuffle=True)
     models = {0: [download("b4msa_Es.tm"), "sklearn.svm.LinearSVC"],
-              1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernulli"],
+              1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernoulli"],
               2: ["EvoMSA.model.AggressivenessEs", "EvoMSA.model.Identity"]}
     a = Node([0], models,
              metric=lambda y, hy: f1_score(y, hy, average="macro"),
@@ -67,7 +67,7 @@ def test_node_performance():
 def test_ForwardSelection():
     X, y = get_data()
     models = {0: ["EvoMSA.model.Corpus", "sklearn.svm.LinearSVC"],
-              1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernulli"],
+              1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernoulli"],
               2: ["EvoMSA.model.AggressivenessEs", "EvoMSA.model.Identity"]}
     a = ForwardSelection(models, output="fw.node")
     node = a.run(X, y)
@@ -79,7 +79,7 @@ def test_ForwardSelection():
 def test_BeamSelection():
     X, y = get_data()
     models = {0: ["EvoMSA.model.Corpus", "sklearn.svm.LinearSVC"],
-              1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernulli"],
+              1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernoulli"],
               2: ["EvoMSA.model.AggressivenessEs", "EvoMSA.model.Identity"]}
 
     a = BeamSelection(models, output="beam.node")

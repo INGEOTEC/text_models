@@ -199,4 +199,4 @@ the country code close to the point.
 ------------------------------------
 
 .. automodule:: text_models.vocabulary
-   :members:  
+   :members:   
