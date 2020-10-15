@@ -40,7 +40,7 @@ pre-trained text models used on EvoMSA for English.
 >>> tm = voc.create_text_model()
 
 Analyzing the vocabulary (i.e., tokens) on a day 
------------------------------------
+--------------------------------------------------------
 
 Vocabulary class can also be used to analyze the tokens 
 produced on a particular day or period. 

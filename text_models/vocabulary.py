@@ -302,6 +302,16 @@ class Vocabulary(object):
 
 
 class Tokenize(object):
+    """ Tokenize transforms a text into a sequence, where 
+    each number identifies a particular token; the q-grams 
+    that are not found in the text are ignored.
+
+    >>> from text_models import Tokenize
+    >>> tok = Tokenize()
+    >>> tok.fit(["hi~mario", "mario"])
+    >>> tok.transform("good morning mario")
+    [1] 
+    """
     def __init__(self, tm_args: Dict[str, Any]=TM_ARGS):
         self._head = dict()
         self._vocabulary = dict()
@@ -309,10 +319,16 @@ class Tokenize(object):
         self._textmodel = TextModel(**tm_args)
 
     @property
-    def vocabulary(self):
+    def vocabulary(self) -> Dict[str, int]:
+        """Vocabulary used"""
         return self._vocabulary
 
     def fit(self, tokens: List[str]) -> 'Tokenize':
+        """Train the tokenizer. 
+
+        :param tokens: Vocabulary as a list of tokens
+        :type tokens: List[str]
+        """
         voc = self._vocabulary
         head = self._head
         tag = self._tag
@@ -333,6 +349,8 @@ class Tokenize(object):
         return self
 
     def transform(self, texts: Union[Iterable[str], str]) -> List[Union[List[int], int]]:
+        """Transform the input into a sequence where each element represents 
+        a token in the vocabulary (i.e., :py:attr:`text_models.vocabulary.Tokenize.vocabulary`)"""
         func = self._textmodel.text_transformations
         trans = self._transform
         if isinstance(texts, str):

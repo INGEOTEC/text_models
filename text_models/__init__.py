@@ -14,4 +14,4 @@
 __version__ = '0.9.0'
 
 from text_models.place import Mobility, MobilityWeekday, MobilityCluster
-from text_models.vocabulary import Vocabulary
+from text_models.vocabulary import Vocabulary, Tokenize
