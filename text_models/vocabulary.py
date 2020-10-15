@@ -307,8 +307,7 @@ class Tokenize(object):
     that are not found in the text are ignored.
 
     >>> from text_models import Tokenize
-    >>> tok = Tokenize()
-    >>> tok.fit(["hi~mario", "mario"])
+    >>> tok = Tokenize().fit(["hi~mario", "mario"])
     >>> tok.transform("good morning mario")
     [1] 
     """
