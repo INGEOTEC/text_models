@@ -15,6 +15,13 @@ from microtc.utils import load_model, tweet_iterator, Counter
 from text_models.utils import download
 from collections import defaultdict
 from datetime import datetime
+from b4msa.textmodel import TextModel
+from typing import List, Iterable, Union, Dict, Any, Tuple
+
+
+TM_ARGS=dict(usr_option="delete", num_option="none",
+             url_option="delete", emo_option="none",
+             del_dup=False, del_punc=True)
 
 
 class Vocabulary(object):
@@ -46,9 +53,7 @@ class Vocabulary(object):
     def __init__(self, data, lang="Es", country=None,
                  token_min_filter=0.001,
                  token_max_filter=0.999,
-                 tm_args=dict(usr_option="delete", num_option="none",
-                              url_option="delete", emo_option="none",
-                              del_dup=False, del_punc=True)):
+                 tm_args=TM_ARGS):
         self._lang = lang
         self._country = country
         self._min = token_min_filter
@@ -271,7 +276,6 @@ class Vocabulary(object):
         >>> tm = voc.create_text_model()
         """
 
-        from b4msa.textmodel import TextModel
         from microtc.weighting import TFIDF
         tm = TextModel(**self._tm_args)
         tm.model = TFIDF.counter(self.voc, token_min_filter=self._min,
@@ -295,3 +299,91 @@ class Vocabulary(object):
                            token_max_filter=self._max,
                            tm_args=self._tm_args)
         return _
+
+
+class Tokenize(object):
+    """ Tokenize transforms a text into a sequence, where 
+    each number identifies a particular token; the q-grams 
+    that are not found in the text are ignored.
+
+    >>> from text_models import Tokenize
+    >>> tok = Tokenize().fit(["hi~mario", "mario"])
+    >>> tok.transform("good morning mario")
+    [1]
+    """
+    def __init__(self, tm_args: Dict[str, Any]=TM_ARGS):
+        self._head = dict()
+        self._vocabulary = dict()
+        self._tag = "__end__"
+        self._textmodel = TextModel(**tm_args)
+
+    @property
+    def vocabulary(self) -> Dict[str, int]:
+        """Vocabulary used"""
+        return self._vocabulary
+
+    def fit(self, tokens: List[str]) -> 'Tokenize':
+        """Train the tokenizer. 
+
+        :param tokens: Vocabulary as a list of tokens
+        :type tokens: List[str]
+        """
+        voc = self._vocabulary
+        head = self._head
+        tag = self._tag
+        for word in tokens:
+            if word in voc:
+                continue
+            current = head
+            for char in word:
+                try:
+                    current = current[char]
+                except KeyError:
+                    _ = dict()
+                    current[char] = _
+                    current = _
+            cnt = len(voc)
+            voc[word] = cnt
+            current[tag] = cnt
+        return self
+
+    def transform(self, texts: Union[Iterable[str], str]) -> List[Union[List[int], int]]:
+        """Transform the input into a sequence where each element represents 
+        a token in the vocabulary (i.e., :py:attr:`text_models.vocabulary.Tokenize.vocabulary`)"""
+        func = self._textmodel.text_transformations
+        trans = self._transform
+        if isinstance(texts, str):
+            return trans(func(texts))
+        return [trans(func(x)) for x in texts]
+
+    def _transform(self, text: str) -> List[int]:
+        L = []
+        i = 0
+        while i < len(text):
+            wordid, pos = self.find(text, i=i)
+            if wordid == -1:
+                i += 1
+                continue
+            i = pos
+            L.append(wordid)
+        return L
+
+    def find(self, text: str, i: int=0) -> Tuple[int, int]:
+        end = i
+        head = self._head
+        current = head
+        tag = self._tag
+        wordid = -1
+        while i < len(text):
+            char = text[i]
+            try:
+                current = current[char]
+                i += 1
+                try:
+                    wordid = current[tag]
+                    end = i
+                except KeyError:
+                    pass
+            except KeyError:
+                break
+        return wordid, end

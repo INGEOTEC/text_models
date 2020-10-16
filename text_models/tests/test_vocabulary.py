@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from text_models.utils import download
-from text_models.vocabulary import Vocabulary
+from text_models.vocabulary import Vocabulary, Tokenize
 
 
 def test_init():
@@ -147,3 +147,49 @@ def test_sub():
     print(len(r.voc), len(voc1.voc), len(voc2.voc))
     print(len(r.voc), len(r2.voc))
     assert len(r.voc) < len(voc1.voc) and len(r.voc) < len(voc2.voc)    
+
+
+def test_tokenize_fit():
+    # voc1 = Vocabulary(dict(year=2020, month=7, day=21), token_min_filter=0)
+    # print(voc1.voc)
+    tok = Tokenize().fit(["hola", "holas", "mma", "ma~xa", "hola"])
+    assert len(tok.vocabulary) == 4
+    assert tok.vocabulary["ma~xa"] == 3
+
+
+def test_tokenize_find():
+    # voc1 = Vocabulary(dict(year=2020, month=7, day=21), token_min_filter=0)
+    # print(voc1.voc)
+    tok = Tokenize().fit(["hola", "holas", "mma", "ma~xa", "hola"])
+    cdn = "holas~mmado~hola"
+    wordid, pos = tok.find(cdn)
+    assert wordid == 1 and pos == 5
+    wordid, pos = tok.find(cdn, i=pos)
+    assert wordid == -1
+    wordid, pos = tok.find(cdn, i=pos+1)
+    assert wordid == 2
+    wordid, pos = tok.find("xa")
+    assert wordid == -1
+
+
+def test_tokenize__transform():
+    # voc1 = Vocabulary(dict(year=2020, month=7, day=21), token_min_filter=0)
+    # print(voc1.voc)
+    tok = Tokenize().fit(["hola", "holas", "mma", "ma~xa", "hola"])
+    cdn = "holas~mmado~hola~xa~ma~xa~hola"
+    _ = tok._transform(cdn)
+    for a, b in zip(_, [1, 2, 0, 3, 0]):
+        assert a == b
+
+
+def test_tokenize_transform():
+    # voc1 = Vocabulary(dict(year=2020, month=7, day=21), token_min_filter=0)
+    # print(voc1.voc)
+    tok = Tokenize().fit(["hola", "holas", "mma", "ma~xa", "hola"])
+    cdn = "holas mmado hola xa ma xa hola"
+    _ = tok.transform(cdn)
+    for a, b in zip(_, [1, 2, 0, 3, 0]):
+        assert a == b
+    _ = tok.transform([cdn])
+    assert len(_) == 1
+    assert len(_[0]) == 5
