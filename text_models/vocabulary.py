@@ -16,6 +16,7 @@ from text_models.utils import download
 from collections import defaultdict
 from datetime import datetime
 from b4msa.textmodel import TextModel
+from microtc.weighting import TFIDF
 from typing import List, Iterable, Union, Dict, Any, Tuple
 
 
@@ -322,6 +323,13 @@ class Tokenize(object):
         """Vocabulary used"""
         return self._vocabulary
 
+    @property
+    def textModel(self):
+        """Text model, i.e., :py:class::`b4msa.text_model.TextModel`
+        """
+
+        return self._textmodel
+
     def fit(self, tokens: List[str]) -> 'Tokenize':
         """Train the tokenizer. 
 
@@ -350,7 +358,7 @@ class Tokenize(object):
     def transform(self, texts: Union[Iterable[str], str]) -> List[Union[List[int], int]]:
         """Transform the input into a sequence where each element represents 
         a token in the vocabulary (i.e., :py:attr:`text_models.vocabulary.Tokenize.vocabulary`)"""
-        func = self._textmodel.text_transformations
+        func = self.textModel.text_transformations
         trans = self._transform
         if isinstance(texts, str):
             return trans(func(texts))
@@ -387,3 +395,92 @@ class Tokenize(object):
             except KeyError:
                 break
         return wordid, end
+
+    def id2word(self, id: int) -> str:
+        """Token associated with id
+        
+        :param id: Identifier
+        :type id: int
+        """
+
+        try:
+            id2w = self._id2w
+        except AttributeError:
+            id2w = {v: k for k, v in self.vocabulary.items()}
+            self._id2w = id2w
+        return id2w[id]
+
+class BagOfWords(object):
+    """Bag of word model using TFIDF and 
+    :py:class:`text_models.vocabulary.Tokenize`
+    
+    :param tokens: Language (Ar|En|Es) or list of tokens
+    :type tokens: str|List
+    """
+
+    def __init__(self, tokens: Union[str, List[str]]="Es"):
+        from microtc.utils import load_model
+        from EvoMSA.utils import download
+        if isinstance(tokens, list):
+            xx = tokens
+        else:
+            xx = list(load_model(download("b4msa_%s.tm" % tokens)).model.word2id.keys())
+        tok = Tokenize()
+        f = lambda cdn: "~".join([x for x in cdn.split("~") if len(x)])
+        tok.fit([f(k) for k in xx if k.count("~") and k[:2] != "q:"])
+        tok.fit([f(k) for k in xx if k.count("~") == 0 and k[:2] != "q:"])
+        qgrams = [f(k[2:]) for k in xx if k[:2] == "q:"] 
+        tok.fit([x for x in qgrams if x.count("~") == 0 if len(x) >=2])
+        self._tokenize = tok
+        self._text = "text"
+
+    @property
+    def tokenize(self) -> Tokenize:
+        """
+        :py:class:`text_models.vocabulary.Tokenize` instance
+        """
+        
+        return self._tokenize
+
+    def get_text(self, data: Union[dict, str]) -> str:
+        """Get text keywords from dict"""
+
+        if isinstance(data, str):
+            return data
+        return data[self._text]
+
+    def fit(self, X: List[Union[str, dict]]) -> 'BagOfWords':
+        """ Train the Bag of words model"""
+        
+        from microtc.utils import Counter
+        get_text = self.get_text
+        cnt = Counter()
+        tokens = self.tokenize.transform([get_text(x) for x in X])
+        [cnt.update(x) for x in tokens]
+        self._tfidf = TFIDF.counter(cnt)
+        return self
+
+    @property
+    def tfidf(self)->TFIDF:
+        return self._tfidf
+
+    def id2word(self, id: int) -> str:
+        """Token associated with id
+        
+        :param id: Identifier
+        :type id: int
+        """
+        try:
+            w_id2w = self._w_id2w
+        except AttributeError:
+            self._w_id2w = {v: k for k, v in self.tfidf.word2id.items()}
+            w_id2w = self._w_id2w
+        id = w_id2w[id]
+        return self.tokenize.id2word(id)
+
+    def transform(self, data: List[str]) -> List[Tuple[int, float]]:
+        """Transform a list of text to a Bag of Words using TFIDF"""
+
+        data = self.tokenize.transform(data)
+        tfidf = self.tfidf
+        return [tfidf[x] for x in data]

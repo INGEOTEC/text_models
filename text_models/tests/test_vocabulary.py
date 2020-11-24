@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from text_models.utils import download
-from text_models.vocabulary import Vocabulary, Tokenize
+from text_models.vocabulary import Vocabulary, Tokenize, BagOfWords
 
 
 def test_init():
@@ -193,3 +193,37 @@ def test_tokenize_transform():
     _ = tok.transform([cdn])
     assert len(_) == 1
     assert len(_[0]) == 5
+
+
+def test_BagOfWords_init():
+    from microtc.utils import load_model
+    from EvoMSA.utils import download    
+    tm = BagOfWords()
+    xx = list(load_model(download("b4msa_Es.tm")).model.word2id.keys())
+    tm2 = BagOfWords(tokens=xx)
+    assert len(tm.tokenize.vocabulary) == len(tm2.tokenize.vocabulary)
+    # inv = {v: k for k, v in tm.tokenize.vocabulary.items()}
+    # print(len(inv))
+    # print([inv[x] for x in tm.tokenize.transform("buenos dias mujer madres zorra")])
+    # print([x for x in tm.tokenize.vocabulary.keys() if len(x) == 1])
+    # assert False
+
+
+def test_BagOfWords_fit():
+    from EvoMSA.tests.test_base import TWEETS
+    from microtc.utils import tweet_iterator
+
+    X = list(tweet_iterator(TWEETS))
+    bg = BagOfWords().fit(X)
+    bg = BagOfWords().fit([x["text"] for x in X])
+    xx = bg.transform(["buenos y felices dias"])
+    print(len(xx), len(xx[0]), xx)
+    assert len(xx) == 1 and len(xx[0]) == 3 and len(xx[0][1]) == 2
+    # inv = bg.id2word
+    # print([(inv(k), v) for k, v in bg.tfidf[xx[0]]])
+    # assert False
+    # print(bg._cnt)
+    # 
+    # for k, v in bg._cnt.most_common(10):
+    #     print(inv[k], v)
+    # assert False
