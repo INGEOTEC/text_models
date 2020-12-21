@@ -17,6 +17,8 @@ from collections import defaultdict
 from datetime import datetime
 from b4msa.textmodel import TextModel
 from microtc.weighting import TFIDF
+from microtc.utils import SparseMatrix
+from scipy.sparse import csr_matrix
 from typing import List, Iterable, Union, Dict, Any, Tuple
 
 
@@ -336,7 +338,7 @@ class Tokenize(object):
         :param tokens: Vocabulary as a list of tokens
         :type tokens: List[str]
         """
-        voc = self._vocabulary
+        voc = self.vocabulary
         head = self._head
         tag = self._tag
         for word in tokens:
@@ -410,7 +412,7 @@ class Tokenize(object):
             self._id2w = id2w
         return id2w[id]
 
-class BagOfWords(object):
+class BagOfWords(SparseMatrix):
     """Bag of word model using TFIDF and 
     :py:class:`text_models.vocabulary.Tokenize`
     
@@ -478,9 +480,17 @@ class BagOfWords(object):
         id = w_id2w[id]
         return self.tokenize.id2word(id)
 
-    def transform(self, data: List[str]) -> List[Tuple[int, float]]:
+    @property
+    def num_terms(self):
+        return len(self.tokenize.vocabulary)
+
+    def _transform(self, data: List[str]) -> List[Tuple[int, float]]:
         """Transform a list of text to a Bag of Words using TFIDF"""
 
         data = self.tokenize.transform(data)
         tfidf = self.tfidf
         return [tfidf[x] for x in data]
+
+    def transform(self, data: List[str]) -> csr_matrix:
+        """Transform a list of text to a Bag of Words using TFIDF""" 
+        return self.tonp(self._transform(data))

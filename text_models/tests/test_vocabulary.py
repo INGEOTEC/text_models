@@ -212,13 +212,16 @@ def test_BagOfWords_init():
 def test_BagOfWords_fit():
     from EvoMSA.tests.test_base import TWEETS
     from microtc.utils import tweet_iterator
+    from scipy.sparse import csr_matrix
 
     X = list(tweet_iterator(TWEETS))
     bg = BagOfWords().fit(X)
     bg = BagOfWords().fit([x["text"] for x in X])
-    xx = bg.transform(["buenos y felices dias"])
+    xx = bg._transform(["buenos y felices dias"])
     print(len(xx), len(xx[0]), xx)
     assert len(xx) == 1 and len(xx[0]) == 3 and len(xx[0][1]) == 2
+    xx = bg.transform(["buenos y felices dias"])
+    assert isinstance(xx, csr_matrix)
     # inv = bg.id2word
     # print([(inv(k), v) for k, v in bg.tfidf[xx[0]]])
     # assert False
