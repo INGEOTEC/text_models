@@ -20,6 +20,7 @@ import datetime
 from .utils import download_geo, Gaussian, MobilityTransform, remove_outliers
 from collections import defaultdict, Counter
 from sklearn.metrics import silhouette_score
+from typing import List, Iterable, Union, Dict, Any, Tuple
 EARTH_RADIUS = 6371.009
 
 
@@ -78,7 +79,7 @@ class Country(object):
         return country_code
 
 
-def distance(lat1, lng1, lat2, lng2):
+def distance(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """ Taken from http://www.samuelbosch.com/2018/09/great-circle-calculations-with-numpy.html
     also available at: https://raw.githubusercontent.com/samuelbosch/blogbits/master/geosrc/numpy_greatcircle.py
     """
@@ -98,8 +99,9 @@ def distance(lat1, lng1, lat2, lng2):
     return EARTH_RADIUS * d
 
 
-def point(longitude, latitude):
-    # longitude, latitude = x['lat'], x['long']
+def point(longitude: float, latitude: float) -> Tuple[float, float]:
+    """Transform longitude and latitude from degrees to radians,
+    and reverse the order, i.e., latitude and longitude."""
     if latitude < -90:
         latitude = -180 - latitude
         longitude = longitude + 180
@@ -109,7 +111,7 @@ def point(longitude, latitude):
     return np.radians(latitude), np.radians(longitude)
 
 
-def location(x):
+def location(x: dict) -> Tuple[float, float]:
     """
     Location of a tweet. In the case, it is a bounding box
     the location is the average.
@@ -130,7 +132,7 @@ def location(x):
     return b
 
 
-def _length(x):
+def _length(x: List[Tuple[float, float]]) -> float:
     """
     Lenght between two points
 
@@ -151,7 +153,7 @@ def _length(x):
     return distance(uno[0], uno[1], dos[0], dos[1])
 
 
-def length(x):
+def length(x: dict) -> float:
     """
     Bounding box length
 
@@ -194,7 +196,7 @@ class CP(object):
         self.lat = np.radians([x[1] for x in m])
         self.lon = np.radians([x[2] for x in m])
 
-    def postal_code(self, lat, lon, degrees=True):
+    def postal_code(self, lat: float, lon: float, degrees=True) -> str:
         """
         Postal code
 
@@ -215,7 +217,7 @@ class CP(object):
         d = distance(self.lat, self.lon, lat, lon)
         return self.cp[np.argmin(d)]
 
-    def convert(self, x):
+    def convert(self, x: dict) -> str:
         """
         Obtain the postal code from a tweet
 
@@ -792,6 +794,16 @@ class BoundingBox(object):
     def __init__(self):
         path = join(dirname(__file__), "data", "bbox.dict")
         self._bbox = load_model(path)
+        path = join(dirname(__file__), "data", "bbox_coords.dict")
+        self._bbox_coords = load_model(path)
+
+    @property
+    def coords(self):
+        """
+        Bounding box's coordinates
+        """
+
+        return self._bbox_coords
 
     @property
     def bounding_box(self):

@@ -156,6 +156,12 @@ def test_bounding_box_city_bug():
     assert city != code
 
 
+def text_bounding_box_coords():
+    from text_models.place import BoundingBox
+    bbox = BoundingBox()
+    assert isinstance(bbox.coords, dict)
+
+
 def test_mobility_state_bug():
     from text_models.place import Mobility
     mob = Mobility(window=1)
