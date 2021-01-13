@@ -4,3 +4,4 @@ include text_models/data/CP.desc
 include text_models/data/bbox.dict
 include text_models/data/state.dict
 include text_models/data/bbox_country.dict
+include text_models/data/bbox_coords.dict
