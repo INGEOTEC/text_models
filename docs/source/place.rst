@@ -66,6 +66,50 @@ figure being the only difference the class used.
 
 .. image:: mx-ca-sa-perc.png
 
+So far, we have seen a procedure to compute the mobility using the number 
+of travels and the percentage in different countries. In order to 
+complement the approach, let us compute the mobility between Mexico’s 
+states. The code is similar to the one used in the previous examples, 
+being the difference that one needs to provide a function 
+(argument :py:attr:`level`) 
+that transforms the landmark identifier into a state identifier and filters 
+the landmarks that do not correspond to Mexico.
+
+>>> data = mob.overall(level=lambda x: mob.state(x) if x[:3] == "MX:" else None, pandas=True)
+
+Let us create a heat map to represent the mobility of all states 
+into one figure. The first step is to resample the information to present 
+average mobility in a week. Then, the mobility information is transposed 
+to represent the states as rows and the weeks as columns. 
+
+>>> dd = data.resample("W").mean()
+>>> unico = dd.T
+>>> index = unico.index.to_numpy()
+>>> columns = unico.columns
+>>> unico = unico.to_numpy()
+
+In order to write the state name instead of the identifier, 
+we use the following class. 
+
+>>> from text_models.place import States
+>>> states = States()
+
+It is time to create the heatmap; the following code creates the heatmap.
+
+>>> from matplotlib import pylab as plt
+>>> fig = plt.figure(figsize=(8, 6), dpi=300)
+>>> ax = fig.subplots()
+>>> _ = ax.imshow(unico, cmap="viridis")
+>>> cbar = fig.colorbar(_, ax=ax, orientation="vertical", shrink=1)
+>>> cbar.set_label('Percentage', rotation=90)
+>>> _ = plt.yticks(range(index.shape[0]), [states.name(x) for x in index])
+>>> _ = plt.xticks(range(len(columns)), [x.weekofyear for x in columns])
+>>> plt.xlabel("Week of the year")
+>>> plt.tight_layout()
+>>> plt.savefig("heatmap.png")
+
+.. image:: heatmap.png
+
 To complement the overview 
 of the information that can be obtained from this module, we refer 
 the reader to the 
