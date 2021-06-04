@@ -293,13 +293,15 @@ class Mobility(object):
     :type window: int
     :param end: End of the period, use to override window.
     :type end: datetime
+    :param data: Path to the origin destination matrix
 
     >>> from text_models.place import Mobility
     >>> mobility = Mobility(window=5)
     >>> output = mobility.displacement(level=mobility.state)
     """
 
-    def __init__(self, day=None, window=30, end=None):
+    def __init__(self, day=None, window=30, end=None,
+                 data: Callable[[str], str]=download_geo):
         path = join(dirname(__file__), "data", "state.dict")
         self._states = load_model(path)
         path = join(dirname(__file__), "data", "bbox_country.dict")
@@ -317,9 +319,9 @@ class Mobility(object):
         days = []
         while len(days) < window and day >= init:
             try:
-                fname = download_geo("%s%02i%02i.travel" % (str(day.year)[-2:],
-                                                            day.month,
-                                                            day.day))
+                fname = data("%s%02i%02i.travel" % (str(day.year)[-2:],
+                                                    day.month,
+                                                    day.day))
             except Exception:
                 day = day - delta
                 continue
