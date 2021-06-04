@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from microtc.utils import tweet_iterator
 from text_models.place import Country
+from os.path import dirname, join
+DIR = dirname(__file__)
 
 
 def test_country():
@@ -369,3 +372,37 @@ def test_mobility_day_end():
     mob = Mobility(day=day, end=end)
     d = mob.overall(pandas=True)
     assert d.shape[0]
+
+
+def test_OriginDestination_compute():
+    from text_models.place import OriginDestination
+    from os.path import isfile
+    import os
+    fname = join(DIR, "tweets.json.gz")
+    ori_dest = OriginDestination(fname)
+    output = join(DIR, "210604.travel")
+    ori_dest.compute(output)
+    assert isfile(output)
+    os.unlink(output)    
+
+
+def test_OriginDestination_compute_file():
+    from text_models.place import OriginDestination
+    import json
+    import gzip
+    ori_dest = OriginDestination([])
+    fname = join(DIR, "tweets.json.gz")
+    ori_dest.compute_file(fname)
+    assert len(ori_dest.users) == 7281
+
+
+def test_OriginDestination_matrix():
+    from text_models.place import OriginDestination
+    import json
+    import gzip
+    ori_dest = OriginDestination([])
+    fname = join(DIR, "tweets.json.gz")
+    ori_dest.compute_file(fname)
+    output = ori_dest.matrix()
+    print(output)
+    assert False

@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from os import read
 from EvoMSA.utils import download
-from microtc.utils import load_model
+from microtc.utils import load_model, tweet_iterator, save_model
 import numpy as np
 from os.path import join, dirname
 import time
@@ -20,7 +21,7 @@ import datetime
 from .utils import download_geo, Gaussian, MobilityTransform, remove_outliers
 from collections import defaultdict, Counter
 from sklearn.metrics import silhouette_score
-from typing import List, Iterable, Union, Dict, Any, Tuple
+from typing import List, Iterable, Union, Dict, Any, Tuple, Callable
 EARTH_RADIUS = 6371.009
 
 
@@ -944,3 +945,69 @@ class States(object):
             output.append([i, _[0][0]])
         output.sort(key=lambda x: x[0])
         return [o for _, o in output]
+
+
+class OriginDestination(object):
+    """
+    Compute the origin-destination matrix. 
+    It starts from a list of files where each line is a JSON,
+    using the same structure as Twitter. 
+    The following code is a working example.
+    :param fnames: List or str 
+    :param reader: Function to read each file
+
+    >>> from text_models.place import OriginDestination
+    >>> from text_models.tests import test_place
+    >>> from os.path import join
+    >>> DIR = test_place.DIR
+    >>> fname = join(DIR, "tweets.json.gz")
+    >>> ori_dest = OriginDestination(fname)
+    >>> ori_dest.compute("210604.travel")
+    """
+
+    def __init__(self, fnames: Union[list, str],
+                       reader: Callable[[str], Iterable[dict]]=tweet_iterator) -> None:
+        self._fnames = fnames if isinstance(fnames, list) else [fnames]
+        self._reader = reader
+        self._bounding_box = BoundingBox()
+        self._users = defaultdict(list)
+
+    @property
+    def users(self):
+        return self._users
+
+    @property
+    def num_users(self):
+        return len(self.users)
+
+    def compute_file(self, fname: str) -> None:
+        strptime = datetime.datetime.strptime
+        users = self.users
+        for line in self._reader(fname):
+            try:
+                date = strptime(line["created_at"], "%a %b %d %H:%M:%S %z %Y")
+                user = line["user"]["id"]
+                country = line["place"]["country_code"]
+                geo = location(line)
+                users[user].append(dict(date=date, country=country,
+                                   position=geo))
+            except Exception:
+                continue
+
+    def compute(self, output: str) -> None:
+        for fname in self._fnames:
+            self.compute_file(fname)
+        save_model([self.matrix(), self.num_users], output)
+
+    def matrix(self) -> dict:
+        label = self._bounding_box.label
+        matrix = defaultdict(dict)
+        for user, values in self.users.items():
+            values.sort(key=lambda x: x["date"])
+            for frst, scnd in zip(values, values[1:]):
+                length = _length([frst["position"], scnd["position"]])
+                if length >= 0.1:
+                    frst, scnd = label(frst), label(scnd)
+                    vv = matrix[frst]
+                    vv[scnd] = vv.get(scnd, 0) + 1
+        return matrix
