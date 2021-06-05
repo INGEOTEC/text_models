@@ -116,6 +116,44 @@ the reader to the
 `notebook <https://colab.research.google.com/github/INGEOTEC/text_models/blob/develop/docs/Mobility.ipynb>`_.  
 
 
+Using your Tweets
+-------------------------------------
+
+The previous steps assumed the use of the mobility data collected and transform by ingeotec.
+However, sometimes one would like to use the algorithms developed in data collected with 
+different characteristics.  Let us assume the tweets are in a file called "tweets.json.gz"; 
+the format is one JSON per line. In the tests, it is available some collected tweets 
+to make this example self-contained. These tweets are on the following path.
+
+>>> from text_models.tests import test_place
+>>> from os.path import join
+>>> DIR = test_place.DIR
+>>> fname = join(DIR, "tweets.json.gz")
+
+Then to create the origin-destination matrix used by 
+:py:class:`text_models.place.Mobility`, the following code can be used. 
+
+>>> from text_models.place import OriginDestination
+>>> ori_dest = OriginDestination(fname)
+>>> ori_dest.compute("210604.travel")
+
+It is also possible to use a list of files instead of just one, 
+so it is acceptable that the parameter :attr:`fname` would be a list. 
+Furthermore, it might be the case that the file has a different format, 
+so it is also possible to give a function (:attr:`reader`) 
+that returns an iterable object where each element is a dictionary 
+with the same format used by Twitter.
+
+The last part is to use the origin-destination matrix (i.e., "210604.travel") 
+in the :py:class:`text_models.place.Mobility`. 
+To do so, it is needed to replace the method used to find the mobility information, 
+this is provided by the parameter :attr:`data`. The following code illustrates this process. 
+
+>>> from text_models.place import Mobility
+>>> data = lambda x: join(DIR, x)
+>>> mob = Mobility(day=dict(year=2021, month=6, day=4), window=1, data=data)
+>>> dd = mob.overall(pandas=True)
+
 :mod:`text_models.place`
 -------------------------------------
 
