@@ -150,7 +150,7 @@ To do so, it is needed to replace the method used to find the mobility informati
 this is provided by the parameter :attr:`data`. The following code illustrates this process. 
 
 >>> from text_models.place import Mobility
->>> data = lambda x: join(DIR, x)
+>>> data = lambda x: join(".", x)
 >>> mob = Mobility(day=dict(year=2021, month=6, day=4), window=1, data=data)
 >>> dd = mob.overall(pandas=True)
 
