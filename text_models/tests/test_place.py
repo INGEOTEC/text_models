@@ -405,7 +405,6 @@ def test_OriginDestination_matrix():
     ori_dest.compute_file(fname)
     output = ori_dest.matrix()
     print(output)
-    assert False
 
 
 def test_Mobility_data():

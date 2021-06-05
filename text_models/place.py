@@ -22,6 +22,15 @@ from .utils import download_geo, Gaussian, MobilityTransform, remove_outliers
 from collections import defaultdict, Counter
 from sklearn.metrics import silhouette_score
 from typing import List, Iterable, Union, Dict, Any, Tuple, Callable
+
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(x, **kwargs):
+        return x
+
+
 EARTH_RADIUS = 6371.009
 
 
@@ -991,13 +1000,21 @@ class OriginDestination(object):
                 user = line["user"]["id"]
                 country = line["place"]["country_code"]
                 geo = location(line)
-                users[user].append(dict(date=date, country=country,
-                                   position=geo))
+                value = dict(date=date, country=country,
+                             position=geo)
+                lst = users[user]
+                if len(lst) == 0:
+                    lst.append(value)
+                else:
+                    last = lst[-1]
+                    last = np.array(last["position"])
+                    if np.fabs(last - geo).mean() > 0:
+                        users[user].append(value)
             except Exception:
                 continue
 
     def compute(self, output: str) -> None:
-        for fname in self._fnames:
+        for fname in tqdm(self._fnames):
             self.compute_file(fname)
         save_model([self.matrix(), self.num_users], output)
 
