@@ -993,7 +993,7 @@ class OriginDestination(object):
 
     def compute_file(self, fname: str) -> None:
         strptime = datetime.datetime.strptime
-        users = self.users
+        users = defaultdict(list)
         for line in self._reader(fname):
             try:
                 date = strptime(line["created_at"], "%a %b %d %H:%M:%S %z %Y")
@@ -1007,11 +1007,14 @@ class OriginDestination(object):
                     lst.append(value)
                 else:
                     last = lst[-1]
+                    p_date = last["date"]
                     last = np.array(last["position"])
-                    if np.fabs(last - geo).mean() > 0:
+                    if np.fabs(last - geo).mean() > 0 and (date - p_date).seconds > 0:
                         users[user].append(value)
             except Exception:
                 continue
+        mix = self.users
+        [mix[k].extend(v) for k, v in users.items()]
 
     def compute(self, output: str) -> None:
         for fname in tqdm(self._fnames):
