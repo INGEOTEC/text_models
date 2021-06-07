@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from os import read
-from EvoMSA.utils import download
 from microtc.utils import load_model, tweet_iterator, save_model
 import numpy as np
 from os.path import join, dirname
@@ -44,8 +42,10 @@ class Country(object):
     'MX'
     """
     def __init__(self):
-        self._country = load_model(download("country.ds"))
-        self._location = load_model(download("country-loc.ds"))
+        dir = dirname(__file__)
+        dir = join(dir, "data")
+        self._country = load_model(join(dir, "country.ds"))
+        self._location = load_model(join(dir, "country-loc.ds"))
 
     def country(self, text):
         """
