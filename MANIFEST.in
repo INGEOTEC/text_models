@@ -7,3 +7,4 @@ include text_models/data/bbox_country.dict
 include text_models/data/bbox_coords.dict
 include text_models/data/country-loc.ds
 include text_models/data/country.ds
+include text_models/tests/tweets.json.gz
