@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from os import read
-from EvoMSA.utils import download
 from microtc.utils import load_model, tweet_iterator, save_model
 import numpy as np
 from os.path import join, dirname
@@ -22,6 +20,15 @@ from .utils import download_geo, Gaussian, MobilityTransform, remove_outliers
 from collections import defaultdict, Counter
 from sklearn.metrics import silhouette_score
 from typing import List, Iterable, Union, Dict, Any, Tuple, Callable
+
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(x, **kwargs):
+        return x
+
+
 EARTH_RADIUS = 6371.009
 
 
@@ -35,8 +42,10 @@ class Country(object):
     'MX'
     """
     def __init__(self):
-        self._country = load_model(download("country.ds"))
-        self._location = load_model(download("country-loc.ds"))
+        dir = dirname(__file__)
+        dir = join(dir, "data")
+        self._country = load_model(join(dir, "country.ds"))
+        self._location = load_model(join(dir, "country-loc.ds"))
 
     def country(self, text):
         """
@@ -293,13 +302,15 @@ class Mobility(object):
     :type window: int
     :param end: End of the period, use to override window.
     :type end: datetime
+    :param data: Path to the origin destination matrix
 
     >>> from text_models.place import Mobility
     >>> mobility = Mobility(window=5)
     >>> output = mobility.displacement(level=mobility.state)
     """
 
-    def __init__(self, day=None, window=30, end=None):
+    def __init__(self, day=None, window=30, end=None,
+                 data: Callable[[str], str]=download_geo):
         path = join(dirname(__file__), "data", "state.dict")
         self._states = load_model(path)
         path = join(dirname(__file__), "data", "bbox_country.dict")
@@ -317,9 +328,9 @@ class Mobility(object):
         days = []
         while len(days) < window and day >= init:
             try:
-                fname = download_geo("%s%02i%02i.travel" % (str(day.year)[-2:],
-                                                            day.month,
-                                                            day.day))
+                fname = data("%s%02i%02i.travel" % (str(day.year)[-2:],
+                                                    day.month,
+                                                    day.day))
             except Exception:
                 day = day - delta
                 continue
@@ -982,20 +993,31 @@ class OriginDestination(object):
 
     def compute_file(self, fname: str) -> None:
         strptime = datetime.datetime.strptime
-        users = self.users
+        users = defaultdict(list)
         for line in self._reader(fname):
             try:
                 date = strptime(line["created_at"], "%a %b %d %H:%M:%S %z %Y")
                 user = line["user"]["id"]
                 country = line["place"]["country_code"]
                 geo = location(line)
-                users[user].append(dict(date=date, country=country,
-                                   position=geo))
+                value = dict(date=date, country=country,
+                             position=geo)
+                lst = users[user]
+                if len(lst) == 0:
+                    lst.append(value)
+                else:
+                    last = lst[-1]
+                    p_date = last["date"]
+                    last = np.array(last["position"])
+                    if np.fabs(last - geo).mean() > 0 and (date - p_date).seconds > 0:
+                        users[user].append(value)
             except Exception:
                 continue
+        mix = self.users
+        [mix[k].extend(v) for k, v in users.items()]
 
     def compute(self, output: str) -> None:
-        for fname in self._fnames:
+        for fname in tqdm(self._fnames):
             self.compute_file(fname)
         save_model([self.matrix(), self.num_users], output)
 

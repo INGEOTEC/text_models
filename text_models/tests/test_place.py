@@ -405,4 +405,37 @@ def test_OriginDestination_matrix():
     ori_dest.compute_file(fname)
     output = ori_dest.matrix()
     print(output)
-    assert False
+
+
+def test_Mobility_data():
+    from text_models.place import OriginDestination, Mobility
+    from os.path import isfile
+    import os
+    output = join(DIR, "210604.travel")
+    if not isfile(output):
+        fname = join(DIR, "tweets.json.gz")
+        ori_dest = OriginDestination(fname)
+        ori_dest.compute(output)
+    data = lambda x: join(DIR, x)
+    mob = Mobility(day=dict(year=2021, month=6, day=4), window=1, data=data)
+    dd = mob.overall(pandas=True)
+    print(dd.loc[:, "US"].values[0])
+    assert dd.loc[:, "US"].values[0] == 334
+    os.unlink(output)
+
+
+def test_Mobility_data2():
+    from text_models.place import OriginDestination, Mobility
+    from os.path import isfile
+    import os
+    output = join(DIR, "210604.travel")
+    if not isfile(output):
+        fname = join(DIR, "tweets.json.gz")
+        ori_dest = OriginDestination([fname, fname])
+        ori_dest.compute(output)
+    data = lambda x: join(DIR, x)
+    mob = Mobility(day=dict(year=2021, month=6, day=4), window=1, data=data)
+    dd = mob.overall(pandas=True)
+    print(dd.loc[:, "US"].values[0])
+    assert dd.loc[:, "US"].values[0] == 334
+    os.unlink(output)

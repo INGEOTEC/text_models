@@ -132,3 +132,4 @@ docs/.DS_Store
 .gitignore
 .DS_Store
 docs/source/_build/
+text_models/data/geo/*.travel
