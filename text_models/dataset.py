@@ -26,6 +26,13 @@ from microtc.utils import tweet_iterator
 from .place import BoundingBox, location
 
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(x, **kwargs):
+        return x
+
+
 class Dataset(object):
     """
     Self-supervised learning requires the automatic construction of a 
@@ -333,6 +340,10 @@ class GeoFrequency(object):
     @property
     def data(self) -> defaultdict:
         return self._data
+
+    def compute(self) -> None:
+        for fname in tqdm(self._fnames):
+            self.compute_file(fname)
 
     def compute_file(self, fname: str) -> None:
         label = self._label
