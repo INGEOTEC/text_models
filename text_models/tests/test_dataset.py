@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from text_models.dataset import Dataset
-
+from os.path import dirname, join
+DIR = dirname(__file__)
+TWEETS = join(DIR, "tweets.json.gz")
 
 def test_dataset():
     from microtc.utils import load_model
@@ -114,3 +116,29 @@ def test_bug_two_cons_klass():
     dset = load_model(download("country.ds"))
     r = dset.klass("mexico y usa")
     assert len(r.intersection(set(["US", "MX"]))) == 2
+
+
+def test_TokenCount_process_line():
+    from text_models.dataset import TokenCount
+    tcount = TokenCount.bigrams()
+    tcount.process_line("buenos dias xx la dias xx")
+    counter = tcount.counter
+    print(counter)
+    assert counter["dias~xx"] == 2 and tcount.num_documents == 1
+
+
+def test_TokenCount_process():
+    from microtc.utils import tweet_iterator
+    from text_models.dataset import TokenCount
+    tcount = TokenCount.bigrams()
+    tcount.process(tweet_iterator(TWEETS))
+    print(tcount.counter.most_common(10))
+    assert tcount.counter["in~the"] == 313
+
+
+def test_TokenCount_co_occurrence():
+    from microtc.utils import tweet_iterator
+    from text_models.dataset import TokenCount
+    tcount = TokenCount.co_ocurrence()
+    tcount.process_line("buenos xxx dias")
+    assert tcount.counter["dias~xxx"] == 1

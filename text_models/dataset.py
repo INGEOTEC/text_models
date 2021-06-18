@@ -11,11 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from re import T
+from typing import Callable, Iterable, List, Union
+from b4msa.textmodel import TextModel
 from microtc.utils import load_model
 from microtc import emoticons
 from EvoMSA.utils import download
 from collections import OrderedDict
+from microtc.utils import Counter
 from os.path import isfile, join, dirname
+from microtc.textmodel import TextModel
+from microtc.params import OPTION_DELETE, OPTION_NONE
 
 
 class Dataset(object):
@@ -243,3 +249,55 @@ class Dataset(object):
         del self.klasses[klass]
         if hasattr(self, "_data_structure"):
             del self._data_structure
+
+
+class TokenCount(object):
+    """Count frequency"""
+
+    def __init__(self, tokenizer: Callable[[Union[str, dict]], Iterable[str]]) -> None:
+        self._tokenizer = tokenizer
+        self._counter = Counter()
+
+    @property
+    def counter(self) -> Counter:
+        return self._counter
+
+    @property
+    def num_documents(self) -> int:
+        return self.counter.update_calls
+
+    def process(self, iterable: Iterable[Union[str, dict]]) -> None:
+        pl = self.process_line
+        [pl(line) for line in iterable]
+
+    def process_line(self, txt: Union[str, dict]) -> None:
+        self.counter.update(self._tokenizer(txt))
+
+    @staticmethod
+    def textModel(token_list) -> TextModel:
+        tm = TextModel(num_option=OPTION_DELETE, usr_option=OPTION_NONE,
+                       url_option=OPTION_DELETE, emo_option=OPTION_NONE, 
+                       hashtag_option=OPTION_NONE,
+                       del_dup=False, del_punc=True, token_list=token_list)
+        return tm
+
+    @classmethod
+    def bigrams(cls) -> "TokenCount":
+        tm = cls.textModel(token_list=[-2])
+        return cls(tokenizer=tm.tokenize)
+
+    @classmethod
+    def co_ocurrence(cls) -> "TokenCount":
+        from itertools import product
+        tm = cls.textModel(token_list=[-1])
+        def co_ocurrence(txt):
+            tokens = tm.tokenize(txt)
+            for k, frst in enumerate(tokens[:-1]):
+                for scnd in tokens[k+1:]:
+                    if frst == scnd:
+                        yield frst
+                    else:
+                        _ = [frst, scnd]
+                        _.sort()
+                        yield "~".join(_)
+        return cls(tokenizer=co_ocurrence)
