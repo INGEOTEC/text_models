@@ -142,3 +142,19 @@ def test_TokenCount_co_occurrence():
     tcount = TokenCount.co_ocurrence()
     tcount.process_line("buenos xxx dias")
     assert tcount.counter["dias~xxx"] == 1
+
+
+def test_TokenCount_single_co_occurrence():
+    from microtc.utils import tweet_iterator
+    from text_models.dataset import TokenCount
+    tcount = TokenCount.single_co_ocurrence()
+    tcount.process_line("buenos xxx dias")
+    assert tcount.counter["dias~xxx"] == 1
+    assert tcount.counter["xxx"] == 1
+
+
+def test_GeoFrequency():
+    from text_models.dataset import GeoFrequency
+    freq = GeoFrequency([])
+    freq.compute_file(TWEETS)
+    assert freq.data["nogeo"].counter['#earthquake~magnitude'] == 17

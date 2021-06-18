@@ -17,11 +17,13 @@ from b4msa.textmodel import TextModel
 from microtc.utils import load_model
 from microtc import emoticons
 from EvoMSA.utils import download
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from microtc.utils import Counter
 from os.path import isfile, join, dirname
 from microtc.textmodel import TextModel
 from microtc.params import OPTION_DELETE, OPTION_NONE
+from microtc.utils import tweet_iterator
+from .place import BoundingBox, location
 
 
 class Dataset(object):
@@ -288,7 +290,6 @@ class TokenCount(object):
 
     @classmethod
     def co_ocurrence(cls) -> "TokenCount":
-        from itertools import product
         tm = cls.textModel(token_list=[-1])
         def co_ocurrence(txt):
             tokens = tm.tokenize(txt)
@@ -301,3 +302,53 @@ class TokenCount(object):
                         _.sort()
                         yield "~".join(_)
         return cls(tokenizer=co_ocurrence)
+
+    @classmethod
+    def single_co_ocurrence(cls) -> "TokenCount":
+        tm = cls.textModel(token_list=[-1])
+        def co_ocurrence(txt):
+            tokens = tm.tokenize(txt)
+            for k, frst in enumerate(tokens[:-1]):
+                for scnd in tokens[k+1:]:
+                    if frst != scnd:
+                        _ = [frst, scnd]
+                        _.sort()
+                        yield "~".join(_)
+            for x in tokens:
+                yield x
+        return cls(tokenizer=co_ocurrence)
+
+
+class GeoFrequency(object):
+    def __init__(self, fnames: Union[list, str],
+                       reader: Callable[[str], Iterable[dict]]=tweet_iterator) -> None:
+        self._fnames = fnames if isinstance(fnames, list) else [fnames]
+        self._reader = reader
+        self._label = BoundingBox().label
+        self._data = defaultdict(TokenCount.single_co_ocurrence)
+        _ = join(dirname(__file__), "data", "state.dict")
+        self._states = load_model(_)
+
+
+    @property
+    def data(self) -> defaultdict:
+        return self._data
+
+    def compute_file(self, fname: str) -> None:
+        label = self._label
+        states = self._states
+        data = self._data
+        for line in self._reader(fname):
+            try:
+                country, geo = None, None
+                country = line["place"]["country_code"]
+                geo = label(dict(position=location(line), country=country))
+                geo = states[geo]
+            except Exception:
+                pass
+            if geo is not None:
+                data[geo].process_line(line)
+            elif country is not None:
+                data[country].process_line(line)
+            else:
+                data["nogeo"].process_line(line)
