@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from numpy.testing._private.utils import assert_string_equal
 from text_models.dataset import Dataset
 from os.path import dirname, join
 DIR = dirname(__file__)
@@ -163,4 +164,25 @@ def test_GeoFrequency():
 def test_GeoFrequency():
     from text_models.dataset import GeoFrequency
     freq = GeoFrequency([TWEETS])
-    freq.compute()    
+    freq.compute()
+
+
+def test_TokenCount_clean():
+    from microtc.utils import tweet_iterator
+    from text_models.dataset import TokenCount
+    tcount = TokenCount.single_co_ocurrence()    
+    tcount.process(tweet_iterator(TWEETS))
+    ant = len(tcount.counter)
+    tcount.clean()
+    act = len(tcount.counter)
+    assert ant > act
+
+
+def test_GeoFrequency_clean():
+    from text_models.dataset import GeoFrequency
+    freq = GeoFrequency([TWEETS])
+    freq.compute()
+    ant = len(freq.data)
+    freq.clean()
+    act = len(freq.data)
+    assert ant > act

@@ -282,6 +282,15 @@ class TokenCount(object):
     def process_line(self, txt: Union[str, dict]) -> None:
         self.counter.update(self._tokenizer(txt))
 
+    def clean(self) -> None:
+        counter = self.counter
+        min_value = 0.0001 * counter.update_calls
+        min_value = max(2, min_value)
+        keys = list(counter.keys())
+        for k in keys:
+            if counter[k] <= min_value:
+                del counter[k]        
+
     @staticmethod
     def textModel(token_list) -> TextModel:
         tm = TextModel(num_option=OPTION_DELETE, usr_option=OPTION_NONE,
@@ -336,7 +345,6 @@ class GeoFrequency(object):
         _ = join(dirname(__file__), "data", "state.dict")
         self._states = load_model(_)
 
-
     @property
     def data(self) -> defaultdict:
         return self._data
@@ -363,3 +371,14 @@ class GeoFrequency(object):
                 data[country].process_line(line)
             else:
                 data["nogeo"].process_line(line)
+
+    def clean(self) -> None:
+        keys = list(self.data.keys())
+        data = self.data
+        max_value = max([x.num_documents for x in data.values()])
+        min_value = 0.0001 * max_value
+        min_value = max(2, min_value)
+        for key in keys:
+            data[key].clean()
+            if len(data[key].counter) == 0 or data[key].num_documents <= min_value:
+                del data[key]
