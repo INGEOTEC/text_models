@@ -125,56 +125,6 @@ def download_tokens(day, lang:str= "Es", country: str=None, cache: bool=True) ->
     return fname        
 
 
-def download(fname, lang="Es", country=None, cache=True):
-    """
-    >>> from text_models.utils import download
-    >>> from microtc.utils import tweet_iterator, load_model
-    >>> config = list(tweet_iterator(download("config.json")))
-    >>> [list(x.keys())[0] for x in config]
-    ['weekday_Es', 'b4msa_Es', 'weekday_En', 'b4msa_En', 'weekday_Ar', 'b4msa_Ar']
-
-    >>> voc = load_model(download("191225.voc", lang="Es"))
-    >>> voc2 = load_model(download(config[0]["weekday_Es"]["0"][0]))
-
-    """
-
-    from os.path import isdir, join, isfile, dirname
-    import os
-    from urllib import request
-    from urllib.error import HTTPError
-
-    assert lang in ["Ar", "En", "Es"]
-    diroutput = join(dirname(__file__), 'data')
-    if not isdir(diroutput):
-        os.mkdir(diroutput)
-    if fname in ["config.json", "data.json"]:
-        output = join(diroutput, fname)
-        if not isfile(output) or not cache:
-            request.urlretrieve("http://ingeotec.mx/~mgraffg/vocabulary/%s" % fname,
-                                output)            
-        return output
-    if fname.count("/") == 1:
-        lang, fname = fname.split("/")
-    diroutput = join(diroutput, lang)
-    if not isdir(diroutput):
-        os.mkdir(diroutput)
-    if country is not None:
-        diroutput = join(diroutput, country)
-        if not isdir(diroutput):
-            os.mkdir(diroutput)
-    output =  join(diroutput, fname)
-    if not isfile(output) or not cache:
-        if country is not None:
-            path = "http://ingeotec.mx/~mgraffg/vocabulary/%s/%s/%s" % (lang, country, fname)
-        else:
-            path = "http://ingeotec.mx/~mgraffg/vocabulary/%s/%s" % (lang, fname)
-        try:
-            request.urlretrieve(path, output)
-        except HTTPError:
-            raise Exception(path)                     
-    return output
-    
-
 class Gaussian(object):
     """
     Gaussian distribution

@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from microtc.utils import load_model, tweet_iterator, Counter
-from text_models.utils import download
-from collections import defaultdict
-from datetime import datetime
+from microtc.utils import load_model, Counter
 from b4msa.textmodel import TextModel
 from microtc.weighting import TFIDF
 from microtc.utils import SparseMatrix
@@ -48,7 +45,7 @@ class Vocabulary(object):
 
     >>> from text_models.vocabulary import Vocabulary
     >>> day = dict(year=2020, month=2, day=14)
-    >>> voc = Vocabulary(day, lang="En", country=”US”)
+    >>> voc = Vocabulary(day, lang="En", country="US")
     """
 
     def __init__(self, data, lang: str="Es", 
