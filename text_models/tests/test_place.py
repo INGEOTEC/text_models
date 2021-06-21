@@ -95,15 +95,6 @@ def test_travel_init():
     assert len(travel.dates) == 3
 
 
-def test_utils_download():
-    from text_models.utils import download
-    try:
-        download("fail")
-    except Exception:
-        return
-    assert False
-
-
 def test_travel_outward():
     from text_models.place import Travel
     from datetime import datetime
@@ -159,7 +150,7 @@ def test_bounding_box_city_bug():
     assert city != code
 
 
-def text_bounding_box_coords():
+def test_bounding_box_coords():
     from text_models.place import BoundingBox
     bbox = BoundingBox()
     assert isinstance(bbox.coords, dict)
@@ -211,7 +202,8 @@ def test_travel_cluster_percentage():
     from text_models.place import Mobility
     from sklearn.metrics import silhouette_score
     mobility = Mobility(window=21)
-    inside = mobility.overall(mobility.country)
+    func = lambda x: x[:2] if x[:2] == "MX" else None
+    inside = mobility.overall(func)
     baseline = mobility.cluster_percentage(inside)
     assert isinstance(baseline["MX"].data, KMeans)
     for v in baseline.values():
@@ -227,7 +219,8 @@ def test_travel_percentage_by_weekday():
     from text_models.place import Travel
     import numpy as np
     travel = Travel(window=21)
-    inside = travel.inside_mobility(travel.country)
+    func = lambda x: x[:2] if x[:2] in ["MX", "US"] else None
+    inside = travel.inside_mobility(func)
     baseline = travel.weekday_percentage(inside)
     print(len(inside), inside["MX"])
     output = travel.transform(inside, baseline)
@@ -252,7 +245,8 @@ def test_travel_weekday_probability():
     from text_models.place import Travel
     import numpy as np
     travel = Travel(window=21)
-    inside = travel.inside_mobility(travel.country)
+    func = lambda x: x[:2] if x[:2] == "MX" else None
+    inside = travel.inside_mobility(func)
     baseline = travel.weekday_probability(inside)
     print(baseline["MX"].data[0])
     for wk in range(7):
@@ -331,7 +325,8 @@ def test_mobilityWeekday():
     import pandas as pd
     mob = MobilityWeekday(dict(year=2020, month=7, day=19), window=3,
                           baseline=10)
-    d = mob.overall()
+    func = lambda x: x[:2] if x[:2] == "MX" else None                      
+    d = mob.overall(func)
     assert isinstance(mob.baseline, Mobility)
     assert isinstance(d, dict)
     base = mob.baseline.overall()
@@ -350,17 +345,18 @@ def test_mobilityCluster():
     import pandas as pd
     mob = MobilityCluster(dict(year=2020, month=7, day=19), window=3,
                           baseline=10)
-    d = mob.overall()
+    func = lambda x: x[:2] if x[:2] == "MX" else None                          
+    d = mob.overall(func)
     assert isinstance(mob.baseline, Mobility)
     assert isinstance(d, dict)
-    base = mob.baseline.overall()
+    base = mob.baseline.overall(func)
     for a, b in zip(d, base["MX"]):
         assert  a != b
-    d1 = mob.overall(pandas=True)
+    d1 = mob.overall(func, pandas=True)
     assert isinstance(d1, pd.DataFrame)
-    d = mob.inside_mobility()
+    d = mob.inside_mobility(func)
     assert isinstance(d, dict)
-    d = mob.inside_mobility(pandas=True)
+    d = mob.inside_mobility(func, pandas=True)
     assert isinstance(d, pd.DataFrame)
 
 
@@ -370,7 +366,8 @@ def test_mobility_day_end():
     day = dict(year=2020, month=7, day=17)
     end = dict(year=2020, month=7, day=19)
     mob = Mobility(day=day, end=end)
-    d = mob.overall(pandas=True)
+    func = lambda x: x[:2] if x[:2] == "MX" else None
+    d = mob.overall(func, pandas=True)
     assert d.shape[0]
 
 

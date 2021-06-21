@@ -1,7 +1,7 @@
 Text Models
 ===============
-.. image:: https://travis-ci.org/INGEOTEC/text_models.svg?branch=master
-	  :target: https://travis-ci.org/INGEOTEC/text_models
+.. image:: https://travis-ci.com/INGEOTEC/text_models.svg?branch=master
+	  :target: https://travis-ci.com/INGEOTEC/text_models
 
 .. image:: https://badge.fury.io/py/text-models.svg
 	  :target: https://badge.fury.io/py/text-models

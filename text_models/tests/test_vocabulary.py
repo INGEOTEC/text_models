@@ -11,74 +11,73 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from text_models.utils import download
 from text_models.vocabulary import Vocabulary, Tokenize, BagOfWords
 
 
 def test_init():
-    from datetime import datetime
-    voc = Vocabulary("191225.voc", lang="En")
-    assert voc.date.day == 25
-    voc2 = Vocabulary(["191225.voc", "191226.voc"], lang="En")
-    assert len(voc2.voc) > len(voc.voc)
-    voc = Vocabulary(datetime(year=2018, month=12, day=24), lang="Es")
-    assert voc.date.day == 24 and voc.date.year == 2018
-
-
-
-def test_create_text_model():
-    voc = Vocabulary("191225.voc")
-    nterms = len(voc.voc)
-    tm = voc.create_text_model()
-    assert len(tm["buenos dias"]) > 4
-    assert nterms == tm.num_terms
-    # assert nterms == len(voc.voc)
-
-
-def test_weekday_words():
-    voc = Vocabulary("191225.voc")
-    words = voc.weekday_words()
-    assert len(words) > 10000
+    from microtc.utils import Counter
+    day = dict(year=2020, month=2, day=14)
+    voc = Vocabulary(day, lang="En")
+    assert isinstance(voc.voc, Counter)
+    voc = Vocabulary(day, lang="En", country="US")
+    assert isinstance(voc.voc, Counter)
+    voc = Vocabulary(day, lang="Es", country="MX", states=True)
+    assert isinstance(voc.voc, dict)
+    day2 = dict(year=2021, month=2, day=14)
+    voc = Vocabulary([day2, day])
+    assert isinstance(voc.voc, Counter)
+    voc = Vocabulary([day2, day], lang="En", country="US")
+    assert isinstance(voc.voc, Counter)
+    voc = Vocabulary([day2, day], lang="Es", country="MX", states=True)
+    assert isinstance(voc.voc, dict)
 
 
 def test_common_words():
-    voc = Vocabulary("191225.voc")
+    voc = Vocabulary(dict(year=2020, month=2, day=14))
     words = voc.common_words()
     assert len(words) > 10000
 
 
 def test_remove():
-    voc = Vocabulary("191225.voc")
-    numterms = len(voc.voc)
-    voc.remove(voc.weekday_words())
-    assert numterms > len(voc.voc)
+    voc = Vocabulary(dict(year=2020, month=2, day=14))
     numterms = len(voc.voc)
     voc.remove(voc.common_words())
     assert numterms > len(voc.voc)
 
 
+def test_date():
+    from datetime import datetime
+    voc = Vocabulary(dict(year=2020, month=2, day=14))
+    assert(voc.date, datetime)
+    days = [dict(year=2020, month=2, day=14),
+            dict(year=2021, month=2, day=14)]
+    voc = Vocabulary(days)
+    assert voc.date is None
+
+
 def test_day_words():
-    voc = Vocabulary("200229.voc", lang="En")
+    voc = Vocabulary(dict(year=2020, month=2, day=14), lang="En")
     words = voc.day_words()
-    assert len(words) > 10000
+    assert words is not None
+    assert isinstance(words, Vocabulary)
+    print(words.date)
 
 
 def test_remove_qgrams():
-    voc = Vocabulary("191225.voc")
+    voc = Vocabulary(dict(year=2020, month=2, day=14), lang="En")
     voc.remove_qgrams()
-    assert len([x for x in voc.voc if x[:2] == "q:"]) == 0
 
 
 def test_previous_day():
     from os.path import basename
 
-    voc = Vocabulary("200301.voc")
+    voc = Vocabulary(dict(year=2020, month=2, day=14), lang="En")
     prev = voc.previous_day()
-    assert basename(prev._fname) == "200229.voc"
+    assert prev.date.day == 13
 
 
 def test_dict_functions():
-    voc = Vocabulary("200301.voc")
+    voc = Vocabulary(dict(year=2020, month=2, day=14))
 
     assert len(voc) == len([x for x in voc])
     data = [k for k, v in voc.items()]
@@ -90,13 +89,13 @@ def test_dict_functions():
 
 
 def test_remove_emojis():
-    voc = Vocabulary("200301.voc")
+    voc = Vocabulary(dict(year=2020, month=2, day=14))
     voc.remove_qgrams()
     voc.remove_emojis()
 
 
 def test_country():
-    date = "151219.voc"
+    date = dict(year=2020, month=2, day=14)
     voc = Vocabulary(date, lang="Es", country="MX")
     assert len(voc)
     voc2 = Vocabulary(date, lang="Es")
@@ -111,42 +110,20 @@ def test_vocabulary_dict():
             self.month = month
             self.day = day
 
-    voc = Vocabulary(dict(year=2020, month=7, day=21))
+    voc = Vocabulary(dict(year=2020, month=2, day=14))
     assert voc["buenos"]
-    voc2 = Vocabulary(D(2020, 7, 21))
+    voc2 = Vocabulary(D(2020, 2, 14))
     assert voc["buenos"] == voc2["buenos"]
 
 
 def test_vocabulary_data_lst():
     import pandas as pd
 
-    d = list(pd.date_range("2020-07-20", "2020-07-21"))
+    d = list(pd.date_range("2020-02-13", "2020-02-14"))
     print(len(d))
     vocs = Vocabulary(d)
     assert vocs["buenos"]
     assert len(d) == 2
-
-
-def test_add():
-    voc1 = Vocabulary(dict(year=2020, month=7, day=21), token_min_filter=0)
-    voc2 = Vocabulary(dict(year=2020, month=7, day=1), token_min_filter=0)
-    r = voc1 + voc2
-    r2 = Vocabulary([dict(year=2020, month=7, day=21),
-                     dict(year=2020, month=7, day=1)])
-    print(len(r.voc), len(voc1.voc), len(voc2.voc))
-    print(len(r.voc), len(r2.voc))
-    assert len(r.voc) > len(voc1.voc) and len(r.voc) > len(voc2.voc)
-
-
-def test_sub():
-    voc1 = Vocabulary(dict(year=2020, month=7, day=21), token_min_filter=0)
-    voc2 = Vocabulary(dict(year=2020, month=7, day=1), token_min_filter=0)
-    r = voc1 - voc2
-    r2 = Vocabulary([dict(year=2020, month=7, day=21),
-                     dict(year=2020, month=7, day=1)])
-    print(len(r.voc), len(voc1.voc), len(voc2.voc))
-    print(len(r.voc), len(r2.voc))
-    assert len(r.voc) < len(voc1.voc) and len(r.voc) < len(voc2.voc)    
 
 
 def test_tokenize_fit():

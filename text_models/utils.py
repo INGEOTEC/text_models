@@ -81,56 +81,49 @@ def download_geo(day):
       raise Exception(path)
     return fname
 
+def handle_day(day):
+    from datetime import datetime
+    if isinstance(day, dict):
+        return datetime(year=day["year"],
+                        month=day["month"],
+                        day=day["day"])
+    if hasattr(day, "year") and hasattr(day, "month") and hasattr(day, "day"):
+        return datetime(year=day.year,
+                        month=day.month,
+                        day=day.day)
+    raise Exception("Not implemented: %s" % day)
 
-def download(fname, lang="Es", country=None, cache=True):
-    """
-    >>> from text_models.utils import download
-    >>> from microtc.utils import tweet_iterator, load_model
-    >>> config = list(tweet_iterator(download("config.json")))
-    >>> [list(x.keys())[0] for x in config]
-    ['weekday_Es', 'b4msa_Es', 'weekday_En', 'b4msa_En', 'weekday_Ar', 'b4msa_Ar']
 
-    >>> voc = load_model(download("191225.voc", lang="Es"))
-    >>> voc2 = load_model(download(config[0]["weekday_Es"]["0"][0]))
-
-    """
-
+def download_tokens(day, lang:str= "Es", country: str=None, cache: bool=True) -> str:
     from os.path import isdir, join, isfile, dirname
     import os
     from urllib import request
     from urllib.error import HTTPError
-
-    assert lang in ["Ar", "En", "Es"]
+    day = handle_day(day)
+    date = "%s%02i%02i" % (day.year, day.month, day.day)
+    date_str = "%s/%02i/%02i" % (str(day.year)[2:], day.month, day.day) 
     diroutput = join(dirname(__file__), 'data')
     if not isdir(diroutput):
         os.mkdir(diroutput)
-    if fname in ["config.json", "data.json"]:
-        output = join(diroutput, fname)
-        if not isfile(output) or not cache:
-            request.urlretrieve("http://ingeotec.mx/~mgraffg/vocabulary/%s" % fname,
-                                output)            
-        return output
-    if fname.count("/") == 1:
-        lang, fname = fname.split("/")
     diroutput = join(diroutput, lang)
     if not isdir(diroutput):
-        os.mkdir(diroutput)
-    if country is not None:
-        diroutput = join(diroutput, country)
-        if not isdir(diroutput):
-            os.mkdir(diroutput)
-    output =  join(diroutput, fname)
-    if not isfile(output) or not cache:
-        if country is not None:
-            path = "http://ingeotec.mx/~mgraffg/vocabulary/%s/%s/%s" % (lang, country, fname)
-        else:
-            path = "http://ingeotec.mx/~mgraffg/vocabulary/%s/%s" % (lang, fname)
-        try:
-            request.urlretrieve(path, output)
-        except HTTPError:
-            raise Exception(path)                     
-    return output
-    
+        os.mkdir(diroutput)        
+    if country is None:
+        fname = join(diroutput, date + ".gz")
+        if isfile(fname) and cache:
+            return fname 
+        path = "https://github.com/INGEOTEC/tokens-data-%s/raw/main/%s/%s/nogeo.gz" % (day.year, lang, date_str)
+    else:
+        fname = join(diroutput, country + "_" + date + ".gz")
+        if isfile(fname) and cache:
+            return fname 
+        path = "https://github.com/INGEOTEC/tokens-data-%s/raw/main/%s/%s/%s.gz" % (day.year, lang, date_str, country)
+    try:
+      request.urlretrieve(path, fname)
+    except HTTPError:
+      raise Exception(path)
+    return fname        
+
 
 class Gaussian(object):
     """

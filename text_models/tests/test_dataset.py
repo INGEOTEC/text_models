@@ -11,8 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from numpy.testing._private.utils import assert_string_equal
 from text_models.dataset import Dataset
-
+from os.path import dirname, join
+DIR = dirname(__file__)
+TWEETS = join(DIR, "tweets.json.gz")
 
 def test_dataset():
     from microtc.utils import load_model
@@ -111,6 +114,77 @@ def test_map():
 def test_bug_two_cons_klass():
     from EvoMSA.utils import download
     from microtc.utils import load_model
-    dset = load_model(download("country.ds"))
+    from os.path import dirname, join
+    _ = join(dirname(__file__), "..", "data", "country.ds")
+    dset = load_model(_)
     r = dset.klass("mexico y usa")
     assert len(r.intersection(set(["US", "MX"]))) == 2
+
+
+def test_TokenCount_process_line():
+    from text_models.dataset import TokenCount
+    tcount = TokenCount.bigrams()
+    tcount.process_line("buenos dias xx la dias xx")
+    counter = tcount.counter
+    print(counter)
+    assert counter["dias~xx"] == 2 and tcount.num_documents == 1
+
+
+def test_TokenCount_process():
+    from microtc.utils import tweet_iterator
+    from text_models.dataset import TokenCount
+    tcount = TokenCount.bigrams()
+    tcount.process(tweet_iterator(TWEETS))
+    print(tcount.counter.most_common(10))
+    assert tcount.counter["in~the"] == 313
+
+
+def test_TokenCount_co_occurrence():
+    from microtc.utils import tweet_iterator
+    from text_models.dataset import TokenCount
+    tcount = TokenCount.co_ocurrence()
+    tcount.process_line("buenos xxx dias")
+    assert tcount.counter["dias~xxx"] == 1
+
+
+def test_TokenCount_single_co_occurrence():
+    from microtc.utils import tweet_iterator
+    from text_models.dataset import TokenCount
+    tcount = TokenCount.single_co_ocurrence()
+    tcount.process_line("buenos xxx dias")
+    assert tcount.counter["dias~xxx"] == 1
+    assert tcount.counter["xxx"] == 1
+
+
+def test_GeoFrequency():
+    from text_models.dataset import GeoFrequency
+    freq = GeoFrequency([])
+    freq.compute_file(TWEETS)
+    assert freq.data["nogeo"].counter['#earthquake~magnitude'] == 17
+
+
+def test_GeoFrequency():
+    from text_models.dataset import GeoFrequency
+    freq = GeoFrequency([TWEETS])
+    freq.compute()
+
+
+def test_TokenCount_clean():
+    from microtc.utils import tweet_iterator
+    from text_models.dataset import TokenCount
+    tcount = TokenCount.single_co_ocurrence()    
+    tcount.process(tweet_iterator(TWEETS))
+    ant = len(tcount.counter)
+    tcount.clean()
+    act = len(tcount.counter)
+    assert ant > act
+
+
+def test_GeoFrequency_clean():
+    from text_models.dataset import GeoFrequency
+    freq = GeoFrequency([TWEETS])
+    freq.compute()
+    ant = len(freq.data)
+    freq.clean()
+    act = len(freq.data)
+    assert ant > act

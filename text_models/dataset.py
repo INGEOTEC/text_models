@@ -11,11 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from re import T
+from typing import Callable, Iterable, List, Union
+from b4msa.textmodel import TextModel
 from microtc.utils import load_model
 from microtc import emoticons
 from EvoMSA.utils import download
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+from microtc.utils import Counter
 from os.path import isfile, join, dirname
+from microtc.textmodel import TextModel
+from microtc.params import OPTION_DELETE, OPTION_NONE
+from microtc.utils import tweet_iterator
+from .place import BoundingBox, location
+
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(x, **kwargs):
+        return x
 
 
 class Dataset(object):
@@ -243,3 +258,127 @@ class Dataset(object):
         del self.klasses[klass]
         if hasattr(self, "_data_structure"):
             del self._data_structure
+
+
+class TokenCount(object):
+    """Count frequency"""
+
+    def __init__(self, tokenizer: Callable[[Union[str, dict]], Iterable[str]]) -> None:
+        self._tokenizer = tokenizer
+        self._counter = Counter()
+
+    @property
+    def counter(self) -> Counter:
+        return self._counter
+
+    @property
+    def num_documents(self) -> int:
+        return self.counter.update_calls
+
+    def process(self, iterable: Iterable[Union[str, dict]]) -> None:
+        pl = self.process_line
+        [pl(line) for line in iterable]
+
+    def process_line(self, txt: Union[str, dict]) -> None:
+        self.counter.update(self._tokenizer(txt))
+
+    def clean(self) -> None:
+        counter = self.counter
+        min_value = 0.0001 * counter.update_calls
+        min_value = max(2, min_value)
+        keys = list(counter.keys())
+        for k in keys:
+            if counter[k] <= min_value:
+                del counter[k]        
+
+    @staticmethod
+    def textModel(token_list) -> TextModel:
+        tm = TextModel(num_option=OPTION_DELETE, usr_option=OPTION_NONE,
+                       url_option=OPTION_DELETE, emo_option=OPTION_NONE, 
+                       hashtag_option=OPTION_NONE,
+                       del_dup=False, del_punc=True, token_list=token_list)
+        return tm
+
+    @classmethod
+    def bigrams(cls) -> "TokenCount":
+        tm = cls.textModel(token_list=[-2])
+        return cls(tokenizer=tm.tokenize)
+
+    @classmethod
+    def co_ocurrence(cls) -> "TokenCount":
+        tm = cls.textModel(token_list=[-1])
+        def co_ocurrence(txt):
+            tokens = tm.tokenize(txt)
+            for k, frst in enumerate(tokens[:-1]):
+                for scnd in tokens[k+1:]:
+                    if frst == scnd:
+                        yield frst
+                    else:
+                        _ = [frst, scnd]
+                        _.sort()
+                        yield "~".join(_)
+        return cls(tokenizer=co_ocurrence)
+
+    @classmethod
+    def single_co_ocurrence(cls) -> "TokenCount":
+        tm = cls.textModel(token_list=[-1])
+        def co_ocurrence(txt):
+            tokens = tm.tokenize(txt)
+            for k, frst in enumerate(tokens[:-1]):
+                for scnd in tokens[k+1:]:
+                    if frst != scnd:
+                        _ = [frst, scnd]
+                        _.sort()
+                        yield "~".join(_)
+            for x in tokens:
+                yield x
+        return cls(tokenizer=co_ocurrence)
+
+
+class GeoFrequency(object):
+    def __init__(self, fnames: Union[list, str],
+                       reader: Callable[[str], Iterable[dict]]=tweet_iterator) -> None:
+        self._fnames = fnames if isinstance(fnames, list) else [fnames]
+        self._reader = reader
+        self._label = BoundingBox().label
+        self._data = defaultdict(TokenCount.single_co_ocurrence)
+        _ = join(dirname(__file__), "data", "state.dict")
+        self._states = load_model(_)
+
+    @property
+    def data(self) -> defaultdict:
+        return self._data
+
+    def compute(self) -> None:
+        for fname in tqdm(self._fnames):
+            self.compute_file(fname)
+
+    def compute_file(self, fname: str) -> None:
+        label = self._label
+        states = self._states
+        data = self._data
+        for line in self._reader(fname):
+            try:
+                country, geo = None, None
+                country = line["place"]["country_code"]
+                geo = label(dict(position=location(line), country=country))
+                geo = states[geo]
+            except Exception:
+                pass
+            if geo is not None:
+                data[geo].process_line(line)
+            elif country is not None:
+                data[country].process_line(line)
+            else:
+                data["nogeo"].process_line(line)
+
+    def clean(self) -> None:
+        keys = list(self.data.keys())
+        data = self.data
+        max_value = max([x.num_documents for x in data.values()])
+        min_value = 0.0001 * max_value
+        min_value = max(2, min_value)
+        for key in keys:
+            data[key].clean()
+            if len(data[key].counter) == 0 or data[key].num_documents <= min_value:
+                del data[key]
