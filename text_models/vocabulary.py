@@ -20,6 +20,7 @@ from microtc.weighting import TFIDF
 from microtc.utils import SparseMatrix
 from scipy.sparse import csr_matrix
 from typing import List, Iterable, Union, Dict, Any, Tuple
+from .utils import download_tokens, handle_day
 
 
 TM_ARGS=dict(usr_option="delete", num_option="none",
@@ -42,100 +43,69 @@ class Vocabulary(object):
     :type lang: str
     :param country: Two letter country code
     :type country: str
-    :param token_min_filter: Minimum frequency
-    :type token_min_filter: float | int
-    :param token_max_filter: Maximum frequency
-    :type token_max_filter: float | int
-    :param tm_args: Text-model parameters
-    :type tm_args: dict
+    :param states: Whether to keep the state or accumulate the information on the country
+    :type states: bool
 
     >>> from text_models.vocabulary import Vocabulary
-    >>> voc = Vocabulary("191225.voc", lang="En")
+    >>> day = dict(year=2020, month=2, day=14)
+    >>> voc = Vocabulary(day, lang="En", country=”US”)
     """
 
-    def __init__(self, data, lang="Es", country=None,
-                 token_min_filter=0.001,
-                 token_max_filter=0.999,
-                 tm_args=TM_ARGS):
+    def __init__(self, data, lang: str="Es", 
+                 country: str=None, states: bool=False) -> None:
         self._lang = lang
         self._country = country
-        self._min = token_min_filter
-        self._max = token_max_filter
-        self._tm_args = tm_args
+        self._states = states
+        self.date = data
         self._init(data)
-
-    def __filename(self, date):
-        """
-        :param date: Transform datetime instance into the filename
-        :type date: str or datetime
-        """
-        
-        if isinstance(date, datetime):
-            return "%s%02i%02i.voc" % (str(date.year)[-2:], date.month, date.day)
-        return date
-
-    def __handle_day(self, day):
-        """Inner function to handle the day
-        
-        :param day: day
-        :type day: None | instance
-        """
-
-        if isinstance(day, Counter):
-            return day
-        if isinstance(day, dict):
-            return datetime(year=day["year"],
-                            month=day["month"],
-                            day=day["day"])
-        if hasattr(day, "year") and hasattr(day, "month") and hasattr(day, "day"):
-            return datetime(year=day.year,
-                            month=day.month,
-                            day=day.day)
-        return day         
 
     def _init(self, data):
         """
         Process the :py:attr:`data` to create a :py:class:`microtc.utils.Counter` 
         """
 
-        data = self.__handle_day(data)
-        if isinstance(data, str) or isinstance(data, datetime):
-            self._fname = download(self.__filename(data),
-                                   lang=self._lang, country=self._country)
-            self.voc = load_model(self._fname)
-            if isinstance(data, str):
-                self._date = self.get_date(data)
+        def sum_vocs(vocs):
+            voc = vocs[0]
+            for v in vocs[1:]:
+                voc = voc + v
+            return voc
+
+        if isinstance(data, list):
+            vocs = [download_tokens(day, lang=self._lang, country=self._country)
+                    for day in data]
+            vocs = [load_model(x) for x in vocs]
+            if isinstance(vocs[0], Counter):
+                voc = sum_vocs(vocs)
+            elif not self._states:
+                vocs = [sum_vocs([v for _, v in i]) for i in vocs]
+                voc = sum_vocs(vocs)
             else:
-                self._date = data
-        elif isinstance(data, list):
-            cum = self.__handle_day(data[0])
-            if isinstance(cum, str) or isinstance(cum, datetime):
-                cum = load_model(download(self.__filename(cum),
-                                          lang=self._lang, country=self._country))
-            for x in data[1:]:
-                x = self.__handle_day(x)
-                x = self.__filename(x)
-                xx = load_model(download(x, lang=self._lang, country=self._country)) if isinstance(x, str) else x
-                cum = cum + xx
-            self.voc = cum
+                voc = {k: v for k, v in vocs[0]}
+                for v in vocs[1:]:
+                    for k, d in v:
+                        try:
+                            voc[k] = voc[k] + d
+                        except KeyError:
+                            voc[k] = d
+            self._data = voc
         else:
-            raise Exception("%s is not handled " % type(data))
+            self.voc = load_model(download_tokens(data, lang=self._lang, country=self._country))
         
-    @staticmethod
-    def get_date(filename):
-        """
-        Obtain the date from the filename. The format is YYMMDD.
-
-        :param filename: Filename
-        :type filename: str
-        :rtype: datetime
-        """
-        import datetime
-
-        d = filename.split("/")[-1].split(".")[0]
-        return datetime.datetime(year=int(d[:2]) + 2000,
-                                 month=int(d[2:4]),
-                                 day=int(d[-2:]))
+    # @staticmethod
+    # def get_date(filename):
+    #     """
+    #     Obtain the date from the filename. The format is YYMMDD.
+ 
+    #     :param filename: Filename
+    #     :type filename: str
+    #     :rtype: datetime
+    #     """
+    #     import datetime
+ 
+    #     d = filename.split("/")[-1].split(".")[0]
+    #     return datetime.datetime(year=int(d[:2]) + 2000,
+    #                              month=int(d[2:4]),
+    #                              day=int(d[-2:]))
 
     @property
     def date(self):
@@ -144,6 +114,13 @@ class Vocabulary(object):
         """
 
         return self._date
+
+    @date.setter
+    def date(self, d):
+        if isinstance(d, list):
+            self._date = None
+            return
+        self._date = handle_day(d)
 
     @property
     def weekday(self):
@@ -161,42 +138,49 @@ class Vocabulary(object):
 
     @voc.setter
     def voc(self, d):
-        from microtc.weighting import TFIDF
-        TFIDF.filter(d, token_min_filter=self._min, token_max_filter=self._max)
-        self._data = d
-
+        if not isinstance(d, list):
+            self._data = d
+            return
+        if self._states:
+            self._data = {k: v for k, v in d}
+            return
+        aggr = d[0][1]
+        for _, v in d[1:]:
+            aggr = aggr + v
+        self._data = aggr
+        
     def common_words(self):
         """Words used frequently; these correspond to py:attr:`EvoMSA.base.EvoMSA(B4MSA=True)`"""
 
         from EvoMSA.utils import download
         return load_model(download("b4msa_%s.tm" % self._lang)).model.word2id
        
-    def weekday_words(self):
-        """Words group by weekday"""
-
-        from EvoMSA.utils import download
-        return load_model(download("weekday-%s_%s.voc" % (self.weekday, self._lang)))
-
-    def day_words(self):
+    def day_words(self) -> "Vocabulary":
         """Words used on the same day of different years"""
         
-        import datetime
+        from datetime import date, datetime
 
-        dd = list(tweet_iterator(download("data.json", cache=False)))[0][self._lang]
-        day = defaultdict(list)
-        [day[x[2:6]].append(x) for x in dd]
-        date = self.date
-        dd = day["%02i%02i" % (date.month, date.day)]
-        curr = "%s%02i%02i.voc" % (str(date.year)[:2],
-                                   date.month, date.day)
-        dd = [x for x in dd if x != curr]
-        if len(dd) == 0:
-            one_day = datetime.timedelta(days=1)
-            r = date - one_day
-            dd = day["%02i%02i" % (r.month, r.day)]
-        dd = [download(x, lang=self._lang, country=self._country) for x in dd]
-        return self.__class__(dd, token_min_filter=self._min,
-                              token_max_filter=self._max)
+        hoy = date.today()
+        hoy = datetime(year=hoy.year, month=hoy.month, day=hoy.month)
+        L = []
+        for year in range(2015, hoy.year + 1):
+            try:
+                curr = datetime(year=year, month=self.date.month, day=self.date.day)
+            except ValueError:
+                continue
+            if (curr - self.date).days == 0:
+                continue
+            try:
+                dd = download_tokens(curr)
+            except Exception:
+                continue
+            L.append(curr)
+        if len(L) == 0:
+            return None
+        return self.__class__(L if len(L) > 1 else L[0],
+                              lang=self._lang,
+                              country=self._country,
+                              states=self._states)
 
     def __iter__(self):
         for x in self.voc:
@@ -219,10 +203,10 @@ class Vocabulary(object):
 
         one_day = datetime.timedelta(days=1)
         r = self.date - one_day
-        fname = "%s%02i%02i.voc" % (str(r.year)[-2:], r.month, r.day)
-        _ = self.__class__(fname, lang=self._lang, country=self._country,
-                           token_min_filter=self._min,
-                           token_max_filter=self._max)
+        _ = self.__class__(r, lang=self._lang,
+                           country=self._country,
+                           states=self._states)
+
         return _
 
     def __len__(self):
@@ -256,52 +240,30 @@ class Vocabulary(object):
                 del self.voc[x]
 
     def remove_qgrams(self):
-        """Remove the q-grams in the vocabulary"""
+        pass
 
-        keys = [k for k in self.voc if k[:2] == "q:"]
-        for k in keys:
-            del self.voc[k]
-
-    def create_text_model(self):
-        """
-        Create a text model using :py:class:`b4msa.textmodel.TextModel`
-
-        >>> from text_models.utils import download
-        >>> from microtc.utils import tweet_iterator
-        >>> from text_models.vocabulary import Vocabulary
-        >>> conf = tweet_iterator(download("config.json", cache=False))
-        >>> conf = [x for x in conf if "b4msa_En" in x][0]
-        >>> # Files to create b4msa_En.tm text model
-        >>> data = conf["b4msa_En"]
-        >>> # Taking only a few to reduce the time
-        >>> data = data[:10]
-        >>> voc = Vocabulary(data, lang="En")
-        >>> tm = voc.create_text_model()
-        """
-
-        from microtc.weighting import TFIDF
-        tm = TextModel(**self._tm_args)
-        tm.model = TFIDF.counter(self.voc, token_min_filter=self._min,
-                                 token_max_filter=self._max)
-        return tm
-
-    def __add__(self, otro):
-        _ = self.__class__([self.voc, otro.voc], lang=self._lang,
-                           country=self._country, token_min_filter=self._min,
-                           token_max_filter=self._max,
-                           tm_args=self._tm_args)
-        return _
-
-    def __sub__(self, otro):
-        voc = self.voc.copy()
-        for k in otro.voc.keys():
-            del voc[k]
-        # - otro.voc
-        _ = self.__class__([voc], lang=self._lang,
-                           country=self._country, token_min_filter=self._min,
-                           token_max_filter=self._max,
-                           tm_args=self._tm_args)
-        return _
+    # def create_text_model(self):
+    #     """
+    #     Create a text model using :py:class:`b4msa.textmodel.TextModel`
+ 
+    #     >>> from text_models.utils import download
+    #     >>> from microtc.utils import tweet_iterator
+    #     >>> from text_models.vocabulary import Vocabulary
+    #     >>> conf = tweet_iterator(download("config.json", cache=False))
+    #     >>> conf = [x for x in conf if "b4msa_En" in x][0]
+    #     >>> # Files to create b4msa_En.tm text model
+    #     >>> data = conf["b4msa_En"]
+    #     >>> # Taking only a few to reduce the time
+    #     >>> data = data[:10]
+    #     >>> voc = Vocabulary(data, lang="En")
+    #     >>> tm = voc.create_text_model()
+    #     """
+ 
+    #     from microtc.weighting import TFIDF
+    #     tm = TextModel(**self._tm_args)
+    #     tm.model = TFIDF.counter(self.voc, token_min_filter=self._min,
+    #                              token_max_filter=self._max)
+    #     return tm
 
 
 class Tokenize(object):

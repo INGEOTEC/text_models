@@ -114,7 +114,9 @@ def test_map():
 def test_bug_two_cons_klass():
     from EvoMSA.utils import download
     from microtc.utils import load_model
-    dset = load_model(download("country.ds"))
+    from os.path import dirname, join
+    _ = join(dirname(__file__), "..", "data", "country.ds")
+    dset = load_model(_)
     r = dset.klass("mexico y usa")
     assert len(r.intersection(set(["US", "MX"]))) == 2
 
