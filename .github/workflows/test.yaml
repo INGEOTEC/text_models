@@ -40,5 +40,5 @@ jobs:
       if: ${{ runner.os == 'Linux' }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      coveralls
-      
+      run: |
+        coveralls
