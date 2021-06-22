@@ -3,15 +3,11 @@ name: Tests
 on: 
   push:
     branches:
-      - develop
+      - master
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      max-parallel: 2
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
@@ -25,21 +21,13 @@ jobs:
     - name: Install dependencies
       run: |
         conda install --yes pip
-        pip install coverage
-        pip install coveralls
+        pip install twine
         conda config --append channels conda-forge
         conda config --append channels ingeotec
         conda install --yes numpy scipy scikit-learn nltk nose b4msa evodag conceptmodelling cython evomsa cartopy pandas
-        python setup.py build_ext --inplace
-    - name: Test
-      run: |
-        which python
-        python --version
-        which coverage
-        coverage run setup.py nosetests --with-doctest
-    - name: coveralls
-      if: ${{ runner.os == 'Linux' }}
+        python setup.py sdist
+    - name: Pip
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TWINE: ${{ secrets.TWINE }}
       run: |
-        coveralls --service=github
+        twine upload -u mgraffg -p $TWINE dist/*.tar.gz;
