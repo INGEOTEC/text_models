@@ -2,8 +2,8 @@
 
 Vocabulary
 ==================================
-.. image:: https://travis-ci.org/INGEOTEC/text_models.svg?branch=master
-	   :target: https://travis-ci.org/INGEOTEC/text_models
+.. image:: https://github.com/INGEOTEC/text_models/actions/workflows/test.yaml/badge.svg
+	   :target: https://github.com/INGEOTEC/text_models/actions/workflows/test.yaml
 
 .. image:: https://coveralls.io/repos/github/INGEOTEC/text_models/badge.svg?branch=master
 	   :target: https://coveralls.io/github/INGEOTEC/text_models?branch=master
@@ -30,7 +30,7 @@ In the next example, let us examine the February 14th, 2020.
 >>> from text_models import Vocabulary
 >>> day = dict(year=2020, month=2, day=14)
 >>> voc = Vocabulary(day, lang="En")
->>> voc.voc.most_common()[:3]
+>>> voc.voc.most_common(3)
 [('rt', 2555708), ('the', 1741185), ('to', 1237161)]
 
 As can be seen, the result is not informative about 
@@ -39,19 +39,7 @@ common words would produce an acceptable representation.
 
 >>> voc.remove(voc.common_words())
 >>> voc.voc.most_common(3)
-[('valentine’s', 63762), ('valentine’s~day', 57285), ('valentines', 53351)]
-
-By removing common words that correspond to the vocabulary used on 
-B4MSA pre-trained model, it is obtained an acceptable out of the event 
-of the day. It is possible to keep removing words in order to see different 
-views of the information produced on that particular day.
-
-Removing the words used in the previous February 14th produces the following output.
-
->>> voc.remove(voc.day_words())
->>> voc.voc.most_common()[:3]
-[('🥺', 11571), ('🥰', 11057), ('#valentinesday2020', 9530)]
-
+[('nct~〖', 114810), ('nct~〗', 112816), ('valentine’s', 75820)]
 
 Word Clouds
 -----------------------------------
@@ -90,7 +78,7 @@ As shown in the previous word cloud, the most frequent tokens are
 related to Valentines' day. A procedure to retrieve other topics that 
 occurred on this day is to remove the previous years' frequent words.
 
->>> voc.remove(voc.day_words())
+>>> voc.remove(voc.day_words(), bigrams=False)
 
 The word cloud is created using a similar procedure being the 
 only difference the tokens given to the class.
