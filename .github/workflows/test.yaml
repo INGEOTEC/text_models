@@ -31,10 +31,13 @@ jobs:
         conda install --yes numpy scipy scikit-learn nltk nose b4msa evodag conceptmodelling cython evomsa cartopy pandas
         python setup.py build_ext --inplace
     - name: Test
-      if: ${{ runner.os == 'Linux' }}
       run: |
         which python
         python --version
         which coverage
         coverage run setup.py nosetests --with-doctest
-        coveralls
+    - name: coveralls
+      if: ${{ runner.os == 'Linux' }}
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
