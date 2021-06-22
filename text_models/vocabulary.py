@@ -225,16 +225,22 @@ class Vocabulary(object):
 
         return self.voc.items()
 
-    def remove(self, words):
+    def remove(self, words: dict, bigrams=True) -> None:
         """
         Remove the words from the current vocabulary
         
         :param words: Tokens
         """
-
-        for x in words:
-            if x in self.voc:
-                del self.voc[x]
+        K = []
+        for k in self.voc:
+            if k.count("~") and bigrams:
+                a, b = k.split("~")
+                if a in words or b in words:
+                    K.append(k)
+            if k in words:
+                K.append(k)
+        for k in K:
+            del self.voc[k]  
 
     def remove_qgrams(self):
         pass

@@ -1,0 +1,33 @@
+name: Tests
+
+on: 
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Add conda to system path
+      run: |
+        # $CONDA is an environment variable pointing to the root of the miniconda directory
+        echo $CONDA/bin >> $GITHUB_PATH
+    - name: Install dependencies
+      run: |
+        conda install --yes pip
+        pip install twine
+        conda config --append channels conda-forge
+        conda config --append channels ingeotec
+        conda install --yes numpy scipy scikit-learn nltk nose b4msa evodag conceptmodelling cython evomsa cartopy pandas
+        python setup.py sdist
+    - name: Pip
+      env:
+        TWINE: ${{ secrets.TWINE }}
+      run: |
+        twine upload -u mgraffg -p $TWINE dist/*.tar.gz;
