@@ -3,9 +3,7 @@ name: Tests
 on: 
   push:
     branches:
-      - master
-    tags-ignore:
-      - docs      
+      - master   
 
 jobs:
   build:
