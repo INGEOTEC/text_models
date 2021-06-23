@@ -33,7 +33,7 @@ jobs:
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         echo $CONDA/bin >> $GITHUB_PATH
-    - name: Owner
+    - name: chwon on macOS
       if: ${{ runner.os == 'macOS' }}
       run: |
         echo $CONDA/bin >> $GITHUB_PATH
@@ -48,13 +48,19 @@ jobs:
         conda config --append channels ingeotec
         conda install --yes numpy scipy scikit-learn nltk nose b4msa evodag conceptmodelling cython evomsa cartopy pandas
         python setup.py build_ext --inplace
-    - name: Test
+    - name: Tests on Linux
       shell: bash
+      if: ${{ runner.os == 'Linux' }}
       run: |
         which python
         python --version
         which coverage
         coverage run setup.py nosetests --with-doctest
+    - name: Tests on macOS and Windows
+      shell: bash
+      if: ${{ runner.os != 'Linux' }}
+      run: |
+        nosetests --verbose text_models/tests
     - name: coveralls
       if: ${{ runner.os == 'Linux' }}
       env:
