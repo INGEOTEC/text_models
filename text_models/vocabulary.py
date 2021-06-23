@@ -168,7 +168,7 @@ class Vocabulary(object):
             if (curr - self.date).days == 0:
                 continue
             try:
-                dd = download_tokens(curr)
+                download_tokens(curr, lang=self._lang, country=self._country)
             except Exception:
                 continue
             L.append(curr)
