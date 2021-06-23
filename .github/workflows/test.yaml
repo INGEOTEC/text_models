@@ -24,8 +24,8 @@ jobs:
       run: |
         echo "$CONDA" >> $GITHUB_PATH
         echo "$CONDA\Scripts" >> $GITHUB_PATH
-        where conda
-        where python
+        which conda
+        which python
         
     - name: Add conda to system path
       if: ${{ runner.os == 'Linux' }}
