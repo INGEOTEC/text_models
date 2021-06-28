@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from abc import abstractclassmethod
 from text_models.vocabulary import Vocabulary, Tokenize, BagOfWords
 
 
@@ -19,6 +20,8 @@ def test_init():
     day = dict(year=2020, month=2, day=14)
     voc = Vocabulary(day, lang="En")
     assert isinstance(voc.voc, Counter)
+    voc2 = Vocabulary(voc.voc)
+    assert voc2["love"] == voc["love"]    
     voc = Vocabulary(day, lang="En", country="US")
     assert isinstance(voc.voc, Counter)
     voc = Vocabulary(day, lang="Es", country="MX", states=True)
@@ -50,6 +53,10 @@ def test_co_occurrence():
     data = voc.co_occurrence("amor")
     assert isinstance(data, dict)
     assert "amistad" in data
+    voc = Vocabulary(dict(year=2020, month=2, day=14), country="MX", states=True)
+    data = voc.co_occurrence("amor")
+    assert "MX-DIF" in data
+    assert "amistad" in data["MX-DIF"]
 
 
 def test_remove():
