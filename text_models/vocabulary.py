@@ -174,6 +174,18 @@ class Vocabulary(object):
             output += [k for k, _ in score_bi[:k]]
         return output
 
+    def co_occurrence(self, word: str) -> dict:
+        D = dict()
+        for k, v in self.voc.items():    
+            if k.count("~") == 0:
+                continue
+            a, b = k.split("~")
+            if a != word and b != word:
+                continue
+            key = a if a != word else b
+            D[key] = v
+        return D
+
     def day_words(self) -> "Vocabulary":
         """Words used on the same day of different years"""
         
