@@ -53,8 +53,11 @@ class Vocabulary(object):
         self._lang = lang
         self._country = country
         self._states = states
-        self.date = data
-        self._init(data)
+        if isinstance(data, dict) and len(data) > 3:
+            self._data = data
+        else:
+            self.date = data
+            self._init(data)
 
     def _init(self, data):
         """
@@ -87,22 +90,6 @@ class Vocabulary(object):
             self._data = voc
         else:
             self.voc = load_model(download_tokens(data, lang=self._lang, country=self._country))
-        
-    # @staticmethod
-    # def get_date(filename):
-    #     """
-    #     Obtain the date from the filename. The format is YYMMDD.
- 
-    #     :param filename: Filename
-    #     :type filename: str
-    #     :rtype: datetime
-    #     """
-    #     import datetime
- 
-    #     d = filename.split("/")[-1].split(".")[0]
-    #     return datetime.datetime(year=int(d[:2]) + 2000,
-    #                              month=int(d[2:4]),
-    #                              day=int(d[-2:]))
 
     @property
     def date(self):
@@ -174,9 +161,10 @@ class Vocabulary(object):
             output += [k for k, _ in score_bi[:k]]
         return output
 
-    def co_occurrence(self, word: str) -> dict:
+    @staticmethod
+    def _co_occurrence(word: str, voc: dict) -> dict:
         D = dict()
-        for k, v in self.voc.items():    
+        for k, v in voc.items():    
             if k.count("~") == 0:
                 continue
             a, b = k.split("~")
@@ -185,6 +173,11 @@ class Vocabulary(object):
             key = a if a != word else b
             D[key] = v
         return D
+
+    def co_occurrence(self, word: str) -> dict:
+        if self._states:
+            return {k: self._co_occurrence(word, v) for k, v in self.voc.items()}
+        return self._co_occurrence(word, self.voc)
 
     def day_words(self) -> "Vocabulary":
         """Words used on the same day of different years"""
