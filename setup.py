@@ -39,5 +39,5 @@ setup(
     include_package_data=True,
     packages=['text_models', 'text_models/tests'],
     zip_safe=False,    
-    install_requires=['EvoMSA']
+    install_requires=['b4msa', 'EvoMSA']
 )

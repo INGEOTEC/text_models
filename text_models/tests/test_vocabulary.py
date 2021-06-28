@@ -45,6 +45,13 @@ def test_common_words():
     print(len(w3))
 
 
+def test_co_occurrence():
+    voc = Vocabulary(dict(year=2020, month=2, day=14))
+    data = voc.co_occurrence("amor")
+    assert isinstance(data, dict)
+    assert "amistad" in data
+
+
 def test_remove():
     voc = Vocabulary(dict(year=2020, month=2, day=14))
     numterms = len(voc.voc)
@@ -54,12 +61,12 @@ def test_remove():
     numterms = len(voc.voc)
     voc.remove(voc.common_words(quantile=0.85), bigrams=False)
     assert numterms > len(voc.voc)
-    
+
 
 def test_date():
     from datetime import datetime
     voc = Vocabulary(dict(year=2020, month=2, day=14))
-    assert(voc.date, datetime)
+    assert isinstance(voc.date, datetime)
     days = [dict(year=2020, month=2, day=14),
             dict(year=2021, month=2, day=14)]
     voc = Vocabulary(days)
