@@ -36,6 +36,13 @@ def test_common_words():
     voc = Vocabulary(dict(year=2020, month=2, day=14))
     words = voc.common_words()
     assert len(words) > 10000
+    w = voc.common_words(quantile=0.85)
+    print(len(w))
+    w2 = voc.common_words(quantile=0.85, bigrams=False)
+    assert len(w) > len(w2)
+    w3 = voc.common_words(quantile=0.80, bigrams=False)
+    assert len(w2) > len(w3)
+    print(len(w3))
 
 
 def test_remove():

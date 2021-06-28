@@ -146,12 +146,34 @@ class Vocabulary(object):
             aggr = aggr + v
         self._data = aggr
         
-    def common_words(self):
-        """Words used frequently; these correspond to py:attr:`EvoMSA.base.EvoMSA(B4MSA=True)`"""
+    def common_words(self, quantile: float=None, bigrams=True):
+        """Words used frequently; these correspond to py:attr:`EvoMSA.base.EvoMSA(B4MSA=True)`
+        In the case quantile is given the these words and bigrams correspond to 
+        the most frequent.
+        """
 
-        from EvoMSA.utils import download
-        return load_model(download("b4msa_%s.tm" % self._lang)).model.word2id
-       
+        if quantile is None:
+            from EvoMSA.utils import download
+            return load_model(download("b4msa_%s.tm" % self._lang)).model.word2id
+        words_N = sum([v for k, v in self.voc.items() if k.count("~") == 0])
+        score = [[k, v / words_N] for k, v in self.voc.items() if k.count("~") == 0]
+        score.sort(key=lambda x: x[1], reverse=True)
+        cum, k = 0, 0
+        while cum <= quantile:
+            cum += score[k][1]
+            k += 1
+        output = [k for k, _ in score[:k]]
+        if bigrams:
+            bigrams_N = sum([v for k, v in self.voc.items() if k.count("~")])
+            score_bi = [[k, v / bigrams_N] for k, v in self.voc.items() if k.count("~")]
+            score_bi.sort(key=lambda x: x[1], reverse=True)
+            cum, k = 0, 0
+            while cum <= quantile:
+                cum += score_bi[k][1]
+                k += 1
+            output += [k for k, _ in score_bi[:k]]
+        return output
+
     def day_words(self) -> "Vocabulary":
         """Words used on the same day of different years"""
         
