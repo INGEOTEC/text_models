@@ -32,3 +32,13 @@ def test_download_tokens():
     model2 = load_model(fname)
     assert len(model) != len(model2[0][1])
     unlink(fname)
+
+
+def test_TStatistic():
+    from text_models.utils import TStatistic
+    from text_models import Vocabulary
+    day = dict(year=2020, month=2, day=14)
+    voc = Vocabulary(day, lang="En")
+    tstats = TStatistic(voc.voc)
+    value = tstats.compute("of~the")
+    assert value > 655
