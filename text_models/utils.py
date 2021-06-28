@@ -225,3 +225,19 @@ class MobilityTransform(object):
             _ = (data[m] - self.data[wd]) / self.data[wd]
             r[m] = _
         return r * 100.
+
+
+class TStatistic(object):
+    def __init__(self, voc: dict) -> None:
+        self.voc = voc
+        self.words_N = sum([v for k, v in voc.items() if k.count("~") == 0])
+        self.bigrams_N = sum([v for k, v in voc.items() if k.count("~")])
+
+    def compute(self, bigram: str) -> float:
+        a, b = bigram.split("~")
+        a = self.voc.get(a, 1) / self.words_N
+        b = self.voc.get(b, 1) / self.words_N
+        bar_x = self.voc[bigram] / self.bigrams_N
+        num = bar_x - (a * b)
+        den = np.sqrt(bar_x / self.bigrams_N)
+        return num / den
