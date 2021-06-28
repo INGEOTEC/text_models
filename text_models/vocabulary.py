@@ -253,9 +253,17 @@ class Vocabulary(object):
         
         :param words: Tokens
         """
+        if not bigrams:
+            voc = self.voc
+            for w in words:
+                try:
+                    del voc[w]
+                except Exception:
+                    continue
+            return
         K = []
         for k in self.voc:
-            if k.count("~") and bigrams:
+            if k.count("~"):
                 a, b = k.split("~")
                 if a in words or b in words:
                     K.append(k)

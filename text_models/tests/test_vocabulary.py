@@ -50,7 +50,11 @@ def test_remove():
     numterms = len(voc.voc)
     voc.remove(voc.common_words())
     assert numterms > len(voc.voc)
-
+    voc = Vocabulary(dict(year=2020, month=2, day=14))
+    numterms = len(voc.voc)
+    voc.remove(voc.common_words(quantile=0.85), bigrams=False)
+    assert numterms > len(voc.voc)
+    
 
 def test_date():
     from datetime import datetime
