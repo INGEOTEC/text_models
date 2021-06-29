@@ -239,5 +239,5 @@ class TStatistic(object):
         b = self.voc.get(b, 1) / self.words_N
         bar_x = self.voc[bigram] / self.bigrams_N
         num = bar_x - (a * b)
-        den = np.sqrt(bar_x / self.bigrams_N)
+        den = np.sqrt(bar_x * (1 - bar_x) / self.bigrams_N)
         return num / den

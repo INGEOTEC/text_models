@@ -15,6 +15,7 @@ from microtc.utils import tweet_iterator
 from text_models.place import Country
 from os.path import dirname, join
 DIR = dirname(__file__)
+DATE = dict(year=2021, month=2, day=3)
 
 
 def test_country():
@@ -61,14 +62,14 @@ def test_postal_code_names():
 
 def test_travel():
     from text_models.place import Travel, CP
-    travel = Travel(window=3)
+    travel = Travel(DATE, window=3)
     assert len(travel._days) == 3
     print(travel.num_users)
 
 
 def test_travel_displacement():
     from text_models.place import Travel, CP
-    travel = Travel(window=3)
+    travel = Travel(DATE, window=3)
     assert len(travel._days) == 3
     output = travel.displacement()
     for v in output.values():
@@ -98,7 +99,7 @@ def test_travel_init():
 def test_travel_outward():
     from text_models.place import Travel
     from datetime import datetime
-    travel = Travel(window=4)
+    travel = Travel(DATE, window=4)
     matrix = travel.outward(travel.country)
     outward = matrix[-1]["MX"]
     assert outward
@@ -158,14 +159,14 @@ def test_bounding_box_coords():
 
 def test_mobility_state_bug():
     from text_models.place import Mobility
-    mob = Mobility(window=1)
+    mob = Mobility(DATE, window=1)
     assert mob.state("CA:12824") is None
 
 
 def test_travel_inside_mobility():
     from text_models.place import Travel
     from datetime import datetime
-    travel = Travel(window=4)
+    travel = Travel(DATE, window=4)
     dis = travel.displacement(travel.country)
     inside = travel.inside_mobility(travel.country)
     assert sum(dis["MX"]) > sum(inside["MX"])
@@ -173,7 +174,7 @@ def test_travel_inside_mobility():
 
 def test_travel_weekday():
     from text_models.place import Travel
-    travel = Travel(window=21)
+    travel = Travel(DATE, window=21)
     inside = travel.inside_mobility(travel.country)
     baseline = travel.group_by_weekday(inside)
     for wk in range(7):
@@ -184,7 +185,7 @@ def test_travel_weekday():
 
 def test_travel_weekday_percentage():
     from text_models.place import Travel
-    travel = Travel(window=21)
+    travel = Travel(DATE, window=21)
     inside = travel.inside_mobility(travel.country)
     baseline = travel.weekday_percentage(inside)    
     for wk in range(7):
@@ -201,7 +202,7 @@ def test_travel_cluster_percentage():
     from sklearn.cluster import KMeans
     from text_models.place import Mobility
     from sklearn.metrics import silhouette_score
-    mobility = Mobility(window=21)
+    mobility = Mobility(DATE, window=21)
     func = lambda x: x[:2] if x[:2] == "MX" else None
     inside = mobility.overall(func)
     baseline = mobility.cluster_percentage(inside)
@@ -218,7 +219,7 @@ def test_travel_cluster_percentage():
 def test_travel_percentage_by_weekday():
     from text_models.place import Travel
     import numpy as np
-    travel = Travel(window=21)
+    travel = Travel(DATE, window=21)
     func = lambda x: x[:2] if x[:2] in ["MX", "US"] else None
     inside = travel.inside_mobility(func)
     baseline = travel.weekday_percentage(inside)
@@ -233,7 +234,7 @@ def test_travel_percentage_by_weekday():
 def test_travel_percentage_by_weekday2():
     from text_models.place import Travel
     import numpy as np
-    travel = Travel(window=21)
+    travel = Travel(DATE, window=21)
     inside = travel.inside_mobility(travel.bounding_box.city)
     baseline = travel.weekday_percentage(inside)
     print(len(baseline))
@@ -244,7 +245,7 @@ def test_travel_weekday_probability():
     from text_models.utils import Gaussian
     from text_models.place import Travel
     import numpy as np
-    travel = Travel(window=21)
+    travel = Travel(DATE, window=21)
     func = lambda x: x[:2] if x[:2] == "MX" else None
     inside = travel.inside_mobility(func)
     baseline = travel.weekday_probability(inside)
@@ -308,14 +309,14 @@ def test_mobility_day_wclass():
 
 def test_mobility_overall_pandas():
     from text_models import Mobility
-    mob = Mobility(window=2)
+    mob = Mobility(DATE, window=2)
     res = mob.overall(pandas=True)
     assert hasattr(res, "head")
 
 
 def test_mobility_inside_mobilit_pandas():
     from text_models import Mobility
-    mob = Mobility(window=2)
+    mob = Mobility(DATE, window=2)
     res = mob.inside_mobility(pandas=True)
     assert hasattr(res, "head")
 
