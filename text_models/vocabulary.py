@@ -58,6 +58,20 @@ class Vocabulary(object):
         else:
             self.date = data
             self._init(data)
+        if not states:
+            self._n_words = sum([v for k, v in self.voc.items() if k.count("~") == 0])
+            self._n_bigrams = sum([v for k, v in self.voc.items() if k.count("~")])
+
+    def probability(self):
+        """Transform frequency to a probability"""
+        voc = self.voc
+        for k in voc:
+            num = voc[k]
+            if k.count("~"):
+                den = self._n_bigrams
+            else:
+                den = self._n_words
+            voc[k] = num / den
 
     def _init(self, data):
         """

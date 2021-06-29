@@ -39,5 +39,5 @@ setup(
     include_package_data=True,
     packages=['text_models', 'text_models/tests'],
     zip_safe=False,    
-    install_requires=['microtc', 'b4msa', 'EvoMSA']
+    install_requires=['EvoMSA']
 )

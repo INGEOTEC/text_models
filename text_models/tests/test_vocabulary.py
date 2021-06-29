@@ -20,6 +20,7 @@ def test_init():
     day = dict(year=2020, month=2, day=14)
     voc = Vocabulary(day, lang="En")
     assert isinstance(voc.voc, Counter)
+    assert voc._n_words > 0
     voc2 = Vocabulary(voc.voc)
     assert voc2["love"] == voc["love"]    
     voc = Vocabulary(day, lang="En", country="US")
@@ -139,6 +140,13 @@ def test_vocabulary_dict():
     assert voc["buenos"]
     voc2 = Vocabulary(D(2020, 2, 14))
     assert voc["buenos"] == voc2["buenos"]
+
+
+def test_probability():
+    day = dict(year=2020, month=2, day=14)
+    voc = Vocabulary(day, lang="En")
+    voc.probability()
+    assert voc["the"] > 0 and voc["the"] < 1
 
 
 def test_vocabulary_data_lst():
