@@ -266,6 +266,12 @@ class LikelihoodRatios(object):
                 return 0
         p1 = c12 / c1
         p2 = (c2 - c12) / (N - c1)
+        if p1 >= 1:
+            p1 = 0.999
+        if p2 >= 1:
+            p2 = 0.999
+        if p2 <= 0:
+            p2 = 1e-5
         t1 = L(c12, c1, p) + L(c2 - c12, N - c1, p)
         t2 = L(c12, c1, p1) + L(c2 - c12, N - c1, p2)
         return -2 * (t1 - t2)
