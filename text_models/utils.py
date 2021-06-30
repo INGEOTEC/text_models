@@ -244,9 +244,11 @@ class TStatistic(object):
 
 
 class LikelihoodRatios(object):
-    def __init__(self, voc: dict) -> None:
+    def __init__(self, voc: dict, independent: bool=True) -> None:
         self.voc = voc
         self.N = sum([v for k, v in voc.items() if k.count("~") == 0])
+        self.Nbigrams = sum([v for k, v in voc.items() if k.count("~")])
+        self.independent = independent 
 
     def compute(self, bigram: str) -> float:
         def L(k, n, x):
@@ -258,6 +260,10 @@ class LikelihoodRatios(object):
         c12 = self.voc[bigram]
         N = self.N
         p = c2 / N
+        if self.independent:
+            bar_x = c12 / self.Nbigrams
+            if p * c1 / self.N > bar_x:
+                return 0
         p1 = c12 / c1
         p2 = (c2 - c12) / (N - c1)
         t1 = L(c12, c1, p) + L(c2 - c12, N - c1, p)
