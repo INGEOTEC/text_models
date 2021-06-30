@@ -241,3 +241,25 @@ class TStatistic(object):
         num = bar_x - (a * b)
         den = np.sqrt(bar_x * (1 - bar_x) / self.bigrams_N)
         return num / den
+
+
+class LikelihoodRatios(object):
+    def __init__(self, voc: dict) -> None:
+        self.voc = voc
+        self.N = sum([v for k, v in voc.items() if k.count("~") == 0])
+
+    def compute(self, bigram: str) -> float:
+        def L(k, n, x):
+            _ = k * np.log(x) + (n - k) * np.log(1 - x)
+            return _
+        a, b = bigram.split("~")
+        c1 = self.voc.get(a, 1)
+        c2 = self.voc.get(b, 1)
+        c12 = self.voc[bigram]
+        N = self.N
+        p = c2 / N
+        p1 = c12 / c1
+        p2 = (c2 - c12) / (N - c1)
+        t1 = L(c12, c1, p) + L(c2 - c12, N - c1, p)
+        t2 = L(c12, c1, p1) + L(c2 - c12, N - c1, p2)
+        return -2 * (t1 - t2)

@@ -42,3 +42,14 @@ def test_TStatistic():
     tstats = TStatistic(voc.voc)
     value = tstats.compute("of~the")
     assert value > 655
+
+
+def test_likelihood_ratios():
+    from text_models.utils import LikelihoodRatios
+    from text_models import Vocabulary
+    day = dict(year=2020, month=2, day=14)
+    voc = Vocabulary(day, lang="En")
+    tstats = LikelihoodRatios(voc.voc)
+    value = tstats.compute("of~the")
+    assert value > 4177118
+
