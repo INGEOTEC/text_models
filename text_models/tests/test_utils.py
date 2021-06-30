@@ -51,5 +51,8 @@ def test_likelihood_ratios():
     voc = Vocabulary(day, lang="En")
     tstats = LikelihoodRatios(voc.voc)
     value = tstats.compute("of~the")
+    assert tstats.compute("my~us") == 0
+    assert tstats.compute("imtreety_~the") > 7748
+    # [tstats.compute(k) for k in voc if k.count("~")]
     assert value > 4177118
 
