@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import defaultdict
 from microtc.utils import load_model, Counter
 from b4msa.textmodel import TextModel
 from microtc.weighting import TFIDF
 from microtc.utils import SparseMatrix
 from scipy.sparse import csr_matrix
-from typing import List, Iterable, Union, Dict, Any, Tuple
+from typing import List, Iterable, OrderedDict, Union, Dict, Any, Tuple
 from .utils import download_tokens, handle_day
 
 
@@ -294,29 +295,23 @@ class Vocabulary(object):
     def remove_qgrams(self):
         pass
 
-    # def create_text_model(self):
-    #     """
-    #     Create a text model using :py:class:`b4msa.textmodel.TextModel`
- 
-    #     >>> from text_models.utils import download
-    #     >>> from microtc.utils import tweet_iterator
-    #     >>> from text_models.vocabulary import Vocabulary
-    #     >>> conf = tweet_iterator(download("config.json", cache=False))
-    #     >>> conf = [x for x in conf if "b4msa_En" in x][0]
-    #     >>> # Files to create b4msa_En.tm text model
-    #     >>> data = conf["b4msa_En"]
-    #     >>> # Taking only a few to reduce the time
-    #     >>> data = data[:10]
-    #     >>> voc = Vocabulary(data, lang="En")
-    #     >>> tm = voc.create_text_model()
-    #     """
- 
-    #     from microtc.weighting import TFIDF
-    #     tm = TextModel(**self._tm_args)
-    #     tm.model = TFIDF.counter(self.voc, token_min_filter=self._min,
-    #                              token_max_filter=self._max)
-    #     return tm
-
+    def histogram(self, min_elements: int=30, words: bool=False):
+        group = defaultdict(list)
+        [group[v].append(k) for k, v in self.voc.items() if words or k.count("~")]
+        keys = list(group.keys())
+        keys.sort()
+        lst = list()
+        hist = OrderedDict()
+        for k in keys:
+            _ = group[k]
+            if len(lst) + len(_) >= min_elements:
+                hist[k] = lst + _
+                lst = list()
+                continue
+            lst += _
+        if len(lst):
+            hist[k] = lst
+        return hist
 
 class Tokenize(object):
     """ Tokenize transforms a text into a sequence, where 
