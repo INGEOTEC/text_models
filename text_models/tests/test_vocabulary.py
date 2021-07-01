@@ -149,6 +149,17 @@ def test_probability():
     assert voc["the"] > 0 and voc["the"] < 1
 
 
+def test_histogram():
+    day = dict(year=2020, month=2, day=14)
+    voc = Vocabulary(day, lang="En")
+    hist = voc.histogram(min_elements=30)
+    keys = list(hist.keys())
+    for k in keys[:-1]:
+        assert len(hist[k]) >= 30
+    print(keys[-1], hist[keys[-1]])
+    assert False
+
+
 def test_vocabulary_data_lst():
     import pandas as pd
 
