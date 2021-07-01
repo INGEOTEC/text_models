@@ -230,24 +230,31 @@ class MobilityTransform(object):
 class TStatistic(object):
     def __init__(self, voc: dict) -> None:
         self.voc = voc
-        self.words_N = sum([v for k, v in voc.items() if k.count("~") == 0])
-        self.bigrams_N = sum([v for k, v in voc.items() if k.count("~")])
+        freq = dict()
+        for x, v in voc.items():
+            try:
+                a, b = x.split("~")
+            except ValueError:
+                continue
+            freq[a] = freq.get(a, 0) + v
+            freq[b] = freq.get(b, 0) + v
+        self.freq = freq
+        self.N = sum(freq.values())
+        self.Nbigrams = sum([v for k, v in voc.items() if k.count("~")])
 
     def compute(self, bigram: str) -> float:
         a, b = bigram.split("~")
-        a = self.voc.get(a, 1) / self.words_N
-        b = self.voc.get(b, 1) / self.words_N
-        bar_x = self.voc[bigram] / self.bigrams_N
+        a = self.freq.get(a, 1) / self.N
+        b = self.freq.get(b, 1) / self.N
+        bar_x = self.voc[bigram] / self.Nbigrams
         num = bar_x - (a * b)
-        den = np.sqrt(bar_x * (1 - bar_x) / self.bigrams_N)
+        den = np.sqrt(bar_x * (1 - bar_x) / self.Nbigrams)
         return num / den
 
 
-class LikelihoodRatios(object):
+class LikelihoodRatios(TStatistic):
     def __init__(self, voc: dict, independent: bool=True) -> None:
-        self.voc = voc
-        self.N = sum([v for k, v in voc.items() if k.count("~") == 0])
-        self.Nbigrams = sum([v for k, v in voc.items() if k.count("~")])
+        super().__init__(voc)
         self.independent = independent 
 
     def compute(self, bigram: str) -> float:
@@ -255,8 +262,8 @@ class LikelihoodRatios(object):
             _ = k * np.log(x) + (n - k) * np.log(1 - x)
             return _
         a, b = bigram.split("~")
-        c1 = self.voc.get(a, 1)
-        c2 = self.voc.get(b, 1)
+        c1 = self.freq.get(a, 1)
+        c2 = self.freq.get(b, 1)
         c12 = self.voc[bigram]
         N = self.N
         p = c2 / N
