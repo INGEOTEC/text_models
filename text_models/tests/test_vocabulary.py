@@ -157,7 +157,6 @@ def test_histogram():
     for k in keys[:-1]:
         assert len(hist[k]) >= 30
     print(keys[-1], hist[keys[-1]])
-    assert False
 
 
 def test_vocabulary_data_lst():
