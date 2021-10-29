@@ -290,7 +290,7 @@ class TokenCount(object):
         for k in keys:
             if counter[k] <= min_value:
                 del counter[k]        
-
+b
     @staticmethod
     def textModel(token_list) -> TextModel:
         tm = TextModel(num_option=OPTION_DELETE, usr_option=OPTION_NONE,

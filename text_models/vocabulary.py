@@ -292,9 +292,6 @@ class Vocabulary(object):
         for k in K:
             del self.voc[k]  
 
-    def remove_qgrams(self):
-        pass
-
     def histogram(self, min_elements: int=30, words: bool=False):
         group = defaultdict(list)
         [group[v].append(k) for k, v in self.voc.items() if words or k.count("~")]
