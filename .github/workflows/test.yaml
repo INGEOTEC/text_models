@@ -29,8 +29,8 @@ jobs:
       run: |
         python --version
         which python
-	which conda
-	which pip
+        which conda
+        which pip
         conda install --yes pip
         pip install coverage
         pip install coveralls
