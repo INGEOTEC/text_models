@@ -29,7 +29,7 @@ jobs:
       run: |
         conda activate test      
         python --version
-	which python
+        which python
         conda install --yes pip
         pip install coverage
         pip install coveralls
