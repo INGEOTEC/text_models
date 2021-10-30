@@ -23,10 +23,11 @@ jobs:
         channels: conda-forge, ingeotec
         allow-softlinks: true
         channel-priority: flexible
-	show-channel-urls: true	
+        show-channel-urls: true	
     - name: Install dependencies
       shell: bash
       run: |
+        python --version
         conda install --yes pip
         pip install coverage
         pip install coveralls
