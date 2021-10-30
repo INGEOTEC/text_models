@@ -27,7 +27,9 @@ jobs:
     - name: Install dependencies
       shell: bash
       run: |
+        conda activate test      
         python --version
+	which python
         conda install --yes pip
         pip install coverage
         pip install coveralls
