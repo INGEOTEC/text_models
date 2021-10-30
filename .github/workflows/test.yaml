@@ -17,16 +17,19 @@ jobs:
     - name: Set up Python     
       uses: conda-incubator/setup-miniconda@v2
       with:
+        activate-environment: test
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
+        channels: conda-forge, ingeotec
+        allow-softlinks: true
+        channel-priority: flexible
+	show-channel-urls: true	
     - name: Install dependencies
       shell: bash
       run: |
         conda install --yes pip
         pip install coverage
         pip install coveralls
-        conda config --append channels conda-forge
-        conda config --append channels ingeotec
         conda install --yes numpy scipy scikit-learn nltk nose b4msa evodag conceptmodelling cython evomsa cartopy pandas
         python setup.py build_ext --inplace
     - name: Tests on Linux
