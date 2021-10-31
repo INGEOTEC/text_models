@@ -27,6 +27,7 @@ jobs:
     - name: Install dependencies
       shell: bash
       run: |
+        source activate test
         python --version
         which python
         which conda
