@@ -29,10 +29,6 @@ jobs:
         show-channel-urls: true	
     - name: Install dependencies
       run: |
-        python --version
-        which python
-        which conda
-        which pip
         conda install --yes pip
         pip install coverage
         pip install coveralls
