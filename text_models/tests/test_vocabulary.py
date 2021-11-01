@@ -89,11 +89,6 @@ def test_day_words():
     print(words.date)
 
 
-def test_remove_qgrams():
-    voc = Vocabulary(dict(year=2020, month=2, day=14), lang="En")
-    voc.remove_qgrams()
-
-
 def test_previous_day():
     from os.path import basename
 
@@ -116,7 +111,6 @@ def test_dict_functions():
 
 def test_remove_emojis():
     voc = Vocabulary(dict(year=2020, month=2, day=14))
-    voc.remove_qgrams()
     voc.remove_emojis()
 
 
