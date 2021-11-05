@@ -2,8 +2,8 @@
 
 Text Models
 ==================================
-.. image:: https://travis-ci.com/INGEOTEC/text_models.svg?branch=master
-	   :target: https://travis-ci.com/INGEOTEC/text_models
+.. image:: https://github.com/INGEOTEC/text_models/actions/workflows/test.yaml/badge.svg
+	   :target: https://github.com/INGEOTEC/text_models/actions/workflows/test.yaml
 
 .. image:: https://coveralls.io/repos/github/INGEOTEC/text_models/badge.svg?branch=master
 	   :target: https://coveralls.io/github/INGEOTEC/text_models?branch=master

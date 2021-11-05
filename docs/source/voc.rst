@@ -57,7 +57,6 @@ the United States in English on February 14, 2020.
 The tokens used to create the word cloud are obtained after removing 
 the q-grams, the emojis, and frequent words.
 
->>> voc.remove_qgrams()
 >>> voc.remove_emojis()
 >>> voc.remove(voc.common_words())
 

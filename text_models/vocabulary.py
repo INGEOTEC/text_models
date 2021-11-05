@@ -292,9 +292,6 @@ class Vocabulary(object):
         for k in K:
             del self.voc[k]  
 
-    def remove_qgrams(self):
-        pass
-
     def histogram(self, min_elements: int=30, words: bool=False):
         group = defaultdict(list)
         [group[v].append(k) for k, v in self.voc.items() if words or k.count("~")]
@@ -312,6 +309,34 @@ class Vocabulary(object):
         if len(lst):
             hist[k] = lst
         return hist
+
+    @staticmethod
+    def available_dates(dates=List, n=int, countries=List, lang=str):
+        """Retrieve the first n dates available for all the countries
+
+        :param dates: List of dates
+        :param n: Number of days
+        :param countries: List of countries
+        :lang lang: Language
+        """
+
+        missing = Counter(countries)
+        rest = []
+        dates = dates[::-1]
+        while len(dates) and len(rest) < n:
+          day = dates.pop()
+          flag = True
+          for country, _ in missing.most_common():
+            try:
+                download_tokens(day, lang=lang, country=country)
+            except Exception:
+              flag = False
+              missing.update([country])  
+              break
+          if flag:
+            rest.append(day)
+        return rest
+
 
 class Tokenize(object):
     """ Tokenize transforms a text into a sequence, where 

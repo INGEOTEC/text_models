@@ -14,6 +14,8 @@
 from sklearn.metrics import f1_score, recall_score
 from scipy.stats import pearsonr, norm
 import numpy as np
+from datetime import datetime, timedelta
+from typing import List
 
 
 
@@ -82,7 +84,6 @@ def download_geo(day):
     return fname
 
 def handle_day(day):
-    from datetime import datetime
     if isinstance(day, dict):
         return datetime(year=day["year"],
                         month=day["month"],
@@ -92,6 +93,23 @@ def handle_day(day):
                         month=day.month,
                         day=day.day)
     raise Exception("Not implemented: %s" % day)
+
+
+def date_range(init=dict, end=dict) -> List[datetime]:
+    """Interval of day
+    :param init: Start of the sequence
+    :type init: dict with year, month, and day as keywords
+    :param end: End of the sequence (exclusive)
+    :type init: dict with year, month, and day as keywords    
+    """
+
+    init = handle_day(init)
+    end = handle_day(end)
+    dates = []
+    while init <= end:
+      dates.append(init)
+      init = init + timedelta(days=1)        
+    return dates
 
 
 def download_tokens(day, lang:str= "Es", country: str=None, cache: bool=True) -> str:

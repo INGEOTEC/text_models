@@ -89,11 +89,6 @@ def test_day_words():
     print(words.date)
 
 
-def test_remove_qgrams():
-    voc = Vocabulary(dict(year=2020, month=2, day=14), lang="En")
-    voc.remove_qgrams()
-
-
 def test_previous_day():
     from os.path import basename
 
@@ -116,7 +111,6 @@ def test_dict_functions():
 
 def test_remove_emojis():
     voc = Vocabulary(dict(year=2020, month=2, day=14))
-    voc.remove_qgrams()
     voc.remove_emojis()
 
 
@@ -250,3 +244,13 @@ def test_BagOfWords_fit():
     # for k, v in bg._cnt.most_common(10):
     #     print(inv[k], v)
     # assert False
+
+
+def test_available_data():
+    from text_models.vocabulary import Vocabulary
+    from text_models.utils import date_range
+    countries = ['CU', 'MX']
+    days = date_range(dict(year=2020, month=2, day=6),
+                     dict(year=2020, month=5, day=13))
+    dates = Vocabulary.available_dates(days, n=1, countries=countries, lang="Es")
+    assert len(dates) == 1
