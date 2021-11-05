@@ -244,3 +244,13 @@ def test_BagOfWords_fit():
     # for k, v in bg._cnt.most_common(10):
     #     print(inv[k], v)
     # assert False
+
+
+def test_available_data():
+    from text_models.vocabulary import Vocabulary
+    from text_models.utils import date_range
+    countries = ['CU', 'MX']
+    days = date_range(dict(year=2020, month=2, day=6),
+                     dict(year=2020, month=5, day=13))
+    dates = Vocabulary.available_dates(days, n=1, countries=countries, lang="Es")
+    assert len(dates) == 1

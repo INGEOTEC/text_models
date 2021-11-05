@@ -310,6 +310,34 @@ class Vocabulary(object):
             hist[k] = lst
         return hist
 
+    @staticmethod
+    def available_dates(dates=List, n=int, countries=List, lang=str):
+        """Retrieve the first n dates available for all the countries
+
+        :param dates: List of dates
+        :param n: Number of days
+        :param countries: List of countries
+        :lang lang: Language
+        """
+
+        missing = Counter(countries)
+        rest = []
+        dates = dates[::-1]
+        while len(dates) and len(rest) < n:
+          day = dates.pop()
+          flag = True
+          for country, _ in missing.most_common():
+            try:
+                download_tokens(day, lang=lang, country=country)
+            except Exception:
+              flag = False
+              missing.update([country])  
+              break
+          if flag:
+            rest.append(day)
+        return rest
+
+
 class Tokenize(object):
     """ Tokenize transforms a text into a sequence, where 
     each number identifies a particular token; the q-grams 

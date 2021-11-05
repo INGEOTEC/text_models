@@ -57,3 +57,14 @@ def test_likelihood_ratios():
     # [tstats.compute(k) for k in voc if k.count("~")]
     assert value > 35685
 
+
+def test_date_range():
+    from text_models.utils import date_range
+
+    init = dict(year=2020, month=2, day=1)
+    end = dict(year=2020, month=3, day=1)
+    lst = date_range(init, end)
+    # print("**", len(lst), lst)
+    assert len(lst) == 30
+    end = lst[-1]
+    assert end.year == 2020 and end.month==3 and end.day == 1
