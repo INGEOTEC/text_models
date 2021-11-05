@@ -31,7 +31,7 @@ jobs:
       run: |
         conda install --yes pip
         pip install twine
-        conda install --yes numpy scipy scikit-learn nltk nose b4msa evodag conceptmodelling cython evomsa cartopy pandas
+        conda install --yes numpy scipy scikit-learn nltk nose b4msa evodag conceptmodelling cython evomsa
         python setup.py sdist
     - name: Pip
       env:
