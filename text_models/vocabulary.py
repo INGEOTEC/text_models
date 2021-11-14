@@ -320,18 +320,20 @@ class Vocabulary(object):
         :lang lang: Language
         """
 
-        missing = Counter(countries)
+        missing = Counter(countries) if countries is not None else None
         rest = []
         dates = dates[::-1]
-        while len(dates) and len(rest) < n:
+        while len(dates) and (len(rest) < n or n == -1):
           day = dates.pop()
           flag = True
-          for country, _ in missing.most_common():
+          iter = missing.most_common() if missing is not None else [[None, None]]
+          for country, _ in iter:
             try:
                 download_tokens(day, lang=lang, country=country)
             except Exception:
               flag = False
-              missing.update([country])  
+              if missing is not None:
+                  missing.update([country])  
               break
           if flag:
             rest.append(day)
