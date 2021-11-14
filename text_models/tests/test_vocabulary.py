@@ -254,3 +254,8 @@ def test_available_data():
                      dict(year=2020, month=5, day=13))
     dates = Vocabulary.available_dates(days, n=1, countries=countries, lang="Es")
     assert len(dates) == 1
+    days = date_range(dict(year=2020, month=2, day=6),
+                     dict(year=2020, month=2, day=8))
+    dates = Vocabulary.available_dates(days, n=-1, countries=None, lang="Es")
+    assert len(dates) == 3
+
