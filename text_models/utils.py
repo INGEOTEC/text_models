@@ -18,6 +18,24 @@ from datetime import datetime, timedelta
 from typing import List
 
 
+def get_text(tw: dict):
+    """Get the text from a twitter
+    >>> from text_models.utils import get_text
+    >>> from text_models.tests.test_dataset import TWEETS
+    >>> from microtc.utils import tweet_iterator
+    >>> D = list(tweet_iterator(TWEETS))
+    >>> get_text(D[2])
+    '@TheNitron @TechAltar Ooh I see still a cool car have you pushed it too 200 on the autobahn yet if so how does the acceleration feel when doing so?'
+    >>> get_text(D[1])
+    '@melk150 Kkkkkkk bom diaaa'
+    """
+    if tw.get('truncated', False):
+        # text = tw.get('extended_tweet', dict())
+        text = tw['extended_tweet']
+        # return text.get('full_text', '')
+        return text['full_text']
+    return tw.get('text', '')
+
 
 def macro_f1(y, hy):
     """
