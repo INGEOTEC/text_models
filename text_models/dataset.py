@@ -382,3 +382,94 @@ class GeoFrequency(object):
             data[key].clean()
             if len(data[key].counter) == 0 or data[key].num_documents <= min_value:
                 del data[key]
+
+class MaskedLMDataset(object):
+    """Create a masked language model
+    >>> from text_models.dataset import Dataset
+    >>> from EvoMSA.utils import download
+    >>> from microtc.utils import load_model
+    >>> from text_models.tests.test_dataset import TWEETS
+    >>> emo = load_model(download("emo_En.tm"))
+    >>> ds = Dataset()
+    >>> ds.add({k: True for k in emo._labels})
+    >>> mk = MaskedLMDataset(ds)
+    >>> mk.process(TWEETS)
+    """
+    def __init__(self, dataset: Dataset,
+                 num_elements: int=64000,
+                 reader: Callable[[str], Iterable[dict]]=tweet_iterator) -> None:
+        self._dataset = dataset
+        self._reader = reader
+        self._store = defaultdict(list)
+        self._num_elements = num_elements
+
+    @property
+    def dataset(self):
+        return self._store
+
+    def add(self, klasses, text):
+        """Add text into the dataset
+        >>> from text_models.dataset import MaskedLMDataset
+        >>> ms = MaskedLMDataset(None, num_elements=64000)
+        >>> ms.add(['☹'], "aa ☹ b")
+        >>> len(ms.dataset['☹'])
+        1
+        >>> ms.add(['☹', '☺'], "aa ☹ ☺ b")
+        >>> len(ms.dataset['☺'])
+        1
+        >>> len(ms.dataset['☹'])
+        1
+        >>> _ = [ms.add(['☹'], "aa ☹ b") for _ in range(64010)]
+        >>> len(ms.dataset['☹'])
+        64000
+        """
+        if len(klasses) == 0:
+            return
+        dataset = self.dataset
+        num_elements = self._num_elements
+        lst = [(k, len(dataset[k])) for k in klasses]
+        lst = [(k, v) for k, v in lst if v < num_elements]
+        lst.sort(key=lambda x: x[1])
+        if len(lst):
+            dataset[lst[0][0]].append(text)
+
+    def filter(self, text):
+        """Filter RT
+        >>> from text_models.dataset import MaskedLMDataset
+        >>> ms = MaskedLMDataset(None)
+        >>> ms.filter('RT a')
+        True
+        >>> ms.filter('a')
+        False        
+        """
+        if text[:2] == 'RT':
+            return True
+        return False
+
+    def process(self, fname: str):
+        get_text = self.get_text
+        dataset = self._dataset
+        filter = self.filter
+        for tw in self._reader(fname):
+            text = get_text(tw)
+            if filter(text):
+                continue
+            klasses = dataset.klass(text)
+            self.add(klasses, text)
+
+    @staticmethod
+    def get_text(tw: dict):
+        """Get the text from a twitter
+        >>> from text_models.dataset import MaskedLMDataset
+        >>> from text_models.tests.test_dataset import TWEETS
+        >>> from microtc.utils import tweet_iterator
+        >>> D = list(tweet_iterator(TWEETS))
+        >>> MaskedLMDataset.get_text(D[2])
+        '@TheNitron @TechAltar Ooh I see still a cool car have you pushed it too 200 on the autobahn yet if so how does the acceleration feel when doing so?'
+        >>> MaskedLMDataset.get_text(D[1])
+        '@melk150 Kkkkkkk bom diaaa'
+        """
+        if tw.get('truncated', False):
+            text = tw.get('extended_tweet', dict())
+            return text.get('full_text', '')
+        return tw.get('text', '')
