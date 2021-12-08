@@ -20,7 +20,6 @@ from EvoMSA.utils import download
 from collections import OrderedDict, defaultdict
 from microtc.utils import Counter
 from os.path import isfile, join, dirname
-from microtc.textmodel import TextModel
 from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
 from .place import BoundingBox, location
@@ -528,3 +527,17 @@ class MaskedLM(object):
             if len(_):
                 output.append(_)
         return output
+
+    def textModel(self, n=10000):
+        tm = TokenCount.textModel([-2, -1, 2, 3, 4])
+        tm.token_min_filter = 0.001
+        tm.token_max_filter = 0.999
+        D = []
+        transform = self.transform
+        items = self._masked.dataset.items
+        for k, v in items():
+            random.shuffle(v)
+            D += transform(k, v[:n])
+        tm.fit(D)
+        return tm
+        

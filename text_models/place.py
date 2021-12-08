@@ -923,7 +923,7 @@ class States(object):
         return self._records.items()
 
     def name(self, key):
-        return self[key].attributes["name_en"]
+        return self[key].attributes["name_en"].replace('\x00', '')
 
     def associate(self, data, country=None):
         """
