@@ -487,3 +487,44 @@ class MaskedLMDataset(object):
                 continue
             klasses = dataset.klass(text)
             self.add(klasses, text)
+
+
+class MaskedLM(object):
+    """Create a masked language model
+    >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
+    >>> from EvoMSA.utils import download
+    >>> from microtc.utils import load_model
+    >>> from text_models.tests.test_dataset import TWEETS
+    >>> emo = load_model(download("emo_En.tm"))
+    >>> ds = Dataset()
+    >>> ds.add({k: True for k in emo._labels})
+    >>> mk = MaskedLMDataset(ds)
+    >>> mk.process(TWEETS)
+    >>> mask = MaskedLM(mk)
+    """
+    def __init__(self, masked: MaskedLMDataset) -> None:
+        self._masked = masked
+
+    def transform(self, klass, texts) -> None:
+        """Transform
+        >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
+        >>> from EvoMSA.utils import download
+        >>> from microtc.utils import load_model
+        >>> from text_models.tests.test_dataset import TWEETS
+        >>> emo = load_model(download("emo_En.tm"))
+        >>> ds = Dataset()
+        >>> ds.add({k: True for k in emo._labels})
+        >>> mk = MaskedLMDataset(ds)
+        >>> mk.process(TWEETS)
+        >>> mask = MaskedLM(mk)
+        >>> mask.transform('🤘', ['Tengo sueñoooooooo🤘', '🤘'])
+        [['tengo suenoooooooo']]
+        """
+        output = []
+        process = self._masked._dataset.process
+        for text in texts:
+            _ = [" ".join(filter(lambda x: len(x), x.split('~'))) for x in process(text)]
+            _ = list(filter(lambda x: len(x), _))
+            if len(_):
+                output.append(_)
+        return output
