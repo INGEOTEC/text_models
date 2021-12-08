@@ -911,7 +911,7 @@ class States(object):
                                           category='cultural',
                                           name='admin_1_states_provinces')
         _ = shapereader.Reader(fname)
-        self._records = {x.attributes["iso_3166_2"]: x for x in _.records()}
+        self._records = {x.attributes["iso_3166_2"].replace('\x00', ''): x for x in _.records()}
 
     def __getitem__(self, key):
         return self._records[key]
