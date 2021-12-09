@@ -20,11 +20,11 @@ from EvoMSA.utils import download
 from collections import OrderedDict, defaultdict
 from microtc.utils import Counter
 from os.path import isfile, join, dirname
-from microtc.textmodel import TextModel
 from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
-from .place import BoundingBox, location
-from .utils import get_text
+from text_models.place import BoundingBox, location
+from text_models.utils import get_text
+import random
 
 
 try:
@@ -487,3 +487,85 @@ class MaskedLMDataset(object):
                 continue
             klasses = dataset.klass(text)
             self.add(klasses, text)
+
+
+class MaskedLM(object):
+    """Create a masked language model
+    >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
+    >>> from EvoMSA.utils import download
+    >>> from microtc.utils import load_model
+    >>> from text_models.tests.test_dataset import TWEETS
+    >>> emo = load_model(download("emo_En.tm"))
+    >>> ds = Dataset()
+    >>> ds.add({k: True for k in emo._labels})
+    >>> mkDS = MaskedLMDataset(ds)
+    >>> mkDS.process(TWEETS)
+    >>> mk = MaskedLM(mkDS)
+    >>> tm = mk.textModel()
+    >>> coef, intercept, labels = mk.run(tm)
+    """
+    def __init__(self, masked: MaskedLMDataset) -> None:
+        self._masked = masked
+
+    def run(self, tm):
+        from sklearn.svm import LinearSVC
+        from EvoMSA.utils import linearSVC_array
+        dataset = self._masked.dataset
+        klasses = sorted(dataset.keys())
+        cnt = len(klasses) - 1
+        transform = self.transform
+        MODELS = []
+        for klass in tqdm(klasses):
+            X = transform(klass, dataset[klass])
+            y = [1] * len(X)
+            nneg = max(len(X) // cnt, 1)
+            for k2 in klasses:
+                if k2 == klass:
+                    continue
+                ele = dataset[klass]
+                random.shuffle(ele)
+                ele = transform(k2, ele[:nneg])
+                y += [-1] * len(ele)
+                X += ele
+            m = LinearSVC().fit(tm.transform(X), y)
+            MODELS.append(m)
+        coef, intercept = linearSVC_array(MODELS)
+        return coef, intercept, klasses
+
+    def transform(self, klass, texts) -> None:
+        """Transform
+        >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
+        >>> from EvoMSA.utils import download
+        >>> from microtc.utils import load_model
+        >>> from text_models.tests.test_dataset import TWEETS
+        >>> emo = load_model(download("emo_En.tm"))
+        >>> ds = Dataset()
+        >>> ds.add({k: True for k in emo._labels})
+        >>> mk = MaskedLMDataset(ds)
+        >>> mk.process(TWEETS)
+        >>> mask = MaskedLM(mk)
+        >>> mask.transform('🤘', ['Tengo sueñoooooooo🤘', '🤘'])
+        [['tengo suenoooooooo']]
+        """
+        output = []
+        process = self._masked._dataset.process
+        for text in texts:
+            _ = [" ".join(filter(lambda x: len(x), x.split('~'))) for x in process(text)]
+            _ = list(filter(lambda x: len(x), _))
+            if len(_):
+                output.append(_)
+        return output
+
+    def textModel(self, n=10000):
+        tm = TokenCount.textModel([-2, -1, 2, 3, 4])
+        tm.token_min_filter = 0.001
+        tm.token_max_filter = 0.999
+        D = []
+        transform = self.transform
+        items = self._masked.dataset.items
+        for k, v in items():
+            random.shuffle(v)
+            D += transform(k, v[:n])
+        tm.fit(D)
+        return tm
+        
