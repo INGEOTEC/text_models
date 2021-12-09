@@ -234,7 +234,7 @@ class ForwardSelection(object):
 
         self._logger.info("Starting the search")
         self._le.fit(y)
-        y = le.transform(y)
+        y = self._le.transform(y)
         r = [(node.performance(X, y), node) for node in self._nodes]
         node = max(r, key=lambda x: x[0])[1]
         while True:
@@ -267,7 +267,7 @@ class BeamSelection(ForwardSelection):
         :rtype: :py:class:`text_models.model_selection.Node`
         """
         self._le.fit(y)
-        y = le.transform(y)
+        y = self._le.transform(y)
         visited = [(node.performance(X, y), node) for
                    node in self._nodes]
         _ = max(visited, key=lambda x: x[0])[1]
