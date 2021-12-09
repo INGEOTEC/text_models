@@ -24,6 +24,7 @@ from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
 from .place import BoundingBox, location
 from .utils import get_text
+import random
 
 
 try:
