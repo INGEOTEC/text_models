@@ -13,11 +13,12 @@
 # limitations under the License.
 import logging
 from EvoMSA.base import EvoMSA
+from EvoMSA.utils import LabelEncoderWrapper
 from queue import LifoQueue
 from microtc.utils import save_model
 from sklearn.metrics import f1_score
 from sklearn.model_selection import KFold
-from .utils import macro_f1
+from text_models.utils import macro_f1
 import numpy as np
 import os
 
@@ -74,7 +75,6 @@ class Node(object):
         return self._repr
 
     def __eq__(self, other):
-
         return isinstance(other, Node) and str(self) == str(other)
 
     def __hash__(self):
@@ -206,6 +206,7 @@ class ForwardSelection(object):
                  metric=macro_f1,
                  split_dataset=KFold(n_splits=3, random_state=1, shuffle=True),
                  aggregate=np.median,
+                 classifier=True,
                  cache=os.path.join("cache", "fw"),
                  **kwargs):
         self._models = models
@@ -214,10 +215,12 @@ class ForwardSelection(object):
                             split_dataset=split_dataset,
                             aggregate=aggregate,
                             cache=cache,
+                            classifier=classifier,
                             **kwargs) for k in models.keys()]
         self._output = output
         self._logger = logging.getLogger("text_models.model_selection")
         self._logger.setLevel(verbose)
+        self._le = LabelEncoderWrapper(classifier=classifier)
 
     def run(self, X, y):
         """Perform the search using X and y to guide it
@@ -230,6 +233,8 @@ class ForwardSelection(object):
         """
 
         self._logger.info("Starting the search")
+        self._le.fit(y)
+        y = le.transform(y)
         r = [(node.performance(X, y), node) for node in self._nodes]
         node = max(r, key=lambda x: x[0])[1]
         while True:
@@ -261,7 +266,8 @@ class BeamSelection(ForwardSelection):
         :type early_stopping: int
         :rtype: :py:class:`text_models.model_selection.Node`
         """
-
+        self._le.fit(y)
+        y = le.transform(y)
         visited = [(node.performance(X, y), node) for
                    node in self._nodes]
         _ = max(visited, key=lambda x: x[0])[1]

@@ -22,8 +22,8 @@ from microtc.utils import Counter
 from os.path import isfile, join, dirname
 from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
-from .place import BoundingBox, location
-from .utils import get_text
+from text_models.place import BoundingBox, location
+from text_models.utils import get_text
 import random
 
 
