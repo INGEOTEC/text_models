@@ -493,6 +493,7 @@ class MaskedLM(object):
     """Create a masked language model
     >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
     >>> from EvoMSA.utils import download
+    >>> from EvoMSA.model import LabeledDataSet
     >>> from microtc.utils import load_model
     >>> from text_models.tests.test_dataset import TWEETS
     >>> emo = load_model(download("emo_En.tm"))
@@ -503,6 +504,7 @@ class MaskedLM(object):
     >>> mk = MaskedLM(mkDS)
     >>> tm = mk.textModel()
     >>> coef, intercept, labels = mk.run(tm)
+    >>> model = LabeledDataSet(textModel=tm, coef=coef, intercept=intercept, labels=labels)
     """
     def __init__(self, masked: MaskedLMDataset) -> None:
         self._masked = masked
