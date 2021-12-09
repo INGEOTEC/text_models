@@ -497,9 +497,9 @@ class MaskedLM(object):
     >>> emo = load_model(download("emo_En.tm"))
     >>> ds = Dataset()
     >>> ds.add({k: True for k in emo._labels})
-    >>> mk = MaskedLMDataset(ds)
-    >>> mk.process(TWEETS)
-    >>> mask = MaskedLM(mk)
+    >>> mkDS = MaskedLMDataset(ds)
+    >>> mkDS.process(TWEETS)
+    >>> mk = MaskedLM(mkDS)
     >>> tm = mk.textModel()
     >>> coef, intercept, labels = mk.run(tm)
     """
