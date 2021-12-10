@@ -410,6 +410,14 @@ class MaskedLMDataset(object):
     def dataset(self):
         return self._store
 
+    @property
+    def reader(self):
+        return self._reader
+
+    @reader.setter
+    def reader(self, reader):
+        self._reader = reader
+
     def missing(self):
         """Number of klass that has not been reached the 
         maximum number of elements
@@ -472,7 +480,12 @@ class MaskedLMDataset(object):
         True
         >>> ms.lang(dict(lang="en"))
         False
+        >>> ms = MaskedLMDataset(None, lang=None)
+        >>> ms.lang(dict())
+        True
         """
+        if self._lang is None:
+            return True
         return tw.get('lang', "") == self._lang
 
     def process(self, fname: str):
@@ -493,6 +506,7 @@ class MaskedLM(object):
     """Create a masked language model
     >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
     >>> from EvoMSA.utils import download
+    >>> from EvoMSA.model import LabeledDataSet
     >>> from microtc.utils import load_model
     >>> from text_models.tests.test_dataset import TWEETS
     >>> emo = load_model(download("emo_En.tm"))
@@ -503,6 +517,7 @@ class MaskedLM(object):
     >>> mk = MaskedLM(mkDS)
     >>> tm = mk.textModel()
     >>> coef, intercept, labels = mk.run(tm)
+    >>> model = LabeledDataSet(textModel=tm, coef=coef, intercept=intercept, labels=labels)
     """
     def __init__(self, masked: MaskedLMDataset) -> None:
         self._masked = masked
