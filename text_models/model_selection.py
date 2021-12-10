@@ -27,6 +27,28 @@ class Node(object):
     """
     Base class to perform model selection on the first-stage models
 
+    >>> from EvoMSA import base
+    >>> from EvoMSA.utils import download
+    >>> from text_models.model_selection import Node
+    >>> from microtc.utils import tweet_iterator
+    >>> import os
+    >>> tweets = os.path.join(os.path.dirname(base.__file__), 'tests', 'tweets.json')
+    >>> D = [[x['text'], x['klass']] for x in tweet_iterator(tweets)]
+    >>> models = dict()
+    >>> models[0] = [download("emo_Es.tm"), "sklearn.svm.LinearSVC"]
+    >>> models[1] = ["EvoMSA.model.AggressivenessEs", "sklearn.svm.LinearSVC"]
+    >>> models[2] = [download("b4msa_Es.tm"), "sklearn.svm.LinearSVC"]
+    >>> X = [x for x, y in D]
+    >>> y = [y for x, y in D]
+    >>> kf = KFold(n_splits=3, random_state=1, shuffle=True)
+    >>> node = Node([0], models=models, split_dataset=kf, aggregate=np.median, cache=os.path.join("cache", "fw"), metric=macro_f1)
+    >>> node.performance(X, y)
+    0.37970730570594
+    >>> [x for x in node]
+    [0-1, 0-2]
+    >>> model = node.fit(X, y)
+
+
     :param model: Models used in the node - List of keys from :py:attr:`models`
     :type model: list
     :param models: Dictionary of pairs (see :py:attr:`EvoMSA.base.EvoMSA.models`)
@@ -99,6 +121,9 @@ class Node(object):
 
         models = self._models
         return [models[x] for x in self._model]
+
+    def fit(self, X, y):
+        return self._fit(X, y, None)
 
     def _fit(self, X, y, cache):
         """Create an EvoMSA's instance

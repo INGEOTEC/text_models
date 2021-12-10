@@ -410,6 +410,14 @@ class MaskedLMDataset(object):
     def dataset(self):
         return self._store
 
+    @property
+    def reader(self):
+        return self._reader
+
+    @reader.setter
+    def reader(self, reader):
+        self._reader = reader
+
     def missing(self):
         """Number of klass that has not been reached the 
         maximum number of elements
@@ -472,7 +480,12 @@ class MaskedLMDataset(object):
         True
         >>> ms.lang(dict(lang="en"))
         False
+        >>> ms = MaskedLMDataset(None, lang=None)
+        >>> ms.lang(dict())
+        True
         """
+        if self._lang is None:
+            return True
         return tw.get('lang', "") == self._lang
 
     def process(self, fname: str):
