@@ -24,6 +24,7 @@ from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
 from text_models.place import BoundingBox, location
 from text_models.utils import get_text
+from joblib import Parallel, delayed
 import random
 
 
@@ -518,32 +519,40 @@ class MaskedLM(object):
     >>> tm = mk.textModel()
     >>> coef, intercept, labels = mk.run(tm)
     >>> model = LabeledDataSet(textModel=tm, coef=coef, intercept=intercept, labels=labels)
+    >>> coef, intercept, labels = mk.run(tm, n_jobs=-2)
     """
     def __init__(self, masked: MaskedLMDataset) -> None:
         self._masked = masked
 
-    def run(self, tm):
-        from sklearn.svm import LinearSVC
+    def fit(self, klass, tm):
+        from sklearn.svm import LinearSVC        
+        dataset = self._masked.dataset
+        klasses = sorted(dataset.keys())
+        cnt = len(klasses) - 1
+        transform = self.transform
+        X = transform(klass, dataset[klass])
+        y = [1] * len(X)
+        nneg = max(len(X) // cnt, 1)
+        for k2 in klasses:
+            if k2 == klass:
+                continue
+            ele = dataset[klass]
+            random.shuffle(ele)
+            ele = transform(k2, ele[:nneg])
+            y += [-1] * len(ele)
+            X += ele
+        return LinearSVC().fit(tm.transform(X), y)
+        
+    def run(self, tm, n_jobs=None):
         from EvoMSA.utils import linearSVC_array
         dataset = self._masked.dataset
         klasses = sorted(dataset.keys())
         cnt = len(klasses) - 1
         transform = self.transform
-        MODELS = []
-        for klass in tqdm(klasses):
-            X = transform(klass, dataset[klass])
-            y = [1] * len(X)
-            nneg = max(len(X) // cnt, 1)
-            for k2 in klasses:
-                if k2 == klass:
-                    continue
-                ele = dataset[klass]
-                random.shuffle(ele)
-                ele = transform(k2, ele[:nneg])
-                y += [-1] * len(ele)
-                X += ele
-            m = LinearSVC().fit(tm.transform(X), y)
-            MODELS.append(m)
+        if n_jobs is not None and (n_jobs > 1 or n_jobs < 0):
+            MODELS = Parallel(n_jobs=n_jobs)(delayed(self.fit)(klass, tm) for klass in tqdm(klasses))
+        else:
+            MODELS = [self.fit(klass, tm) for klass in tqdm(klasses)]
         coef, intercept = linearSVC_array(MODELS)
         return coef, intercept, klasses
 
