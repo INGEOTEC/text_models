@@ -425,7 +425,7 @@ class MaskedLMDataset(object):
         >>> from text_models.dataset import MaskedLMDataset
         >>> ms = MaskedLMDataset(None, num_elements=64000)
         >>> ms.add(['☹'], "aa ☹ b")
-        >>> ms.add(['☹', '☺'], "aa ☹ ☺ b")
+        >>> ms.add(['☺'], "aa ☺ b")
         >>> _ = [ms.add(['☹'], "aa ☹ b") for _ in range(64010)]
         >>> ms.missing()
         1
@@ -443,22 +443,21 @@ class MaskedLMDataset(object):
         1
         >>> ms.add(['☹', '☺'], "aa ☹ ☺ b")
         >>> len(ms.dataset['☺'])
-        1
+        0
         >>> len(ms.dataset['☹'])
         1
         >>> _ = [ms.add(['☹'], "aa ☹ b") for _ in range(64010)]
         >>> len(ms.dataset['☹'])
         64000
         """
-        if len(klasses) == 0:
+        if len(klasses) != 1:
             return
         dataset = self.dataset
         num_elements = self._num_elements
-        lst = [(k, len(dataset[k])) for k in klasses]
-        lst = [(k, v) for k, v in lst if v < num_elements]
-        lst.sort(key=lambda x: x[1])
-        if len(lst):
-            dataset[lst[0][0]].append(text)
+        klass = list(klasses)[0]
+        value = dataset[klass]
+        if len(value) < num_elements:
+            value.append(text)
 
     def filter(self, text):
         """Filter RT
