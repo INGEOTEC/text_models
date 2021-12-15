@@ -535,7 +535,7 @@ class MaskedLM(object):
         for k2 in klasses:
             if k2 == klass:
                 continue
-            ele = dataset[klass]
+            ele = dataset[k2]
             random.shuffle(ele)
             ele = transform(k2, ele[:nneg])
             y += [-1] * len(ele)
