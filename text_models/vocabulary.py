@@ -18,7 +18,7 @@ from microtc.weighting import TFIDF
 from microtc.utils import SparseMatrix
 from scipy.sparse import csr_matrix
 from typing import List, Iterable, OrderedDict, Union, Dict, Any, Tuple
-from .utils import download_tokens, handle_day
+from text_models.utils import download_tokens, handle_day
 
 
 TM_ARGS=dict(usr_option="delete", num_option="none",
@@ -368,6 +368,10 @@ class Tokenize(object):
 
         return self._textmodel
 
+    @textModel.setter
+    def textModel(self, v):
+        self._textmodel = v
+
     def fit(self, tokens: List[str]) -> 'Tokenize':
         """Train the tokenizer. 
 
@@ -454,16 +458,25 @@ class BagOfWords(SparseMatrix):
     
     :param tokens: Language (Ar|En|Es) or list of tokens
     :type tokens: str|List
+    >>> from EvoMSA.tests.test_base import TWEETS
+    >>> from microtc.utils import tweet_iterator
+    >>> from text_models.vocabulary import BagOfWords
+    >>> tw = list(tweet_iterator(TWEETS))
+    >>> BoW = BagOfWords().fit(tw)
+    >>> BoW['hola mundo']
+    [(758, 0.7193757438600711), (887, 0.6946211479258095)]
     """
 
     def __init__(self, tokens: Union[str, List[str]]="Es"):
         from microtc.utils import load_model
         from EvoMSA.utils import download
+        tok = Tokenize()
         if isinstance(tokens, list):
             xx = tokens
         else:
-            xx = list(load_model(download("b4msa_%s.tm" % tokens)).model.word2id.keys())
-        tok = Tokenize()
+            textModel = load_model(download("b4msa_%s.tm" % tokens))
+            xx = list(textModel.model.word2id.keys())
+            tok.textModel = textModel
         f = lambda cdn: "~".join([x for x in cdn.split("~") if len(x)])
         tok.fit([f(k) for k in xx if k.count("~") and k[:2] != "q:"])
         tok.fit([f(k) for k in xx if k.count("~") == 0 and k[:2] != "q:"])
@@ -530,3 +543,7 @@ class BagOfWords(SparseMatrix):
     def transform(self, data: List[str]) -> csr_matrix:
         """Transform a list of text to a Bag of Words using TFIDF""" 
         return self.tonp(self._transform(data))
+
+    def __getitem__(self, data: str):
+        _ = self.tokenize.transform(data)
+        return self.tfidf[_]
