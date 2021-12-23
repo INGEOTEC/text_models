@@ -297,7 +297,7 @@ class TokenCount(object):
     def textModel(token_list) -> TextModel:
         kwargs = TM_ARGS.copy()
         kwargs["usr_option"] = OPTION_NONE
-        kwargs["hashtag_option"] = OPTION_NONE
+        kwargs["num_option"] = OPTION_DELETE
         tm = TextModel(token_list=token_list, **kwargs)
         return tm
 
