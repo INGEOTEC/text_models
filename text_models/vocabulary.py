@@ -18,12 +18,7 @@ from microtc.weighting import TFIDF
 from microtc.utils import SparseMatrix
 from scipy.sparse import csr_matrix
 from typing import List, Iterable, OrderedDict, Union, Dict, Any, Tuple
-from text_models.utils import download_tokens, handle_day
-
-
-TM_ARGS=dict(usr_option="delete", num_option="none",
-             url_option="delete", emo_option="none",
-             del_dup=False, del_punc=True)
+from text_models.utils import download_tokens, handle_day, TM_ARGS
 
 
 class Vocabulary(object):
