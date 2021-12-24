@@ -23,7 +23,7 @@ from os.path import isfile, join, dirname
 from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
 from text_models.place import BoundingBox, location
-from text_models.utils import get_text
+from text_models.utils import get_text, TM_ARGS
 from joblib import Parallel, delayed
 import random
 
@@ -295,10 +295,10 @@ class TokenCount(object):
 
     @staticmethod
     def textModel(token_list) -> TextModel:
-        tm = TextModel(num_option=OPTION_DELETE, usr_option=OPTION_NONE,
-                       url_option=OPTION_DELETE, emo_option=OPTION_NONE, 
-                       hashtag_option=OPTION_NONE,
-                       del_dup=False, del_punc=True, token_list=token_list)
+        kwargs = TM_ARGS.copy()
+        kwargs["usr_option"] = OPTION_NONE
+        kwargs["num_option"] = OPTION_DELETE
+        tm = TextModel(token_list=token_list, **kwargs)
         return tm
 
     @classmethod

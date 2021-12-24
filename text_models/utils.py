@@ -16,6 +16,13 @@ from scipy.stats import pearsonr, norm
 import numpy as np
 from datetime import datetime, timedelta
 from typing import List
+from microtc.params import OPTION_DELETE, OPTION_NONE
+
+
+TM_ARGS=dict(usr_option=OPTION_DELETE, num_option=OPTION_NONE,
+             url_option=OPTION_DELETE, emo_option=OPTION_NONE,
+             hashtag_option=OPTION_NONE,
+             del_dup=False, del_punc=True)
 
 
 def get_text(tw: dict):
