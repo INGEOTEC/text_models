@@ -13,12 +13,24 @@
 # limitations under the License.
 from collections import defaultdict
 from microtc.utils import load_model, Counter
-from b4msa.textmodel import TextModel
+from b4msa.textmodel import TextModel as TM
 from microtc.weighting import TFIDF
 from microtc.utils import SparseMatrix
 from scipy.sparse import csr_matrix
 from typing import List, Iterable, OrderedDict, Union, Dict, Any, Tuple
 from text_models.utils import download_tokens, handle_day, TM_ARGS
+import re
+
+
+class TextModel(TM):
+    def text_transformations(self, text):
+        """
+        >>> tm = TextModel(**TM_ARGS)
+        >>> tm.text_transformations('@user abd')
+        '~abd~'
+        """
+        txt = super(TextModel, self).text_transformations(text)
+        return re.sub('~+', '~', txt)
 
 
 class Vocabulary(object):
