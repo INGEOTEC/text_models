@@ -500,20 +500,12 @@ class BagOfWords(SparseMatrix):
         
         return self._tokenize
 
-    def get_text(self, data: Union[dict, str]) -> str:
-        """Get text keywords from dict"""
-
-        if isinstance(data, str):
-            return data
-        return data[self._text]
-
     def fit(self, X: List[Union[str, dict]]) -> 'BagOfWords':
         """ Train the Bag of words model"""
         
         from microtc.utils import Counter
-        get_text = self.get_text
         cnt = Counter()
-        tokens = self.tokenize.transform([get_text(x) for x in X])
+        tokens = self.tokenize.transform([x for x in X])
         [cnt.update(x) for x in tokens]
         self._tfidf = TFIDF.counter(cnt)
         return self
@@ -540,17 +532,24 @@ class BagOfWords(SparseMatrix):
     def num_terms(self):
         return len(self.tokenize.vocabulary)
 
-    def _transform(self, data: List[str]) -> List[Tuple[int, float]]:
-        """Transform a list of text to a Bag of Words using TFIDF"""
+    # def _transform(self, data: List[str]) -> List[Tuple[int, float]]:
+    #     """Transform a list of text to a Bag of Words using TFIDF"""
 
-        data = self.tokenize.transform(data)
-        tfidf = self.tfidf
-        return [tfidf[x] for x in data]
+    #     data = self.tokenize.transform(data)
+    #     tfidf = self.tfidf
+    #     return [tfidf[x] for x in data]
 
     def transform(self, data: List[str]) -> csr_matrix:
         """Transform a list of text to a Bag of Words using TFIDF""" 
-        return self.tonp(self._transform(data))
+        getitem = self.__getitem__
+        return self.tonp([getitem(x) for x in data])
 
     def __getitem__(self, data: str):
-        _ = self.tokenize.transform(data)
-        return self.tfidf[_]
+        if isinstance(data, (list, tuple)):
+            tokens = []
+            for txt in data:
+                _ = self.tokenize.transform(txt)
+                tokens.extend(_)
+        else:
+            tokens = self.tokenize.transform(data)
+        return self.tfidf[tokens]

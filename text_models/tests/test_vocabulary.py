@@ -231,11 +231,12 @@ def test_BagOfWords_fit():
     X = list(tweet_iterator(TWEETS))
     bg = BagOfWords().fit(X)
     bg = BagOfWords().fit([x["text"] for x in X])
-    xx = bg._transform(["buenos y felices dias"])
-    print(len(xx), len(xx[0]), xx)
-    assert len(xx) == 1 and len(xx[0]) == 3 and len(xx[0][1]) == 2
+    xx = bg["buenos y felices dias"]
+    print(len(xx), len(xx[1]), xx)
+    assert len(xx) == 3 and len(xx[1]) == 2
     xx = bg.transform(["buenos y felices dias"])
     assert isinstance(xx, csr_matrix)
+    bg[['hola', 'adios']]
     # inv = bg.id2word
     # print([(inv(k), v) for k, v in bg.tfidf[xx[0]]])
     # assert False
