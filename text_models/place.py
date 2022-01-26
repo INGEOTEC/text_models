@@ -152,8 +152,9 @@ def _length(x: List[Tuple[float, float]]) -> float:
 
     >>> from text_models.place import _length
     >>> points = [[-103.7420245057158, 17.915988111000047], [-100.1228494938091, 20.403147690813284]]
-    >>> _length(points)
-    470.06161477088165
+    >>> l = _length(points)
+    >>> "{:0.4f}".format(l)
+    '470.0616'
 
     """
 
@@ -173,8 +174,9 @@ def length(x: dict) -> float:
 
     >>> from text_models.place import length
     >>> bbox = dict(place=dict(bounding_box=dict(coordinates=[[[-99.191996,19.357102],[-99.191996,19.404124],[-99.130965,19.404124],[-99.130965,19.357102]]])))
-    >>> length(bbox)
-    8.26567850078472
+    >>> l = length(bbox)
+    >>> "{:0.4f}".format(l)
+    '8.2657'
 
     """  
     long_lat = x.get('coordinates', None)
