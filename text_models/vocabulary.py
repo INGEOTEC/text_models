@@ -19,6 +19,7 @@ from microtc.utils import SparseMatrix
 from scipy.sparse import csr_matrix
 from typing import List, Iterable, OrderedDict, Union, Dict, Any, Tuple
 from text_models.utils import download_tokens, handle_day, TM_ARGS
+from os.path import isfile
 import re
 
 
@@ -63,6 +64,8 @@ class Vocabulary(object):
         self._states = states
         if isinstance(data, dict) and len(data) > 3:
             self._data = data
+        elif isinstance(data, str) and isfile(data):
+            self.voc = load_model(data)
         else:
             self.date = data
             self._init(data)

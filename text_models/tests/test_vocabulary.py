@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import abstractclassmethod
+from urllib import request
 from text_models.vocabulary import Vocabulary, Tokenize, BagOfWords
 
 
@@ -260,3 +260,12 @@ def test_available_data():
     dates = Vocabulary.available_dates(days, n=-1, countries=None, lang="Es")
     assert len(dates) == 3
 
+
+def test_Vocabulary_file():
+    from text_models.vocabulary import Vocabulary
+    from os.path import isfile
+    if not isfile('es-PT.gz'):
+        fname = "https://github.com/INGEOTEC/text_models/releases/download/20220110/es-PT.gz"
+        request.urlretrieve(fname, 'es-PT.gz')
+    voc = Vocabulary('es-PT.gz')
+    assert voc.voc.update_calls == 195
