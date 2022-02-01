@@ -377,7 +377,8 @@ class GeoFrequency(object):
     def clean(self) -> None:
         keys = list(self.data.keys())
         data = self.data
-        max_value = max([x.num_documents for x in data.values()])
+        _ = [x.num_documents for x in data.values()]
+        max_value = max(_) if len(_) else 0
         min_value = 0.0001 * max_value
         min_value = max(2, min_value)
         for key in keys:
