@@ -2,11 +2,8 @@ name: Pip
 
 on: 
   push:
-    branches:
-      - master
-    tags-ignore:
-      - day.*
-      - 20*
+    tags:
+      - v*
 jobs:
   build:
     runs-on: ${{ matrix.os }}
