@@ -6,6 +6,7 @@ on:
       - master
     tags-ignore:
       - day.*
+      - 20*
 jobs:
   build:
     runs-on: ${{ matrix.os }}
