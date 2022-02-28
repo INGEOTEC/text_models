@@ -32,6 +32,11 @@ English, Spanish, and Russian languages (see :ref:`voc`).
 As well as mobility information related to the number of travels 
 among locations for more than 200 countries or territories (see :ref:`place`).
 
+The library is described in 
+`A Python library for exploratory data analysis on twitter data based on tokens and aggregated origin–destination information <https://www.sciencedirect.com/science/article/pii/S0098300421002946>`_.
+Mario Graff dDaniela Moctezuma, Sabino Miranda-Jiménez, Eric S.Tellez. Computers & Geosciences
+Volume 159, February 2022.
+
 Citing
 ======
 
