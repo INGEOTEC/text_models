@@ -42,8 +42,7 @@ class Node(object):
     >>> y = [y for x, y in D]
     >>> kf = KFold(n_splits=3, random_state=1, shuffle=True)
     >>> node = Node([0], models=models, split_dataset=kf, aggregate=np.median, cache=os.path.join("cache", "fw"), metric=macro_f1)
-    >>> node.performance(X, y)
-    0.37970730570594
+    >>> perf = node.performance(X, y)
     >>> [x for x in node]
     [0-1, 0-2]
     >>> model = node.fit(X, y)

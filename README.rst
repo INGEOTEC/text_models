@@ -14,11 +14,19 @@ Text Models
       :alt: Documentation Status		    		       
 
 
-INGEOTEC Text Model package deals with the creation of labeled
-datasets using a self-supervised approach. It includes different text
-models developed for Arabic, English, Spanish languages, as well as
-the classes used to create them. Finally, it a modified Beam selection
-technique, tailored to text classification, that chooses those text
-models that are more suitable for a given text classification problem.
+Twitter is perhaps the social media more amenable for research. 
+It requires only a few steps to obtain information, and there are 
+plenty of libraries that can help in this regard. Nonetheless, 
+knowing whether a particular event is expressed on Twitter is a 
+challenging task that requires a considerable collection of tweets. 
+This library aims to facilitate, to a researcher interested, the process 
+of mining events on Twitter by opening a collection of processed 
+information taken from Twitter since December 2015. The events could be 
+related to natural disasters, health issues, and people's mobility, 
+among other studies that can be pursued with the library proposed. 
+In summary, the Python library retrieves a plethora of information in 
+terms of frequencies by day of words and bi-grams of words for Arabic, 
+English, Spanish, and Russian languages. As well as mobility information 
+related to the number of travels among locations for more than 200 countries or territories.
 
 The documentation is on `readthedocs <https://text_models.readthedocs.io>`_.
