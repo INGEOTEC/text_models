@@ -305,14 +305,17 @@ class Mobility(object):
     :param end: End of the period, use to override window.
     :type end: datetime
     :param data: Path to the origin destination matrix
+    :param countries: Set of countries on analysis (None: all)
+    :type countries: set 
 
     >>> from text_models.place import Mobility
     >>> mobility = Mobility(window=5)
-    >>> output = mobility.displacement(level=mobility.state)
+    >>> output = mobility.overall(level=mobility.state)
     """
 
     def __init__(self, day=None, window=30, end=None,
-                 data: Callable[[str], str]=download_geo):
+                 data: Callable[[str], str]=download_geo,
+                 countries: Union[set, None]=None):
         path = join(dirname(__file__), "data", "state.dict")
         self._states = load_model(path)
         path = join(dirname(__file__), "data", "bbox_country.dict")
@@ -338,12 +341,44 @@ class Mobility(object):
                 continue
             self._dates.append(day)
             day = day - delta
-            days.append(load_model(fname))
+            _ = load_model(fname)
+            _[0] = self.keep_only(_[0], countries)
+            days.append(_)
         self._days = [x for x, _ in days]
         self.num_users = [x for _, x in days]
         self._days.reverse()
         self.num_users.reverse()
         self._dates.reverse()
+
+    @staticmethod
+    def keep_only(data, countries: Union[set, None]=None):
+        """
+        Keep only the `countries`, do nothing when `len(countries)` is zero.
+        """
+        if countries is None or len(countries) == 0:
+            return data
+        origenes = list(data.keys())
+        for origen in origenes:
+            destino = data[origen]
+            xx = 0
+            del_des = []
+            for k, v in destino.items():
+                if k[:2] not in countries:
+                    del_des.append(k)
+                    xx += v
+            for x in del_des:
+                del destino[x]
+            if xx:
+                destino['XX:0'] = xx
+            if origen[:2] not in countries:
+                output = data['XX:0']
+                for k, v in destino.items():
+                    try:
+                        output[k] += v
+                    except KeyError:
+                        output[k] = v
+                del data[origen]
+        return data
 
     def __handle_day(self, day):
         """Inner function to handle the day
