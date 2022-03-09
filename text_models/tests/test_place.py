@@ -437,3 +437,27 @@ def test_Mobility_data2():
     print(dd.loc[:, "US"].values[0])
     assert dd.loc[:, "US"].values[0] == 334
     os.unlink(output)
+
+
+def test_keep_only():
+    from text_models.place import Mobility
+    from collections import defaultdict
+    # start = dict(year=2022, month=1, day=1)
+    # mobility = Mobility(start, end=start)
+    data = defaultdict(dict, 
+                       dict(MX=dict(OO=1, MX1=1, DD=2.2),
+                            OO=dict(MX=1, US=1)),
+                            DD=dict(MX=2, FF=1))
+    d = Mobility.keep_only(data, set(["MX"]))
+    assert d['MX']['XX:0'] == 3.2
+    assert d['MX']['MX1'] == 1
+    assert d['XX:0']['MX'] == 3
+
+
+def test_select_countries():
+    from text_models.place import Mobility
+    from collections import defaultdict
+    start = dict(year=2022, month=1, day=1)
+    mobility = Mobility(start, end=start, countries=["MX"])
+    for k in mobility._days[0]:
+        assert k[:2] == "MX" or k[:2] == "XX"
