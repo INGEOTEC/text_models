@@ -13,7 +13,10 @@ Text Models
 
 .. image:: https://readthedocs.org/projects/text-models/badge/?version=latest
       :target: https://text-models.readthedocs.io/en/latest/?badge=latest
-      :alt: Documentation Status		    		       
+      :alt: Documentation Status
+
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+	:target: https://colab.research.google.com/github/INGEOTEC/text-models/blob/master/docs/Quickstart.ipynb	       		    		       
 
 
 Twitter is perhaps the social media more amenable for research. 
@@ -36,6 +39,19 @@ The library is described in
 `A Python library for exploratory data analysis on twitter data based on tokens and aggregated origin–destination information <https://www.sciencedirect.com/science/article/pii/S0098300421002946>`_.
 Mario Graff dDaniela Moctezuma, Sabino Miranda-Jiménez, Eric S.Tellez. Computers & Geosciences
 Volume 159, February 2022.
+
+
+Quickstart Guide
+===================
+
+We have decided to make a live quickstart guide; it covers the
+installation and the use of text_models to retrieve the mobility and
+text information. Finally, the notebook can be found in the docs directory on GitHub.
+
+.. raw:: html
+      
+      <iframe width="560" height="315" src="https://www.youtube.com/embed/QUuZ9IFq1fg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 
 Citing
 ======
