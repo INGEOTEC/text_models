@@ -14,7 +14,7 @@ Text Models
       :alt: Documentation Status
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-	:target: https://colab.research.google.com/github/INGEOTEC/text-models/blob/master/docs/Quickstart.ipynb	  		    		       
+	:target: https://colab.research.google.com/github/INGEOTEC/text_models/blob/master/docs/Quickstart.ipynb	  		    		       
 
 
 Twitter is perhaps the social media more amenable for research. 
