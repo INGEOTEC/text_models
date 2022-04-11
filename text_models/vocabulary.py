@@ -18,7 +18,7 @@ from microtc.weighting import TFIDF
 from microtc.utils import SparseMatrix
 from scipy.sparse import csr_matrix
 from typing import List, Iterable, OrderedDict, Union, Dict, Any, Tuple
-from text_models.utils import download_tokens, handle_day, TM_ARGS
+from text_models.utils import download_tokens, handle_day, date_range, TM_ARGS
 from os.path import isfile
 import re
 
@@ -556,3 +556,140 @@ class BagOfWords(SparseMatrix):
         else:
             tokens = self.tokenize.transform(data)
         return self.tfidf[tokens]
+
+
+class TopicDetection(object):
+    """
+    TopicDetection Class is used to visualize the topics of interest for
+    a specified date based on the tweets from Twitter for that day
+
+    :param date: Date provided in format dict(year=yyyy, month=mm, day=dd)
+    :param lang: Language (Ar, En, or Es)
+    :type lang: str
+    :param country: Two letter country code
+    :type country: str
+    """
+
+    def __init__(self, date, lang: str="En", country: str="US"):
+        self.date = handle_day(date)
+        self._lang = lang
+        self._country = country
+        self._prev_date = self.similar_date()
+        self._voc = Vocabulary(date, lang=self._lang, country=self._country)
+        self._prev_voc = Vocabulary(self._prev_date, lang=self._lang, country=self._country)
+
+    @property
+    def prev_date(self):
+        return self._prev_date
+
+    @property
+    def voc(self):
+        return self._voc
+    
+    @voc.setter
+    def voc(self, new_voc):
+        if not isinstance(new_voc, dict()):
+            return
+        self._voc = new_voc
+
+    @property
+    def prev_voc(self):
+        return self._prev_voc
+
+    def similar_date(self):
+        """
+        Use cosine similarity to return the most similar date from
+        around the same date in the previous year.
+        """
+        from sklearn.metrics.pairwise import cosine_similarity
+        from datetime import timedelta
+        import numpy as np
+
+        date = self.date
+        voc = self._voc
+
+        # Get vocabulary of previous dates
+        prev_voc = []
+        prev_days = date_range(date - timedelta(days=7), date + timedelta(days=8))
+        for day in prev_days:
+            prev_voc.append(Vocabulary(day, lang=self._lang, country=self._country))
+        
+        # Create a set containing all unique words in vocabulary
+        words = set()
+        for word in voc:
+            words.update([word])
+        for word in prev_voc:
+            words.update([word])
+        
+        # Map all unique words to an id
+        w2id = {word: index for index, word in enumerate(words)}
+
+        # Use mapping to create vectors for the vocabulary of day of interest
+        vec = np.zeros(len(w2id))
+        for word, num in voc.items():
+            vec[w2id[word]] = num
+
+        # Use mapping to create a matrix containing the vectors for the vocabulary
+        # of all previous dates
+        vec_matrix = np.zeros((len(prev_voc), len(w2id)))
+        for day, voc in enumerate(prev_voc):
+            for word, num in voc.items():
+                vec_matrix[day, w2id[word]] = num
+
+        # Find the most similar day from the year before
+        cs_matrix = cosine_similarity(vec, vec_matrix)
+        prev_day = prev_days[cs_matrix.index(max(cs_matrix))]
+        return dict(year=date.year-1, month=date.month, day=prev_day)
+
+    def topic_wordcloud(self, figname: str="wordcloud"):
+        """
+        Uses WordCloud library to display the topic
+       
+        Use Laplace Smoothing and compare the vocabs from
+        the date of interest with vocab from the date of
+        the year before
+        """
+        from wordcloud import WordCloud as WC
+        import matplotlib.pyplot as plt
+        
+        prev_yr_voc = self._prev_voc
+        prev_day_voc = self._voc.previous_day()
+        all_prev_voc = prev_yr_voc.update(prev_day_voc)
+        self._voc = self.laplace_smoothing(all_prev_voc)
+
+        # Create wordcloud
+        wc = WC().generate_from_frequencies(self._voc)
+        plt.imshow(wc)
+        plt.axis('off')
+        plt.tight_layout()
+        plt.savefig(figname)
+
+    @staticmethod
+    def probability(voc) -> dict():
+        """
+        Calculate the probability of each word appearing in vocab
+        """
+        N = sum(list(voc.values()))
+        prob = {k: v / N for k, v in voc.items()}
+        return prob
+    
+    @staticmethod
+    def laplace_smoothing(voc1, voc2) -> dict():
+        """
+        Uses Laplace smoothing to handle words that appear in
+        voc1 but not in voc2
+        """
+        voc1_prob = TopicDetection.probability(voc1)
+        voc2_prob = TopicDetection.probability(voc2)
+
+        N = sum(list(voc2.values()))
+        V = len(voc2.items())
+        prob = 1 / (N+V)
+
+        updated_voc = dict()
+        for word, freq in voc1_prob.items():
+            if word in voc2_prob:
+                updated_voc[word] = freq / voc2_prob[word]
+            else:
+                updated_voc[word] = freq / prob
+        return updated_voc
