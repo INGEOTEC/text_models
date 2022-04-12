@@ -680,12 +680,12 @@ class TopicDetection(object):
         Uses Laplace smoothing to handle words that appear in
         voc1 but not in voc2
         """
-        voc1_prob = TopicDetection.probability(voc1)
-        voc2_prob = TopicDetection.probability(voc2)
+        voc1_prob = TopicDetection.probability(voc1.voc)
+        voc2_prob = TopicDetection.probability(voc2.voc)
 
-        N = sum(list(voc2.values()))
+        N = sum(list(voc2.voc.values()))
         V = len(voc2.items())
-        prob = 1 / (N+V)
+        prob = 1 / (N + V)
 
         updated_voc = dict()
         for word, freq in voc1_prob.items():
