@@ -574,8 +574,8 @@ class TopicDetection(object):
         self.date = handle_day(date)
         self._lang = lang
         self._country = country
-        self._prev_date = self.similar_date()
         self._voc = Vocabulary(date, lang=self._lang, country=self._country)
+        self._prev_date = self.similar_date()
         self._prev_voc = Vocabulary(self._prev_date, lang=self._lang, country=self._country)
 
     @property
@@ -612,14 +612,15 @@ class TopicDetection(object):
         prev_voc = []
         prev_days = date_range(date - timedelta(days=7), date + timedelta(days=8))
         for day in prev_days:
-            prev_voc.append(Vocabulary(day, lang=self._lang, country=self._country))
+            _ = dict(year=day.year - 1, month=day.month, day=day.day)
+            prev_voc.append(Vocabulary(_, lang=self._lang, country=self._country))
         
         # Create a set containing all unique words in vocabulary
         words = set()
         for word in voc:
             words.update([word])
         for word in prev_voc:
-            words.update([word])
+            words.update(word)
         
         # Map all unique words to an id
         w2id = {word: index for index, word in enumerate(words)}
@@ -637,9 +638,9 @@ class TopicDetection(object):
                 vec_matrix[day, w2id[word]] = num
 
         # Find the most similar day from the year before
-        cs_matrix = cosine_similarity(vec, vec_matrix)
-        prev_day = prev_days[cs_matrix.index(max(cs_matrix))]
-        return dict(year=date.year-1, month=date.month, day=prev_day)
+        cs_matrix = cosine_similarity(np.atleast_2d(vec), vec_matrix)
+        prev_day = prev_days[cs_matrix[0].argmax()]
+        return dict(year=prev_day.year-1, month=prev_day.month, day=prev_day.day)
 
     def topic_wordcloud(self, figname: str="wordcloud"):
         """
