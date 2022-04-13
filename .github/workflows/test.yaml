@@ -32,6 +32,7 @@ jobs:
         conda install --yes pip
         pip install coverage
         pip install coveralls
+        pip install wordcloud        
         conda install --yes numpy scipy scikit-learn nltk nose b4msa evodag conceptmodelling cython evomsa cartopy pandas
         python setup.py build_ext --inplace
     - name: Tests on Linux

@@ -302,7 +302,7 @@ def test_TopicDetection_probability():
     
     day = dict(year=2020, month=2, day=14)
     voc = Vocabulary(day, lang="En", country="US")
-    voc_prob = TopicDetection.probability(voc)
+    voc_prob = TopicDetection.probability(voc.voc)
     assert voc_prob["the"] > 0 and voc_prob["the"] < 1
 
 def test_TopicDetection_laplace_smoothing():
