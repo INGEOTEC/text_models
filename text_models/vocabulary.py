@@ -655,8 +655,8 @@ class TopicDetection(object):
         
         prev_yr_voc = self._prev_voc
         prev_day_voc = self._voc.previous_day()
-        all_prev_voc = prev_yr_voc.update(prev_day_voc)
-        self._voc = self.laplace_smoothing(all_prev_voc)
+        prev_yr_voc.voc.update(prev_day_voc)
+        self._voc = self.laplace_smoothing(self._voc, prev_yr_voc)
 
         # Create wordcloud
         wc = WC().generate_from_frequencies(self._voc)

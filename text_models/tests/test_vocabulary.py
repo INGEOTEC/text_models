@@ -278,7 +278,7 @@ def test_TopicDetection_init():
     
     day = dict(year=2020, month=2, day=14)
     td = TopicDetection(date=day)
-    assert(isinstance(day, datetime))
+    # assert(isinstance(day, datetime))
     # the below assert statement also tests similar_date()
     assert td._prev_date == dict(year=2019, month=2, day=14)
 
@@ -286,7 +286,8 @@ def test_TopicDetection_init():
     superbowl_td = TopicDetection(date=superbowl_2021)
     # the below assert statement also tests similar_date()
     assert superbowl_td.prev_date == dict(year=2020, month=2, day=2)
-    
+
+
 def test_TopicDetection_topic_wordcloud():
     from text_models.vocabulary import TopicDetection
 
@@ -297,6 +298,7 @@ def test_TopicDetection_topic_wordcloud():
     assert td._voc != voc
     assert len(td._voc) > len(voc)
 
+
 def test_TopicDetection_probability():
     from text_models.vocabulary import TopicDetection
     
@@ -304,6 +306,7 @@ def test_TopicDetection_probability():
     voc = Vocabulary(day, lang="En", country="US")
     voc_prob = TopicDetection.probability(voc.voc)
     assert voc_prob["the"] > 0 and voc_prob["the"] < 1
+
 
 def test_TopicDetection_laplace_smoothing():
     from text_models.vocabulary import TopicDetection
