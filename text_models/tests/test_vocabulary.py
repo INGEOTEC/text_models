@@ -296,7 +296,7 @@ def test_TopicDetection_topic_wordcloud():
     td = TopicDetection(day)
     td.topic_wordcloud()
     assert td._voc != voc
-    assert len(td._voc) > len(voc)
+    assert len(td._voc) == len(voc)
 
 
 def test_TopicDetection_probability():
