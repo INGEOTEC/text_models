@@ -269,3 +269,52 @@ def test_Vocabulary_file():
         request.urlretrieve(fname, 'es-PT.gz')
     voc = Vocabulary('es-PT.gz')
     assert voc.voc.update_calls == 195
+
+
+# Getting ImportError: cannot import name 'TopicDetection' from 'text_models.vocabulary'
+def test_TopicDetection_init():
+    from text_models.vocabulary import TopicDetection
+    import datetime
+    
+    day = dict(year=2020, month=2, day=14)
+    td = TopicDetection(date=day)
+    # assert(isinstance(day, datetime))
+    # the below assert statement also tests similar_date()
+    assert td._prev_date == dict(year=2019, month=2, day=14)
+
+    superbowl_2021 = dict(year=2021, month=2, day=7)
+    superbowl_td = TopicDetection(date=superbowl_2021)
+    # the below assert statement also tests similar_date()
+    assert superbowl_td.prev_date == dict(year=2020, month=2, day=2)
+
+
+def test_TopicDetection_topic_wordcloud():
+    from text_models.vocabulary import TopicDetection
+
+    day = dict(year=2020, month=2, day=14)
+    voc = Vocabulary(day, lang="En", country="US")
+    td = TopicDetection(day)
+    td.topic_wordcloud()
+    assert td._voc != voc
+    assert len(td._voc) == len(voc)
+
+
+def test_TopicDetection_probability():
+    from text_models.vocabulary import TopicDetection
+    
+    day = dict(year=2020, month=2, day=14)
+    voc = Vocabulary(day, lang="En", country="US")
+    voc_prob = TopicDetection.probability(voc.voc)
+    assert voc_prob["the"] > 0 and voc_prob["the"] < 1
+
+
+def test_TopicDetection_laplace_smoothing():
+    from text_models.vocabulary import TopicDetection
+    
+    date1 = dict(year=2020, month=2, day=14)
+    date2 = dict(year=2020, month=2, day=13)
+    voc1 = Vocabulary(date1, lang="En", country="US")
+    voc2 = Vocabulary(date2, lang="En", country ="US")
+    
+    updated_voc = TopicDetection.laplace_smoothing(voc1, voc2)
+    assert updated_voc["the"] > 0 and updated_voc["the"] < 1
