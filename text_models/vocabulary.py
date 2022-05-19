@@ -582,7 +582,7 @@ class TopicDetection(object):
 
     @property
     def window(self):
-        return self._w
+        return self._window
 
     @property
     def prev_date(self):
