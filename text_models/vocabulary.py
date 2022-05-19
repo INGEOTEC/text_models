@@ -570,13 +570,19 @@ class TopicDetection(object):
     :type country: str
     """
 
-    def __init__(self, date, lang: str="En", country: str="US"):
+    def __init__(self, date, lang: str="En", country: str="US",
+                 window: int=2):
         self.date = handle_day(date)
         self._lang = lang
         self._country = country
         self._voc = Vocabulary(date, lang=self._lang, country=self._country)
         self._prev_date = self.similar_date()
         self._prev_voc = Vocabulary(self._prev_date, lang=self._lang, country=self._country)
+        self._window = window
+
+    @property
+    def window(self):
+        return self._w
 
     @property
     def prev_date(self):
@@ -610,7 +616,8 @@ class TopicDetection(object):
 
         # Get vocabulary of previous dates
         prev_voc = []
-        prev_days = date_range(date - timedelta(days=7), date + timedelta(days=8))
+        w = self.window
+        prev_days = date_range(date - timedelta(days=w), date + timedelta(days=w + 1))
         for day in prev_days:
             _ = dict(year=day.year - 1, month=day.month, day=day.day)
             prev_voc.append(Vocabulary(_, lang=self._lang, country=self._country))
