@@ -572,13 +572,13 @@ class TopicDetection(object):
 
     def __init__(self, date, lang: str="En", country: str="US",
                  window: int=2):
+        self._window = window
         self.date = handle_day(date)
         self._lang = lang
         self._country = country
         self._voc = Vocabulary(date, lang=self._lang, country=self._country)
         self._prev_date = self.similar_date()
         self._prev_voc = Vocabulary(self._prev_date, lang=self._lang, country=self._country)
-        self._window = window
 
     @property
     def window(self):
