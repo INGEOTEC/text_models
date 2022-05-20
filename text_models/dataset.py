@@ -49,9 +49,10 @@ class Dataset(object):
     >>> dataset.process("good morning Mexico")
     ['~', '~mexico~']
     """
-    def __init__(self, lang="En"):
+    def __init__(self, lang="En", text_transformations=True):
         self._lang = lang
         self._map = dict()
+        self._text_transformations = text_transformations
 
     @property
     def textModel(self):
@@ -60,8 +61,14 @@ class Dataset(object):
         try:
             return self._tm
         except AttributeError:
-            self._tm = load_model(download("b4msa_%s.tm" % self._lang))
+            self._tm = TextModel(**TM_ARGS)
         return self._tm
+
+    @property
+    def text_transformations(self):
+        if self._text_transformations:
+            return self.textModel.text_transformations
+        return lambda x: x
 
     @staticmethod
     def load_emojis():
@@ -74,7 +81,7 @@ class Dataset(object):
         :rtype: dict
         """
 
-        tm = self.textModel.text_transformations
+        tm = self.text_transformations
         emos = self.load_emojis()
         words = [tm(k) for k in self.textModel.model.word2id.keys()
                  if k[:2] != "q:" and k.count("~") == 0 and k not in emos]
@@ -91,7 +98,7 @@ class Dataset(object):
         fname = os.path.join(os.path.dirname(base.__file__), 'conf',
                              'aggressiveness.%s' % lang)
         data = list(tweet_iterator(fname))[0]
-        tm = self.textModel.text_transformations
+        tm = self.text_transformations
         return {tm(x): True for x in data["words"]}
 
     def affective_words(self):
@@ -102,7 +109,7 @@ class Dataset(object):
         lang = self._lang.lower()
         fname = os.path.join(os.path.dirname(base.__file__), 'data',
                              '%s.affective.words.json' % lang)
-        tm = self.textModel.text_transformations
+        tm = self.text_transformations
         words = dict()
         for data in tweet_iterator(fname):
             words.update({tm(x): True for x in data["words"]})
@@ -152,7 +159,7 @@ class Dataset(object):
         """
 
         get = self._map.get
-        text = self.textModel.text_transformations(text)
+        text = self.text_transformations(text)
         lst = self.find_klass(text)
         _ = [text[a:b] for a, b in lst]
         return set([get(x, x) for x in _])
@@ -209,7 +216,7 @@ class Dataset(object):
         :rtype: list
         """
 
-        text = self.textModel.text_transformations(text)
+        text = self.text_transformations(text)
         lst = self.find_klass(text)
         if klass is not None:
             lst = [[a, b] for a, b in lst if text[a:b] == klass]
