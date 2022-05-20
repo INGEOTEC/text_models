@@ -11,15 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from re import T
-from typing import Callable, Iterable, List, Union
+from typing import Callable, Iterable, Union
 from b4msa.textmodel import TextModel
 from microtc.utils import load_model
 from microtc import emoticons
-from EvoMSA.utils import download
 from collections import OrderedDict, defaultdict
 from microtc.utils import Counter
-from os.path import isfile, join, dirname
+from os.path import join, dirname
 from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
 from text_models.place import BoundingBox, location
@@ -66,7 +64,11 @@ class Dataset(object):
 
     @property
     def text_transformations(self):
-        if self._text_transformations:
+        try:
+            flag = self._text_transformations
+        except AttributeError:
+            flag = True
+        if flag:
             return self.textModel.text_transformations
         return lambda x: x
 
