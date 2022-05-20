@@ -240,8 +240,10 @@ class Vocabulary(object):
         from .dataset import Dataset
         data = Dataset()
         data.add(data.load_emojis())
-        keys = [(k, [x for x in data.klass(k) if not x.isnumeric()])  for k in self]
-        keys = [(k, v) for k, v in keys if len(v) and v[0] != "#"]
+        # keys = [(k, [x for x in data.klass(k) if not x.isnumeric()])  for k in self]
+        keys = [(k, [x for x in data.klass(k)]) for k in self]
+        # keys = [(k, v) for k, v in keys if len(v) and v[0] != "#"]
+        keys = [(k, v) for k, v in keys if len(v)]        
         for k, v in keys:
             del self.voc[k]
 

@@ -65,27 +65,8 @@ class Dataset(object):
 
     @staticmethod
     def load_emojis():
-        def download(fname):
-            from urllib import request
-            import os
-            output = fname.split("/")[-1]
-            if os.path.isfile(output):
-                return output
-            request.urlretrieve(fname, output)
-            return output
-
-        if isfile(join(dirname(__file__), "data", "emojis.dict")):
-            return load_model(join(dirname(__file__), "data", "emojis.dict"))        
-
-        data = "https://www.unicode.org/Public/emoji/12.1/emoji-data.txt"
-        sec = "https://www.unicode.org/Public/emoji/12.1/emoji-sequences.txt"
-        var ="https://www.unicode.org/Public/emoji/12.1/emoji-variation-sequences.txt"
-        zwj = "https://www.unicode.org/Public/emoji/12.1/emoji-zwj-sequences.txt"
-        emos = emoticons.read_emoji_standard(download(data))
-        emoticons.read_emoji_standard(download(sec), emos)
-        emoticons.read_emoji_standard(download(var), emos)
-        emoticons.read_emoji_standard(download(zwj), emos)
-        return {x: True for x in emos.keys()}
+        fname = join(dirname(__file__), 'data', 'emojis.dict')
+        return load_model(fname)
 
     def tm_words(self):
         """

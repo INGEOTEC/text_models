@@ -90,6 +90,8 @@ def test_remove():
 
 
 def test_process():
+    
+    from microtc.emoticons import convert_emoji
     dset = Dataset()
     dset.add(dset.load_emojis())
     dset.add(dset.tm_words())
@@ -97,7 +99,8 @@ def test_process():
     for a, b in zip(xx, ["~xxx~good~9~morning~xxx~fax~", "~la~", "~la~"]):
         print(a, b)
         assert a == b
-    xx = dset.process("xxx good 9 morning xxx fax x la", "9")
+    txt = 'xxx good {} morning xxx fax x la'.format(convert_emoji('1F600'))
+    xx = dset.process(txt, convert_emoji('1F600'))
     print(xx)
     for a, b in zip(xx, ["~xxx~good~", "~morning~xxx~fax~x~la~"]):
         assert a == b
