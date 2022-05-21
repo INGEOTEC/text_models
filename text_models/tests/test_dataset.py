@@ -21,11 +21,12 @@ def test_dataset():
     from microtc.utils import load_model
     from EvoMSA.utils import download
 
-    tm = load_model(download("b4msa_Es.tm"))
-    dset = Dataset(lang="Es")
-    for a, b in zip(dset.textModel["buenos"],
-                    tm["buenos"]):
-        assert a[0] == b[0] and a[1] == b[1]
+    dset = Dataset()
+    _ = dset.text_transformations('hola')
+    assert _ == '~hola~'
+    dset = Dataset(text_transformations=False)
+    _ = dset.text_transformations('hola')
+    assert _ == 'hola'
 
 
 def test_load_emojis():
@@ -90,6 +91,8 @@ def test_remove():
 
 
 def test_process():
+    
+    from microtc.emoticons import convert_emoji
     dset = Dataset()
     dset.add(dset.load_emojis())
     dset.add(dset.tm_words())
@@ -97,7 +100,8 @@ def test_process():
     for a, b in zip(xx, ["~xxx~good~9~morning~xxx~fax~", "~la~", "~la~"]):
         print(a, b)
         assert a == b
-    xx = dset.process("xxx good 9 morning xxx fax x la", "9")
+    txt = 'xxx good {} morning xxx fax x la'.format(convert_emoji('1F600'))
+    xx = dset.process(txt, convert_emoji('1F600'))
     print(xx)
     for a, b in zip(xx, ["~xxx~good~", "~morning~xxx~fax~x~la~"]):
         assert a == b

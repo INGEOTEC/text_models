@@ -283,7 +283,7 @@ def test_TopicDetection_init():
     assert td._prev_date == dict(year=2019, month=2, day=14)
 
     superbowl_2021 = dict(year=2021, month=2, day=7)
-    superbowl_td = TopicDetection(date=superbowl_2021)
+    superbowl_td = TopicDetection(date=superbowl_2021, window=5)
     # the below assert statement also tests similar_date()
     assert superbowl_td.prev_date == dict(year=2020, month=2, day=2)
 
