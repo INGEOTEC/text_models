@@ -14,6 +14,7 @@
 from typing import Callable, Iterable, Union
 from b4msa.textmodel import TextModel
 from microtc.utils import load_model
+from EvoMSA.utils import download
 from microtc import emoticons
 from collections import OrderedDict, defaultdict
 from microtc.utils import Counter
@@ -85,7 +86,8 @@ class Dataset(object):
 
         tm = self.text_transformations
         emos = self.load_emojis()
-        words = [tm(k) for k in self.textModel.model.word2id.keys()
+        textModel = load_model(download("b4msa_%s.tm" % self._lang))
+        words = [tm(k) for k in textModel.model.word2id.keys()
                  if k[:2] != "q:" and k.count("~") == 0 and k not in emos]
         words.sort()
         _ = OrderedDict([(w, True) for w in words])
