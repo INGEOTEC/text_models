@@ -11,15 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from re import T
-from typing import Callable, Iterable, List, Union
+from typing import Callable, Iterable, Union
 from b4msa.textmodel import TextModel
 from microtc.utils import load_model
-from microtc import emoticons
 from EvoMSA.utils import download
+from microtc import emoticons
 from collections import OrderedDict, defaultdict
 from microtc.utils import Counter
-from os.path import isfile, join, dirname
+from os.path import join, dirname
 from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
 from text_models.place import BoundingBox, location
@@ -49,9 +48,10 @@ class Dataset(object):
     >>> dataset.process("good morning Mexico")
     ['~', '~mexico~']
     """
-    def __init__(self, lang="En"):
+    def __init__(self, lang="En", text_transformations=True):
         self._lang = lang
         self._map = dict()
+        self._text_transformations = text_transformations
 
     @property
     def textModel(self):
@@ -60,32 +60,23 @@ class Dataset(object):
         try:
             return self._tm
         except AttributeError:
-            self._tm = load_model(download("b4msa_%s.tm" % self._lang))
+            self._tm = TextModel(**TM_ARGS)
         return self._tm
+
+    @property
+    def text_transformations(self):
+        try:
+            flag = self._text_transformations
+        except AttributeError:
+            flag = True
+        if flag:
+            return self.textModel.text_transformations
+        return lambda x: x
 
     @staticmethod
     def load_emojis():
-        def download(fname):
-            from urllib import request
-            import os
-            output = fname.split("/")[-1]
-            if os.path.isfile(output):
-                return output
-            request.urlretrieve(fname, output)
-            return output
-
-        if isfile(join(dirname(__file__), "data", "emojis.dict")):
-            return load_model(join(dirname(__file__), "data", "emojis.dict"))        
-
-        data = "https://www.unicode.org/Public/emoji/12.1/emoji-data.txt"
-        sec = "https://www.unicode.org/Public/emoji/12.1/emoji-sequences.txt"
-        var ="https://www.unicode.org/Public/emoji/12.1/emoji-variation-sequences.txt"
-        zwj = "https://www.unicode.org/Public/emoji/12.1/emoji-zwj-sequences.txt"
-        emos = emoticons.read_emoji_standard(download(data))
-        emoticons.read_emoji_standard(download(sec), emos)
-        emoticons.read_emoji_standard(download(var), emos)
-        emoticons.read_emoji_standard(download(zwj), emos)
-        return {x: True for x in emos.keys()}
+        fname = join(dirname(__file__), 'data', 'emojis.dict')
+        return load_model(fname)
 
     def tm_words(self):
         """
@@ -93,9 +84,10 @@ class Dataset(object):
         :rtype: dict
         """
 
-        tm = self.textModel.text_transformations
+        tm = self.text_transformations
         emos = self.load_emojis()
-        words = [tm(k) for k in self.textModel.model.word2id.keys()
+        textModel = load_model(download("b4msa_%s.tm" % self._lang))
+        words = [tm(k) for k in textModel.model.word2id.keys()
                  if k[:2] != "q:" and k.count("~") == 0 and k not in emos]
         words.sort()
         _ = OrderedDict([(w, True) for w in words])
@@ -110,7 +102,7 @@ class Dataset(object):
         fname = os.path.join(os.path.dirname(base.__file__), 'conf',
                              'aggressiveness.%s' % lang)
         data = list(tweet_iterator(fname))[0]
-        tm = self.textModel.text_transformations
+        tm = self.text_transformations
         return {tm(x): True for x in data["words"]}
 
     def affective_words(self):
@@ -121,7 +113,7 @@ class Dataset(object):
         lang = self._lang.lower()
         fname = os.path.join(os.path.dirname(base.__file__), 'data',
                              '%s.affective.words.json' % lang)
-        tm = self.textModel.text_transformations
+        tm = self.text_transformations
         words = dict()
         for data in tweet_iterator(fname):
             words.update({tm(x): True for x in data["words"]})
@@ -171,7 +163,7 @@ class Dataset(object):
         """
 
         get = self._map.get
-        text = self.textModel.text_transformations(text)
+        text = self.text_transformations(text)
         lst = self.find_klass(text)
         _ = [text[a:b] for a, b in lst]
         return set([get(x, x) for x in _])
@@ -228,7 +220,7 @@ class Dataset(object):
         :rtype: list
         """
 
-        text = self.textModel.text_transformations(text)
+        text = self.text_transformations(text)
         lst = self.find_klass(text)
         if klass is not None:
             lst = [[a, b] for a, b in lst if text[a:b] == klass]
