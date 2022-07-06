@@ -106,7 +106,7 @@ class Dataset(object):
         return {tm(x): True for x in data["words"]}
 
     def affective_words(self):
-        from ConceptModelling import text_preprocessing as base
+        from EvoMSA.ConceptModelling import text_preprocessing as base
         from microtc.utils import tweet_iterator
         import os
         

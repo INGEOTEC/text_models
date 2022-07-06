@@ -24,7 +24,7 @@ setup(
     long_description=long_desc,
     version=text_models.__version__,
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Environment :: Console",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: Apache Software License",
