@@ -137,30 +137,32 @@ def date_range(init=dict, end=dict) -> List[datetime]:
     return dates
 
 
-def download_tokens(day, lang:str= "Es", country: str=None, cache: bool=True) -> str:
+def download_tokens(day, lang:str= "Es", country: str='nogeo',
+                    cache: bool=True) -> str:
     from os.path import isdir, join, isfile, dirname
     import os
     from urllib import request
     from urllib.error import HTTPError
+    assert country is not None
+    assert lang is not None
+    country = country.upper() if country != 'nogeo' else country.lower()
+    lang = lang.lower()
     day = handle_day(day)
     date = "%s%02i%02i" % (day.year, day.month, day.day)
-    date_str = "%s/%02i/%02i" % (str(day.year)[2:], day.month, day.day) 
     diroutput = join(dirname(__file__), 'data')
     if not isdir(diroutput):
         os.mkdir(diroutput)
-    diroutput = join(diroutput, lang)
+    diroutput = join(diroutput, 'releases')
     if not isdir(diroutput):
-        os.mkdir(diroutput)        
-    if country is None:
-        fname = join(diroutput, date + ".gz")
-        if isfile(fname) and cache:
-            return fname 
-        path = "https://github.com/INGEOTEC/tokens-data-%s/raw/main/%s/%s/nogeo.gz" % (day.year, lang, date_str)
-    else:
-        fname = join(diroutput, country + "_" + date + ".gz")
-        if isfile(fname) and cache:
-            return fname 
-        path = "https://github.com/INGEOTEC/tokens-data-%s/raw/main/%s/%s/%s.gz" % (day.year, lang, date_str, country)
+        os.mkdir(diroutput)
+    diroutput = join(diroutput, date)
+    if not isdir(diroutput):
+        os.mkdir(diroutput)
+    data_fname = '{}-{}.gz'.format(lang, country)
+    fname = join(diroutput, data_fname)
+    if isfile(fname) and cache:
+        return fname 
+    path = 'https://github.com/INGEOTEC/text_models/releases/download/{}/{}'.format(date, data_fname)
     try:
       request.urlretrieve(path, fname)
     except HTTPError:

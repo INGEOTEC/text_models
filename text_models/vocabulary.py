@@ -58,7 +58,7 @@ class Vocabulary(object):
     """
 
     def __init__(self, data, lang: str="Es", 
-                 country: str=None, states: bool=False) -> None:
+                 country: str='nogeo', states: bool=False) -> None:
         self._lang = lang
         self._country = country
         self._states = states
