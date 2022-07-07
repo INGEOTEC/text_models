@@ -167,10 +167,12 @@ def test_GeoFrequency():
     assert freq.data["nogeo"].counter['#earthquake~magnitude'] == 17
 
 
-def test_GeoFrequency():
+def test_GeoFrequency2():
     from text_models.dataset import GeoFrequency
     freq = GeoFrequency([TWEETS])
     freq.compute()
+    freq.data(None)
+    assert freq.data is None
 
 
 def test_TokenCount_clean():

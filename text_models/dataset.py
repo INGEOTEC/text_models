@@ -343,6 +343,10 @@ class GeoFrequency(object):
     def data(self) -> defaultdict:
         return self._data
 
+    @data.setter
+    def data(self, value: defaultdict) -> None:
+        self._data = value
+
     def compute(self) -> None:
         for fname in tqdm(self._fnames):
             self.compute_file(fname)
@@ -350,7 +354,7 @@ class GeoFrequency(object):
     def compute_file(self, fname: str) -> None:
         label = self._label
         states = self._states
-        data = self._data
+        data = self.data
         for line in self._reader(fname):
             try:
                 country, geo = None, None
