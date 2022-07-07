@@ -171,7 +171,7 @@ def test_GeoFrequency2():
     from text_models.dataset import GeoFrequency
     freq = GeoFrequency([TWEETS])
     freq.compute()
-    freq.data(None)
+    freq.data = None
     assert freq.data is None
 
 
