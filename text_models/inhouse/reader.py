@@ -105,9 +105,3 @@ class TweetIterator(object):
                         '{:02}'.format(day.month),
                         '{:02}'.format(day.day))
             return glob(join(path, '*.log.gz'))
-
-
-tw = TweetIterator(lang='fr')
-for x in tw.tweet_iterator(dict(year=2022, month=5, day=12)):
-    x
-
