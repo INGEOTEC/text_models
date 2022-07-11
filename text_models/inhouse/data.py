@@ -95,7 +95,9 @@ def store_tweets(lang, date):
 
 
 if __name__ == '__main__':
+    from joblib import delayed, Parallel
     LANG = 'zh'
     data = num_tweets_language(lang=LANG)
     days = choose(data)
-    store_tweets(LANG, days[0][0])
+    create_output_path(LANG)
+    fnames = Parallel(n_jobs=32)(delayed(store_tweets)(LANG, day) for day, _ in days)
