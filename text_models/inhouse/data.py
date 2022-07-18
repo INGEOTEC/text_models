@@ -13,8 +13,9 @@
 # limitations under the License.
 
 from text_models.inhouse.reader import TweetIterator
-from text_models.dataset import GeoFrequency
-from microtc.utils import tweet_iterator, save_model
+from text_models.dataset import GeoFrequency, Dataset
+from microtc.utils import tweet_iterator, save_model, load_model
+import os
 from os.path import join, dirname, basename, isdir, isfile
 from glob import glob
 from microtc import TextModel
@@ -66,7 +67,6 @@ class Process(object):
 
 
 def create_output_path(lang):
-    import os
     output = 'data'
     if not isdir(output):
         os.mkdir(output)
@@ -94,10 +94,38 @@ def store_tweets(lang, date):
     return output
 
 
-if __name__ == '__main__':
-    from joblib import delayed, Parallel
-    LANG = 'zh'
-    data = num_tweets_language(lang=LANG)
-    days = choose(data)
-    create_output_path(LANG)
-    fnames = Parallel(n_jobs=32)(delayed(store_tweets)(LANG, day) for day, _ in days)
+def emo_data(lang='zh'):
+    fnames = glob(join('data', lang, '*.gz'))
+    ds = Dataset(text_transformations=False)
+    ds.add(ds.load_emojis())
+    for fname in fnames:
+        output = dict()
+        for key, tweets in load_model(fname).items():
+            labels = [ds.klass(x['text']) for x in tweets]
+            inner = []
+            for tweet, label in zip(tweets, labels):
+                if len(label) == 0:
+                    continue
+                tweet['klass'] = label
+                inner.append(tweet)
+            if len(inner):
+                output[key] = inner
+        if len(output) == 0:
+            continue
+        output_fname = join(dirname(fname), 'emo')
+        if not isdir(output_fname):
+            os.mkdir(output_fname)
+        output_fname = join(output_fname, basename(fname))
+        save_model(output, output_fname)
+
+
+# if __name__ == '__main__':
+#     data = emo_data(lang='zh')
+
+# if __name__ == '__main__':
+#     from joblib import delayed, Parallel
+#     LANG = 'zh'
+#     data = num_tweets_language(lang=LANG)
+#     days = choose(data)
+#     create_output_path(LANG)
+#     fnames = Parallel(n_jobs=32)(delayed(store_tweets)(LANG, day) for day, _ in days)
