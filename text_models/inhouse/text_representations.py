@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from text_models.utils import TM_ARGS
+from text_models.dataset import Dataset
 import microtc
 from microtc import TextModel
 from microtc.utils import load_model, save_model
@@ -25,6 +26,7 @@ from text_models.inhouse import data
 from text_models.inhouse.data import num_tweets_language
 from os.path import dirname, basename
 from collections import Counter
+from sklearn.svm import LinearSVC
 
 data.JSON = join(dirname(__file__), '..', '..', 'data', '*.json')
 
@@ -98,7 +100,46 @@ def count_emo(lang='zh'):
     return cnt
 
 
-if __name__ == '__main__':
-    cnt = count_emo(lang='es')
+def emo(k, lang='zh', size=2**19):
+    ds = Dataset(text_transformations=False)
+    ds.add(ds.load_emojis())    
+    output = join('models', f'{lang}_emo_{k}_mu{microtc.__version__}')
+    dd = load_model(join('models', f'{lang}_emo.info'))
+    _ = [x for x, v in dd.most_common() if v >= 2**10]
+    tot = sum([v for x, v in dd.most_common() if v >= 2**10])
+    if k >= len(_):
+        return
+    pos = _[k]
+    neg = set([x for i, x in enumerate(_) if i != k])
+    POS, NEG, ADD = [], [], []
+    for fname in glob(join('data', lang, 'emo', '*.gz')):
+        for key, data in load_model(fname).items():
+            for d in data:
+                klass = d['klass']
+                if len(klass) == 1:
+                    klass = klass.pop()
+                    if klass == pos:
+                        POS.append(ds.process(d['text']))
+                    elif klass in neg:
+                        NEG.append(ds.process(d['text']))
+                elif tot < size:
+                    if pos not in klass and len(klass.intersection(neg)):
+                        ADD.append(ds.process(d['text']))
+    shuffle(POS), shuffle(NEG), shuffle(ADD)
+    size2 = size // 2
+    POS = POS[:size2]
+    if len(NEG) < size2:
+        NEG.extend(ADD)
+    NEG = NEG[:size2]
+    y = [1] * len(POS)
+    y.extend([-1] * len(NEG))
+    tm = load_model(join('models', f'{lang}_{microtc.__version__}.microtc'))
+    X = tm.transform(POS + NEG)
+    m = LinearSVC().fit(X, y)
+    save_model(m, f'{output}.LinearSVC')
+
+
+# if __name__ == '__main__':
+#     cnt = count_emo(lang='es')
 # if __name__ == '__main__':
 #     tm = bow(lang='zh')
