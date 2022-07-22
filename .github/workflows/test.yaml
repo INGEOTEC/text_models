@@ -23,7 +23,7 @@ jobs:
         activate-environment: test
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
-        channels: ingeotec
+        channels: conda-forge
         allow-softlinks: true
         channel-priority: flexible
         show-channel-urls: true	
@@ -33,8 +33,7 @@ jobs:
         pip install coverage
         pip install coveralls
         pip install wordcloud        
-        conda install --yes numpy scipy scikit-learn nltk nose b4msa evodag conceptmodelling cython evomsa cartopy pandas
-        python setup.py build_ext --inplace
+        conda install --yes nose evomsa cartopy pandas
     - name: Tests on Linux
       if: ${{ runner.os == 'Linux' }}
       run: |

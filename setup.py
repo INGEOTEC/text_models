@@ -24,7 +24,7 @@ setup(
     long_description=long_desc,
     version=text_models.__version__,
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Environment :: Console",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: Apache Software License",
@@ -37,7 +37,7 @@ setup(
     author="Mario Graff",
     author_email="mgraffg@ieee.org",
     include_package_data=True,
-    packages=['text_models', 'text_models/tests'],
+    packages=['text_models', 'text_models/tests', 'text_models/inhouse'],
     zip_safe=False,    
     install_requires=['EvoMSA']
 )

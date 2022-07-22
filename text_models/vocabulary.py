@@ -58,7 +58,7 @@ class Vocabulary(object):
     """
 
     def __init__(self, data, lang: str="Es", 
-                 country: str=None, states: bool=False) -> None:
+                 country: str='nogeo', states: bool=False) -> None:
         self._lang = lang
         self._country = country
         self._states = states
@@ -332,7 +332,7 @@ class Vocabulary(object):
         :lang lang: Language
         """
 
-        missing = Counter(countries) if countries is not None else None
+        missing = Counter(countries) if countries is not 'nogeo' else None
         rest = []
         dates = dates[::-1]
         while len(dates) and (len(rest) < n or n == -1):
@@ -341,7 +341,8 @@ class Vocabulary(object):
           iter = missing.most_common() if missing is not None else [[None, None]]
           for country, _ in iter:
             try:
-                download_tokens(day, lang=lang, country=country)
+                download_tokens(day, lang=lang, 
+                                country=country if country is not None else 'nogeo')
             except Exception:
               flag = False
               if missing is not None:
