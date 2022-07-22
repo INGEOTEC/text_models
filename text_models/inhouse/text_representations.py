@@ -27,6 +27,8 @@ from text_models.inhouse.data import num_tweets_language
 from os.path import dirname, basename
 from collections import Counter
 from sklearn.svm import LinearSVC
+from joblib import Parallel, delayed
+from sklearn.metrics import recall_score
 
 data.JSON = join(dirname(__file__), '..', '..', 'data', '*.json')
 
@@ -137,6 +139,50 @@ def emo(k, lang='zh', size=2**19):
     X = tm.transform(POS + NEG)
     m = LinearSVC().fit(X, y)
     save_model(m, f'{output}.LinearSVC')
+
+
+def recall_emo(lang='zh', n_jobs=1):
+    def predict(fname, ds, tm, emoji):
+        D = []
+        for key, tweets in load_model(fname).items():
+            labels = [ds.klass(x['text']) for x in tweets]
+            _ = [[x['text'], label] for label, x in zip(labels, tweets)
+                    if len(klasses.intersection(label))]
+            D.extend(_)
+        X = tm.transform([x for x, _ in D])
+        y = [y for _, y in D]
+        hy = []
+        for k, emo in enumerate(emoji):
+            output = join('models', f'{lang}_emo_{k}_mu{microtc.__version__}')
+            m = load_model(f'{output}.LinearSVC')
+            hy.append(m.predict(X))
+        return y, hy
+
+    def performance(emo, y, hy):
+        y_emo = [emo in i for i in y]
+        perf = recall_score(y_emo, hy > 0, pos_label=True)
+        return perf, sum(y_emo) / len(y)
+        
+    info = load_model(join('models', f'{lang}_emo.info'))
+    info = [[k, v] for k, (v, _) in enumerate(info.most_common()) if _ >= 2**10]
+    klasses = set([v for k, v in info])
+    fnames = glob(join('data', lang, 'test', '*.gz'))
+    ds = Dataset(text_transformations=False)
+    ds.add(ds.load_emojis())
+    dd = load_model(join('models', f'{lang}_emo.info'))
+    emoji = [x for x, v in dd.most_common() if v >= 2**10]    
+    tm = load_model(join('models', f'{lang}_{microtc.__version__}.microtc'))
+    predictions = Parallel(n_jobs=n_jobs)(delayed(predict)(fname, ds, tm, emoji)
+                                          for fname in fnames)
+    y = []
+    [y.extend(x) for x, hy in predictions]
+    hys = np.vstack([np.vstack(hy).T for _, hy in predictions])
+    output = dict()
+    _ = Parallel(n_jobs=n_jobs)(delayed(performance)(emo, y, hy)
+                                for emo, hy in zip(emoji, hys.T))
+    output = {emo: {'recall': perf, 'ratio': ratio} 
+              for emo, (perf, ratio) in zip(emoji, _)}
+    save_model(output, join('models', f'{lang}_emo.perf'))
 
 
 # if __name__ == '__main__':

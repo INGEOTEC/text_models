@@ -21,6 +21,7 @@ from glob import glob
 from microtc import TextModel
 from text_models.utils import TM_ARGS
 from collections import defaultdict
+from joblib import delayed, Parallel
 import random
 
 JSON = join(dirname(__file__), '..', '..', 'data', '*.json')
@@ -76,8 +77,8 @@ def create_output_path(lang):
     return output
 
 
-def store_tweets(lang, date):
-    output = create_output_path(lang)
+def store_tweets(lang, date, output_path=create_output_path):
+    output = output_path(lang)
     _ = '{year:d}{month:02d}{day:02d}.gz'.format(**date)
     output = join(output, _)
     if isfile(output):
@@ -118,6 +119,22 @@ def emo_data(lang='zh'):
         output_fname = join(output_fname, basename(fname))
         save_model(output, output_fname)
 
+
+def create_test(lang='zh', n_jobs=16):
+    def output_path(lang):
+        output = join('data', lang, 'test')
+        if not isdir(output):
+            os.mkdir(output)
+        return output
+
+    _ = join('data', lang, '{year:d}{month:02d}{day:02d}.gz')
+    func = lambda x: isfile(_.format(**x))
+    data = [[d, n] for d, n in num_tweets_language(lang=lang)
+            if not func(d) and n > 0]
+    days = choose(data, size=10e6)
+    output_path(lang)
+    Parallel(n_jobs=n_jobs)(delayed(store_tweets)(lang, day, output_path=output_path)
+                        for day, _ in days)
 
 # if __name__ == '__main__':
 #     data = emo_data(lang='zh')
