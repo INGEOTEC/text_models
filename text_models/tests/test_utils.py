@@ -82,3 +82,9 @@ def test_load_emoji():
     X = bow.transform(['this is funny'])
     output = emo.decision_function(X)    
     assert np.all(output > 0.9)
+
+
+def test_emoji_information():
+    from text_models.utils import emoji_information
+    info = emoji_information()
+    assert info['💧']['number'] == 3905
