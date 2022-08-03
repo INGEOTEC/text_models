@@ -10,6 +10,5 @@ dependencies:
   - nltk
   - evodag
   - b4msa
-  - conceptmodelling
   - cython
   - evomsa
