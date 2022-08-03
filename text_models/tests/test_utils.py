@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-from scipy.stats.stats import mode
+import numpy as np
 
 
 def test_download_tokens():
@@ -68,3 +66,25 @@ def test_date_range():
     assert len(lst) == 30
     end = lst[-1]
     assert end.year == 2020 and end.month==3 and end.day == 1
+
+
+def test_load_bow():
+    from text_models.utils import load_bow
+    bow = load_bow(lang='en')
+    repr = bow['hi']
+    assert len(repr) == 7
+
+
+def test_load_emoji():
+    from text_models.utils import load_emoji, load_bow
+    bow = load_bow(lang='en')
+    emo = load_emoji(lang='en', emoji=0)
+    X = bow.transform(['this is funny'])
+    output = emo.decision_function(X)    
+    assert np.all(output > 0.9)
+
+
+def test_emoji_information():
+    from text_models.utils import emoji_information
+    info = emoji_information()
+    assert info['💧']['number'] == 3905

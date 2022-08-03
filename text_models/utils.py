@@ -17,8 +17,13 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import List
 from microtc.params import OPTION_DELETE, OPTION_NONE
+from microtc.utils import load_model
+from os.path import isdir, join, isfile, dirname
+import os
+from urllib import request
+from urllib.error import HTTPError
 
-
+MICROTC='2.4.2'
 TM_ARGS=dict(usr_option=OPTION_DELETE, num_option=OPTION_NONE,
              url_option=OPTION_DELETE, emo_option=OPTION_NONE,
              hashtag_option=OPTION_NONE,
@@ -108,6 +113,7 @@ def download_geo(day):
       raise Exception(path)
     return fname
 
+
 def handle_day(day):
     if isinstance(day, dict):
         return datetime(year=day["year"],
@@ -139,10 +145,6 @@ def date_range(init=dict, end=dict) -> List[datetime]:
 
 def download_tokens(day, lang:str= "Es", country: str='nogeo',
                     cache: bool=True) -> str:
-    from os.path import isdir, join, isfile, dirname
-    import os
-    from urllib import request
-    from urllib.error import HTTPError
     assert country is not None
     assert lang is not None
     country = country.upper() if country != 'nogeo' else country.lower()
@@ -167,8 +169,95 @@ def download_tokens(day, lang:str= "Es", country: str='nogeo',
       request.urlretrieve(path, fname)
     except HTTPError:
       raise Exception(path)
-    return fname        
+    return fname
 
+
+def load_bow(lang='es'):
+    """
+    Download and load the Bag of Word text representation
+
+    :param lang: ['ar', 'zh', 'en', 'fr', 'pt', 'ru', 'es']
+    :type lang: str
+    >>> from text_models.utils import load_bow
+    >>> bow = load_bow(lang='en')
+    >>> repr = bow['hi']
+    """
+    lang = lang.lower().strip()
+    assert lang in ['ar', 'zh', 'en', 'fr', 'pt', 'ru', 'es']
+    diroutput = join(dirname(__file__), 'models')
+    if not isdir(diroutput):
+        os.mkdir(diroutput)
+    fname = join(diroutput, f'{lang}_{MICROTC}.microtc')
+    if not isfile(fname):
+        path = f'https://github.com/INGEOTEC/text_models/releases/download/models/{lang}_{MICROTC}.microtc'
+        try:
+            request.urlretrieve(path, fname)
+        except HTTPError:
+            raise Exception(path)    
+    return load_model(fname)
+
+
+def load_emoji(lang='es', emoji=0):
+    """
+    Download and load the Emoji representation
+
+    :param lang: ['ar', 'zh', 'en', 'fr', 'pt', 'ru', 'es']
+    :type lang: str
+    :param emoji: emoji identifier
+    :type emoji: int
+
+    >>> from text_models.utils import load_emoji, load_bow
+    >>> bow = load_bow(lang='en')
+    >>> emo = load_emoji(lang='en', emoji=0)
+    >>> X = bow.transform(['this is funny'])
+    >>> df = emo.decision_function(X)
+    """
+    lang = lang.lower().strip()
+    assert lang in ['ar', 'zh', 'en', 'fr', 'pt', 'ru', 'es']
+    diroutput = join(dirname(__file__), 'models')
+    if not isdir(diroutput):
+        os.mkdir(diroutput)
+    fname = join(diroutput, f'{lang}_emo_{emoji}_muTC{MICROTC}.LinearSVC')
+    if not isfile(fname):
+        path = f'https://github.com/INGEOTEC/text_models/releases/download/models/{lang}_emo_{emoji}_muTC{MICROTC}.LinearSVC'
+        try:
+            request.urlretrieve(path, fname)
+        except HTTPError:
+            raise Exception(path)    
+    return load_model(fname)
+
+
+def emoji_information(lang='es'):
+    """
+    Download and load the Emoji statistics
+
+    :param lang: ['ar', 'zh', 'en', 'fr', 'pt', 'ru', 'es']
+    :type lang: str
+
+    >>> from text_models.utils import emoji_information
+    >>> info = emoji_information()
+    >>> info['💧']
+    {'recall': 0.10575916230366492, 'ratio': 0.0003977123419509893, 'number': 3905}
+    """
+    lang = lang.lower().strip()
+    assert lang in ['ar', 'zh', 'en', 'fr', 'pt', 'ru', 'es']
+    diroutput = join(dirname(__file__), 'models')
+    if not isdir(diroutput):
+        os.mkdir(diroutput)
+    data = []
+    for ext in ['info', 'perf']:
+        fname = join(diroutput, f'{lang}_emo.{ext}')
+        if not isfile(fname):
+            path = f'https://github.com/INGEOTEC/text_models/releases/download/models/{lang}_emo.{ext}'
+            try:
+                request.urlretrieve(path, fname)
+            except HTTPError:
+                raise Exception(path)    
+        data.append(load_model(fname))
+    uno, dos = data
+    [v.update(dict(number=uno[k])) for k, v in dos.items()]
+    return dos
+    
 
 class Gaussian(object):
     """
