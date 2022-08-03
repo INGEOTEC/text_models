@@ -1,6 +1,6 @@
 name: text_models
 channels:
-  - ingeotec
+  - conda-forge
 dependencies:
   - python
   - setuptools
