@@ -1,6 +1,6 @@
 name: text_models
 channels:
-  - ingeotec
+  - conda-forge
 dependencies:
   - python
   - setuptools
@@ -10,6 +10,5 @@ dependencies:
   - nltk
   - evodag
   - b4msa
-  - conceptmodelling
   - cython
   - evomsa
