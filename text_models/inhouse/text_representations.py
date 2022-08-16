@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from text_models.utils import TM_ARGS
+from text_models.utils import TM_ARGS, MICROTC
 from text_models.dataset import Dataset
 import microtc
 from microtc import TextModel
@@ -88,7 +88,7 @@ def bow(lang='zh', num_terms=2**14):
     model.wordWeight = {k: w for k, (w, token) in enumerate(word_weight)}
 
     save_model(tm,
-               join('models', f'{lang}_{microtc.__version__}.microtc'))
+               join('models', f'{lang}_{MICROTC}.microtc'))
     return tm
 
 
@@ -105,7 +105,7 @@ def count_emo(lang='zh'):
 def emo(k, lang='zh', size=2**19):
     ds = Dataset(text_transformations=False)
     ds.add(ds.load_emojis())    
-    output = join('models', f'{lang}_emo_{k}_mu{microtc.__version__}')
+    output = join('models', f'{lang}_emo_{k}_mu{MICROTC}')
     dd = load_model(join('models', f'{lang}_emo.info'))
     _ = [x for x, v in dd.most_common() if v >= 2**10]
     tot = sum([v for x, v in dd.most_common() if v >= 2**10])
@@ -135,7 +135,7 @@ def emo(k, lang='zh', size=2**19):
     NEG = NEG[:size2]
     y = [1] * len(POS)
     y.extend([-1] * len(NEG))
-    tm = load_model(join('models', f'{lang}_{microtc.__version__}.microtc'))
+    tm = load_model(join('models', f'{lang}_{MICROTC}.microtc'))
     X = tm.transform(POS + NEG)
     m = LinearSVC().fit(X, y)
     save_model(m, f'{output}.LinearSVC')
@@ -153,7 +153,7 @@ def recall_emo(lang='zh', n_jobs=1):
         y = [y for _, y in D]
         hy = []
         for k, emo in enumerate(emoji):
-            output = join('models', f'{lang}_emo_{k}_mu{microtc.__version__}')
+            output = join('models', f'{lang}_emo_{k}_mu{MICROTC}')
             m = load_model(f'{output}.LinearSVC')
             hy.append(m.predict(X))
         return y, hy
@@ -171,7 +171,7 @@ def recall_emo(lang='zh', n_jobs=1):
     ds.add(ds.load_emojis())
     dd = load_model(join('models', f'{lang}_emo.info'))
     emoji = [x for x, v in dd.most_common() if v >= 2**10]    
-    tm = load_model(join('models', f'{lang}_{microtc.__version__}.microtc'))
+    tm = load_model(join('models', f'{lang}_{MICROTC}.microtc'))
     predictions = Parallel(n_jobs=n_jobs)(delayed(predict)(fname, ds, tm, emoji)
                                           for fname in fnames)
     y = []
