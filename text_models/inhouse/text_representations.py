@@ -105,7 +105,7 @@ def count_emo(lang='zh'):
 def emo(k, lang='zh', size=2**19):
     ds = Dataset(text_transformations=False)
     ds.add(ds.load_emojis())    
-    output = join('models', f'{lang}_emo_{k}_mu{MICROTC}')
+    output = join('models', f'{lang}_emo_{k}_muTC{MICROTC}')
     dd = load_model(join('models', f'{lang}_emo.info'))
     _ = [x for x, v in dd.most_common() if v >= 2**10]
     tot = sum([v for x, v in dd.most_common() if v >= 2**10])
@@ -153,7 +153,7 @@ def recall_emo(lang='zh', n_jobs=1):
         y = [y for _, y in D]
         hy = []
         for k, emo in enumerate(emoji):
-            output = join('models', f'{lang}_emo_{k}_mu{MICROTC}')
+            output = join('models', f'{lang}_emo_{k}_muTC{MICROTC}')
             m = load_model(f'{output}.LinearSVC')
             hy.append(m.predict(X))
         return y, hy
