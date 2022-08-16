@@ -102,7 +102,22 @@ def count_emo(lang='zh'):
     return cnt
 
 
-def emo(k, lang='zh', size=2**19):
+def emo(k, lang='zh', size=2**19, n_jobs=8):
+    def read_data(fname):
+        P = []
+        N = []
+        for key, data in load_model(fname).items():
+            for d in data:
+                klass = d['klass']
+                if len(klass) == 1:
+                    klass = klass.pop()
+                    if klass == pos:
+                        P.append(ds.process(d['text']))
+                    elif klass in neg:
+                        N.append(ds.process(d['text']))
+        shuffle(N)
+        return P, N[:len(P)]
+
     ds = Dataset(text_transformations=False)
     ds.add(ds.load_emojis())    
     output = join('models', f'{lang}_emo_{k}_muTC{MICROTC}')
@@ -113,28 +128,22 @@ def emo(k, lang='zh', size=2**19):
         return
     pos = _[k]
     neg = set([x for i, x in enumerate(_) if i != k])
-    POS, NEG, ADD = [], [], []
-    for fname in glob(join('data', lang, 'emo', '*.gz')):
-        for key, data in load_model(fname).items():
-            for d in data:
-                klass = d['klass']
-                if len(klass) == 1:
-                    klass = klass.pop()
-                    if klass == pos:
-                        POS.append(ds.process(d['text']))
-                    elif klass in neg:
-                        NEG.append(ds.process(d['text']))
-                elif tot < size:
-                    if pos not in klass and len(klass.intersection(neg)):
-                        ADD.append(ds.process(d['text']))
-    shuffle(POS), shuffle(NEG), shuffle(ADD)
+    POS, NEG = [], []
+    _ = Parallel(n_jobs=8)(delayed(read_data)(fname) 
+                           for fname in tqdm(glob(join('data',
+                                                       lang,
+                                                       'emo',
+                                                       '*.gz'))))
+    for P, N in _:
+        POS.extend(P)
+        NEG.extend(N)    
+    assert len(NEG) >= len(POS)
+    shuffle(POS), shuffle(NEG)    
+
     size2 = size // 2
     POS = POS[:size2]
-    if len(NEG) < size2:
-        NEG.extend(ADD)
-    NEG = NEG[:size2]
-    y = [1] * len(POS)
-    y.extend([-1] * len(NEG))
+    NEG = NEG[:len(POS)]
+    y = [1] * len(POS) + [-1] * len(NEG)
     tm = load_model(join('models', f'{lang}_{MICROTC}.microtc'))
     X = tm.transform(POS + NEG)
     m = LinearSVC().fit(X, y)
