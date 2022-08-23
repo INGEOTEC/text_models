@@ -129,18 +129,22 @@ def emo(k, lang='zh', size=2**19, n_jobs=8):
     pos = _[k]
     neg = set([x for i, x in enumerate(_) if i != k])
     POS, NEG = [], []
-    _ = Parallel(n_jobs=8)(delayed(read_data)(fname) 
-                           for fname in tqdm(glob(join('data',
-                                                       lang,
-                                                       'emo',
-                                                       '*.gz'))))
+    _ = Parallel(n_jobs=n_jobs)(delayed(read_data)(fname) 
+                                for fname in tqdm(glob(join('data',
+                                                            lang,
+                                                            'emo',
+                                                            '*.gz'))))
     for P, N in _:
         POS.extend(P)
-        NEG.extend(N)    
-    assert len(NEG) >= len(POS)
+        NEG.extend(N)
+    size2 = size // 2
+    if size2 > len(POS):
+        size2 = len(POS)
+    if size2 > len(NEG):
+        size2 = len(NEG)
+    # assert len(NEG) >= len(POS)
     shuffle(POS), shuffle(NEG)    
 
-    size2 = size // 2
     POS = POS[:size2]
     NEG = NEG[:len(POS)]
     y = [1] * len(POS) + [-1] * len(NEG)

@@ -259,6 +259,64 @@ def emoji_information(lang='es'):
     return dos
     
 
+def load_dataset(lang='es', name='HA'):
+    """
+    Download and load the Emoji representation
+
+    :param lang: ['ar', 'zh', 'en', 'es']
+    :type lang: str
+    :param emoji: emoji identifier
+    :type emoji: int
+
+    >>> from text_models.utils import load_dataset, load_bow
+    >>> bow = load_bow(lang='en')
+    >>> ds = load_dataset(lang='en', name='travel')
+    >>> X = bow.transform(['this is funny'])
+    >>> df = ds.decision_function(X)
+    """
+    lang = lang.lower().strip()
+    assert lang in ['ar', 'zh', 'en', 'es']
+    diroutput = join(dirname(__file__), 'models')
+    if not isdir(diroutput):
+        os.mkdir(diroutput)
+    fname = join(diroutput, f'{name}_{lang}.LinearSVC')
+    if not isfile(fname):
+        path = f'https://github.com/INGEOTEC/text_models/releases/download/models/{name}_{lang}.LinearSVC'
+        try:
+            request.urlretrieve(path, fname)
+        except HTTPError:
+            raise Exception(path)    
+    return load_model(fname)
+
+
+def dataset_information(lang='es'):
+    """
+    Download and load datasets information
+
+    :param lang: ['ar', 'zh', 'en', 'es']
+    :type lang: str
+
+    >>> from text_models.utils import emoji_information
+    >>> info = dataset_information()
+    """
+    lang = lang.lower().strip()
+    assert lang in ['ar', 'zh', 'en', 'es']
+    diroutput = join(dirname(__file__), 'models')
+    if not isdir(diroutput):
+        os.mkdir(diroutput)
+    data = []
+    ext = 'info'
+    fname = join(diroutput, f'{lang}_dataset.{ext}')
+    if not isfile(fname):
+        path = f'https://github.com/INGEOTEC/text_models/releases/download/models/{lang}_dataset.{ext}'
+        try:
+            request.urlretrieve(path, fname)
+        except HTTPError:
+            raise Exception(path)    
+    data = load_model(fname)
+    return data
+
+
 class Gaussian(object):
     """
     Gaussian distribution
