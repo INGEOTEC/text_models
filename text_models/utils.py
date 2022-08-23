@@ -197,6 +197,20 @@ def load_bow(lang='es'):
     return load_model(fname)
 
 
+def _load_text_repr(lang='es', name='emo', k=0):
+    diroutput = join(dirname(__file__), 'models')
+    if not isdir(diroutput):
+        os.mkdir(diroutput)
+    fname = join(diroutput, f'{lang}_{name}_{k}_muTC{MICROTC}.LinearSVC')
+    if not isfile(fname):
+        path = f'https://github.com/INGEOTEC/text_models/releases/download/models/{lang}_{name}_{k}_muTC{MICROTC}.LinearSVC'
+        try:
+            request.urlretrieve(path, fname)
+        except HTTPError:
+            raise Exception(path)    
+    return load_model(fname)
+
+
 def load_emoji(lang='es', emoji=0):
     """
     Download and load the Emoji representation
@@ -214,17 +228,7 @@ def load_emoji(lang='es', emoji=0):
     """
     lang = lang.lower().strip()
     assert lang in ['ar', 'zh', 'en', 'fr', 'pt', 'ru', 'es']
-    diroutput = join(dirname(__file__), 'models')
-    if not isdir(diroutput):
-        os.mkdir(diroutput)
-    fname = join(diroutput, f'{lang}_emo_{emoji}_muTC{MICROTC}.LinearSVC')
-    if not isfile(fname):
-        path = f'https://github.com/INGEOTEC/text_models/releases/download/models/{lang}_emo_{emoji}_muTC{MICROTC}.LinearSVC'
-        try:
-            request.urlretrieve(path, fname)
-        except HTTPError:
-            raise Exception(path)    
-    return load_model(fname)
+    return _load_text_repr(lang, 'emo', emoji)
 
 
 def emoji_information(lang='es'):
@@ -259,7 +263,7 @@ def emoji_information(lang='es'):
     return dos
     
 
-def load_dataset(lang='es', name='HA'):
+def load_dataset(lang='es', name='HA', k=0):
     """
     Download and load the Emoji representation
 
@@ -276,17 +280,7 @@ def load_dataset(lang='es', name='HA'):
     """
     lang = lang.lower().strip()
     assert lang in ['ar', 'zh', 'en', 'es']
-    diroutput = join(dirname(__file__), 'models')
-    if not isdir(diroutput):
-        os.mkdir(diroutput)
-    fname = join(diroutput, f'{name}_{lang}.LinearSVC')
-    if not isfile(fname):
-        path = f'https://github.com/INGEOTEC/text_models/releases/download/models/{name}_{lang}.LinearSVC'
-        try:
-            request.urlretrieve(path, fname)
-        except HTTPError:
-            raise Exception(path)    
-    return load_model(fname)
+    return _load_text_repr(lang, name, k)    
 
 
 def dataset_information(lang='es'):

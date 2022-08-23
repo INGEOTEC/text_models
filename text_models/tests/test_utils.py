@@ -99,7 +99,7 @@ def test_dataset_information():
 def test_load_dataset():
     from text_models.utils import load_dataset, load_bow
     bow = load_bow(lang='en')
-    ds = load_dataset(lang='en', name='travel')
+    ds = load_dataset(lang='en', name='HA', k=0)
     X = bow.transform(['this is funny'])
     df = ds.decision_function(X)    
-    assert df.shape[1] == 4
+    np.testing.assert_almost_equal(df[0], -0.389922806003241)
