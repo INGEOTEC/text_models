@@ -88,3 +88,18 @@ def test_emoji_information():
     from text_models.utils import emoji_information
     info = emoji_information()
     assert info['💧']['number'] == 3905
+
+
+def test_dataset_information():
+    from text_models.utils import dataset_information
+    info = dataset_information(lang='es')
+    assert len(info) == 18
+
+
+def test_load_dataset():
+    from text_models.utils import load_dataset, load_bow
+    bow = load_bow(lang='en')
+    ds = load_dataset(lang='en', name='HA', k=0)
+    X = bow.transform(['this is funny'])
+    df = ds.decision_function(X)    
+    np.testing.assert_almost_equal(df[0], -0.389922806003241)

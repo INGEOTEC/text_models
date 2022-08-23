@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from text_models.utils import TM_ARGS
+from text_models.utils import TM_ARGS, MICROTC, load_bow
 from text_models.dataset import Dataset
-import microtc
 from microtc import TextModel
-from microtc.utils import load_model, save_model
+from microtc.utils import load_model, save_model, tweet_iterator
 from glob import glob
 from os.path import join
 from random import shuffle
@@ -24,7 +23,7 @@ import numpy as np
 from tqdm import tqdm
 from text_models.inhouse import data
 from text_models.inhouse.data import num_tweets_language
-from os.path import dirname, basename
+from os.path import dirname, basename, isfile
 from collections import Counter
 from sklearn.svm import LinearSVC
 from joblib import Parallel, delayed
@@ -88,7 +87,7 @@ def bow(lang='zh', num_terms=2**14):
     model.wordWeight = {k: w for k, (w, token) in enumerate(word_weight)}
 
     save_model(tm,
-               join('models', f'{lang}_{microtc.__version__}.microtc'))
+               join('models', f'{lang}_{MICROTC}.microtc'))
     return tm
 
 
@@ -102,10 +101,25 @@ def count_emo(lang='zh'):
     return cnt
 
 
-def emo(k, lang='zh', size=2**19):
+def emo(k, lang='zh', size=2**19, n_jobs=8):
+    def read_data(fname):
+        P = []
+        N = []
+        for key, data in load_model(fname).items():
+            for d in data:
+                klass = d['klass']
+                if len(klass) == 1:
+                    klass = klass.pop()
+                    if klass == pos:
+                        P.append(ds.process(d['text']))
+                    elif klass in neg:
+                        N.append(ds.process(d['text']))
+        shuffle(N)
+        return P, N[:len(P)]
+
     ds = Dataset(text_transformations=False)
     ds.add(ds.load_emojis())    
-    output = join('models', f'{lang}_emo_{k}_mu{microtc.__version__}')
+    output = join('models', f'{lang}_emo_{k}_muTC{MICROTC}')
     dd = load_model(join('models', f'{lang}_emo.info'))
     _ = [x for x, v in dd.most_common() if v >= 2**10]
     tot = sum([v for x, v in dd.most_common() if v >= 2**10])
@@ -113,29 +127,28 @@ def emo(k, lang='zh', size=2**19):
         return
     pos = _[k]
     neg = set([x for i, x in enumerate(_) if i != k])
-    POS, NEG, ADD = [], [], []
-    for fname in glob(join('data', lang, 'emo', '*.gz')):
-        for key, data in load_model(fname).items():
-            for d in data:
-                klass = d['klass']
-                if len(klass) == 1:
-                    klass = klass.pop()
-                    if klass == pos:
-                        POS.append(ds.process(d['text']))
-                    elif klass in neg:
-                        NEG.append(ds.process(d['text']))
-                elif tot < size:
-                    if pos not in klass and len(klass.intersection(neg)):
-                        ADD.append(ds.process(d['text']))
-    shuffle(POS), shuffle(NEG), shuffle(ADD)
+    POS, NEG = [], []
+    _ = Parallel(n_jobs=n_jobs)(delayed(read_data)(fname) 
+                                for fname in tqdm(glob(join('data',
+                                                            lang,
+                                                            'emo',
+                                                            '*.gz'))))
+    for P, N in _:
+        POS.extend(P)
+        NEG.extend(N)
     size2 = size // 2
+    if size2 > len(POS):
+        size2 = len(POS)
+    if size2 > len(NEG):
+        size2 = len(NEG)
+    # assert len(NEG) >= len(POS)
+    shuffle(POS), shuffle(NEG)    
+
     POS = POS[:size2]
-    if len(NEG) < size2:
-        NEG.extend(ADD)
-    NEG = NEG[:size2]
-    y = [1] * len(POS)
-    y.extend([-1] * len(NEG))
-    tm = load_model(join('models', f'{lang}_{microtc.__version__}.microtc'))
+    NEG = NEG[:len(POS)]
+    y = [1] * len(POS) + [-1] * len(NEG)
+    # tm = load_model(join('models', f'{lang}_{MICROTC}.microtc'))
+    tm = load_bow(lang=lang)
     X = tm.transform(POS + NEG)
     m = LinearSVC().fit(X, y)
     save_model(m, f'{output}.LinearSVC')
@@ -153,7 +166,7 @@ def recall_emo(lang='zh', n_jobs=1):
         y = [y for _, y in D]
         hy = []
         for k, emo in enumerate(emoji):
-            output = join('models', f'{lang}_emo_{k}_mu{microtc.__version__}')
+            output = join('models', f'{lang}_emo_{k}_muTC{MICROTC}')
             m = load_model(f'{output}.LinearSVC')
             hy.append(m.predict(X))
         return y, hy
@@ -171,7 +184,8 @@ def recall_emo(lang='zh', n_jobs=1):
     ds.add(ds.load_emojis())
     dd = load_model(join('models', f'{lang}_emo.info'))
     emoji = [x for x, v in dd.most_common() if v >= 2**10]    
-    tm = load_model(join('models', f'{lang}_{microtc.__version__}.microtc'))
+    # tm = load_model(join('models', f'{lang}_{MICROTC}.microtc'))
+    tm = load_bow(lang=lang)
     predictions = Parallel(n_jobs=n_jobs)(delayed(predict)(fname, ds, tm, emoji)
                                           for fname in fnames)
     y = []
@@ -184,6 +198,28 @@ def recall_emo(lang='zh', n_jobs=1):
               for emo, (perf, ratio) in zip(emoji, _)}
     save_model(output, join('models', f'{lang}_emo.perf'))
 
+
+def dataset(lang, fname, name):
+    D = list(tweet_iterator(fname))
+    labels = np.unique([x['klass'] for x in D])
+    if isfile(join('models', f'{lang}_{name}_0_muTC{MICROTC}.LinearSVC')):
+        return labels
+    tm = load_bow(lang=lang)
+    X = tm.transform(D)
+    for k, label in enumerate(labels):
+        output = join('models', f'{lang}_{name}_{k}_muTC{MICROTC}')    
+        pos_index = np.array([i for i, x in enumerate(D) if x['klass'] == label])
+        neg_index = np.array([i for i, x in enumerate(D) if x['klass'] != label])
+        np.random.shuffle(pos_index)
+        np.random.shuffle(neg_index)
+        nele = min(pos_index.shape[0], neg_index.shape[0])
+        pos_index = pos_index[:nele]
+        neg_index = neg_index[:nele]
+        index = np.concatenate((pos_index, neg_index))
+        y = [1] * nele + [-1] * nele
+        m = LinearSVC().fit(X[index], y)
+        save_model(m, f'{output}.LinearSVC')
+    return labels
 
 # if __name__ == '__main__':
 #     cnt = count_emo(lang='es')

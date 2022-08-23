@@ -197,6 +197,20 @@ def load_bow(lang='es'):
     return load_model(fname)
 
 
+def _load_text_repr(lang='es', name='emo', k=0):
+    diroutput = join(dirname(__file__), 'models')
+    if not isdir(diroutput):
+        os.mkdir(diroutput)
+    fname = join(diroutput, f'{lang}_{name}_{k}_muTC{MICROTC}.LinearSVC')
+    if not isfile(fname):
+        path = f'https://github.com/INGEOTEC/text_models/releases/download/models/{lang}_{name}_{k}_muTC{MICROTC}.LinearSVC'
+        try:
+            request.urlretrieve(path, fname)
+        except HTTPError:
+            raise Exception(path)    
+    return load_model(fname)
+
+
 def load_emoji(lang='es', emoji=0):
     """
     Download and load the Emoji representation
@@ -214,17 +228,7 @@ def load_emoji(lang='es', emoji=0):
     """
     lang = lang.lower().strip()
     assert lang in ['ar', 'zh', 'en', 'fr', 'pt', 'ru', 'es']
-    diroutput = join(dirname(__file__), 'models')
-    if not isdir(diroutput):
-        os.mkdir(diroutput)
-    fname = join(diroutput, f'{lang}_emo_{emoji}_muTC{MICROTC}.LinearSVC')
-    if not isfile(fname):
-        path = f'https://github.com/INGEOTEC/text_models/releases/download/models/{lang}_emo_{emoji}_muTC{MICROTC}.LinearSVC'
-        try:
-            request.urlretrieve(path, fname)
-        except HTTPError:
-            raise Exception(path)    
-    return load_model(fname)
+    return _load_text_repr(lang, 'emo', emoji)
 
 
 def emoji_information(lang='es'):
@@ -258,6 +262,54 @@ def emoji_information(lang='es'):
     [v.update(dict(number=uno[k])) for k, v in dos.items()]
     return dos
     
+
+def load_dataset(lang='es', name='HA', k=0):
+    """
+    Download and load the Emoji representation
+
+    :param lang: ['ar', 'zh', 'en', 'es']
+    :type lang: str
+    :param emoji: emoji identifier
+    :type emoji: int
+
+    >>> from text_models.utils import load_dataset, load_bow
+    >>> bow = load_bow(lang='en')
+    >>> ds = load_dataset(lang='en', name='travel')
+    >>> X = bow.transform(['this is funny'])
+    >>> df = ds.decision_function(X)
+    """
+    lang = lang.lower().strip()
+    assert lang in ['ar', 'zh', 'en', 'es']
+    return _load_text_repr(lang, name, k)    
+
+
+def dataset_information(lang='es'):
+    """
+    Download and load datasets information
+
+    :param lang: ['ar', 'zh', 'en', 'es']
+    :type lang: str
+
+    >>> from text_models.utils import emoji_information
+    >>> info = dataset_information()
+    """
+    lang = lang.lower().strip()
+    assert lang in ['ar', 'zh', 'en', 'es']
+    diroutput = join(dirname(__file__), 'models')
+    if not isdir(diroutput):
+        os.mkdir(diroutput)
+    data = []
+    ext = 'info'
+    fname = join(diroutput, f'{lang}_dataset.{ext}')
+    if not isfile(fname):
+        path = f'https://github.com/INGEOTEC/text_models/releases/download/models/{lang}_dataset.{ext}'
+        try:
+            request.urlretrieve(path, fname)
+        except HTTPError:
+            raise Exception(path)    
+    data = load_model(fname)
+    return data
+
 
 class Gaussian(object):
     """

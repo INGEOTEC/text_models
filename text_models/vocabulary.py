@@ -332,7 +332,7 @@ class Vocabulary(object):
         :lang lang: Language
         """
 
-        missing = Counter(countries) if countries is not 'nogeo' else None
+        missing = Counter(countries) if countries != 'nogeo' else None
         rest = []
         dates = dates[::-1]
         while len(dates) and (len(rest) < n or n == -1):
