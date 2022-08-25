@@ -470,7 +470,8 @@ class BagOfWords(SparseMatrix):
     :py:class:`text_models.vocabulary.Tokenize`
     
     :param tokens: Language (Ar|En|Es) or list of tokens
-    :type tokens: str|List
+    :type tokens: [str|List] 
+
     >>> from EvoMSA.tests.test_base import TWEETS
     >>> from microtc.utils import tweet_iterator
     >>> from text_models.vocabulary import BagOfWords
