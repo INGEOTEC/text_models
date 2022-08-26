@@ -40,7 +40,7 @@ In the next example, let us examine the February 14th, 2020.
 >>> day = dict(year=2020, month=2, day=14)
 >>> voc = Vocabulary(day, lang="En")
 >>> voc.voc.most_common(3)
-[('rt', 2555708), ('the', 1741185), ('to', 1237161)]
+[('the', 691141), ('to', 539942), ('i', 518791)]
 
 As can be seen, the result is not informative about 
 the events that occurred in the day. Perhaps by removing 
@@ -48,7 +48,7 @@ common words would produce an acceptable representation.
 
 >>> voc.remove(voc.common_words())
 >>> voc.voc.most_common(3)
-[('nct~〖', 114810), ('nct~〗', 112816), ('valentine’s', 75820)]
+[('valentine’s', 22137), ("valentine's", 21024), ('valentines', 20632)]
 
 Word Clouds
 -----------------------------------
@@ -114,22 +114,41 @@ the dates needed.
 
 Once the date is selected, it is time to retrieve the tokens on the 
 specified dates from the Spanish-speaking countries. 
-The second instruction, from the following code, defines 
-the Spanish-speaking countries. The third instruction retrieves 
+The following codes retrieves 30 random days from the 
+year 2019 to 2021. The last instruction retrieves 
 the tokens and their frequency for each country.
 
 >>> from text_models import Vocabulary
->>> countries = ['MX', 'CO', 'ES', 'AR', 'PE', 'VE', 'CL', 'EC',
-                 'GT', 'CU', 'BO', 'DO', 'HN', 'PY', 'SV', 'NI', 
-                 'CR', 'PA', 'UY', 'GQ']
+>>> from text_models.utils import date_range
+>>> import random
+>>> NDAYS = 30
+>>> init = dict(year=2019, month=1, day=1)
+>>> end = dict(year=2021, month=12, day=31)
+>>> dates = date_range(init, end)
+>>> random.shuffle(dates)
+>>> countries = ['MX', 'CO', 'ES', 'AR',
+                 'PE', 'VE', 'CL', 'EC',
+                 'GT', 'CU', 'BO', 'DO',
+                 'HN', 'PY', 'SV', 'NI',
+                 'CR', 'PA', 'UY']
+>>> avail = Vocabulary.available_dates
+>>> dates = avail(dates, n=NDAYS,
+                  countries=countries,
+                  lang="Es")
 >>> vocs = [Vocabulary(dates.copy(), lang="Es", country=c)
             for c in countries]
 
-As done with the word clouds, the q-grams and emojis are removed from the vocabulary. 
+From the vocabulary of all the countries, it is kept the 
+first :math:`n` tokens with higher frequency where :math:`n`
+corresponds to the 10% of the country's vocabulary with less number
+of tokens.
 
->>> for voc in vocs:
->>>   voc.remove_qgrams()
->>>   voc.remove_emojis()
+>>> _min = min([len(x.voc) for x in vocs])
+>>> _min = int(_min * .1)
+>>> tokens = [x.voc.most_common(_min) 
+              for x in vocs]
+>>> tokens = [set(map(lambda x: x[0], i)) 
+              for i in tokens]
 
 The Jaccard similarity matrix is defined in set operations.
 The first instruction of the following line transforms the vocabulary 
@@ -138,9 +157,8 @@ each one corresponding to a different country. The second instruction
 builds the matrix. There are two nested loops, each one iterating for 
 the country sets. 
 
->>> tokens = [set(x) for x in vocs]
->>> X = [[len(p.intersection(t)) / len(p.union(t))
-          for t in tokens] for p in tokens]
+>>> X = [[len(p & t) / len( p | t)
+         for t in tokens] for p in tokens]
 
 Each row of the Jaccard similarity matrix can be as the country signature, 
 so in order to depict this signature in a plane, we decided to transform 

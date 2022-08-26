@@ -39,16 +39,22 @@ into text representations. The basic idea is to convert a dataset into a labeled
 dataset where the labels are automatically identified. 
 The :ref:`emoji` developed here followed this idea. 
 The dataset used to train these representations is a set of tweets collected 
-from the Twitter open stream in Arabic, Chinese, English, French, Portuguese, 
+from Twitter's open stream in Arabic, Chinese, English, French, Portuguese, 
 Russian, and Spanish.
+
+On the other hand, many competitions and datasets follow an equivalent structure 
+to the approach mentioned above; these competitions can be used to increase 
+the number of possible text representations.  The :ref:`dataset`  
+describes the dataset and competition sets used to create text representations. 
 
 .. _bow:
 
 Bag of Word (BoW) Representation
 --------------------------------------
 
-Once the dataset is ready, it is time to develop the representations. 
-The first step is to transform the text into a suitable representation. 
+
+The first step to including more information in the representation is to be able 
+to represent the text in a format amenable to different machine learning algorithms. 
 Particularly, it is used a BoW representation with q-grams of 
 characters (2, 3, and 4) and words; the constraint is that the q-grams are 
 only computed on the words, and consequently, there are no q-grams between words. 
@@ -77,7 +83,7 @@ These representations can be used as follows:
 >>> X.shape
 (2, 16384)
 
-where the text `Hola` (`Hi` in English) and `Está funcionando` (`It is working`) 
+where the text *Hola* (*Hi* in English) and *Está funcionando* (*It is working*) 
 are transformed into matrix :math:`\mathbb R^{2 \times 16384}`.
 
 .. _emoji:
@@ -91,3 +97,27 @@ The idea is to use the emoji in the text as the labels.
 The process selects and removes the emojis in the tweets and keeps them as the 
 labels of the text. The emojis kept are the ones that appear at least 1024 times 
 alone, i.e., the text contains only one emoji. 
+
+The second step is to use the labeled dataset and the BoW model with a classifier; 
+it was decided to use a Linear Support Vector Machine 
+(implemented in `sklearn.svm.LinearSVC`). The methodology used is one versus the rest. 
+The positive class corresponds to 262,144 tweets containing only the label at hand, 
+whereas the negative class corresponds to 262,144 randomly selected from the other labels. 
+For the negative class, only tweets with unique labels are used; however, 
+if there are not enough, it is allowed to use tweets with multiple labels as long as 
+it does not contain the positive class. 
+
+The following code uses the emoji representation in English using only the representation 
+of the emoji identified with index 0. 
+
+>>> from text_models.utils import load_bow, load_emoji
+>>> bow = load_bow(lang='en')
+>>> emo = load_emoji(lang='en', emoji=0)
+>>> X = bow.transform(['This is funny', 'This is sad'])
+>>> emo.decision_function(X)
+array([ 0.97302326, -0.4441671 ])
+
+.. _dataset:
+
+Dataset Text Representation
+---------------------------------
