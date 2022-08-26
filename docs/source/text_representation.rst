@@ -26,12 +26,12 @@ Text Representation
       :alt: Documentation Status
 
 Solving a text categorization problem usually starts by deciding which text transformation 
-to use; the traditional approach would be to decide on a Bag of Word (BoW) representation. 
+to use; the traditional approach would be to decide on a :ref:`bow`. 
 A BoW representation using q-grams of character and n-grams of words produces 
 a satisfactory baseline (with term-frequency inverse document-frequency as its 
 weighting scheme and linear support vector machine as the classifier, e.g.,
 `B4MSA <https://b4msa.readthedocs.io/en/latest>`_). 
-However, it cannot encode more information than the one in the dataset used 
+However, it cannot encode more information than the one used 
 to learn the BoW and train the classifier. 
 
 Techniques in semi-supervised learning have been used to incorporate information 
@@ -44,8 +44,8 @@ Russian, and Spanish.
 
 .. _bow:
 
-Bag of Word (BoW) Text Representation
-=========================================
+Bag of Word (BoW) Representation
+--------------------------------------
 
 Once the dataset is ready, it is time to develop the representations. 
 The first step is to transform the text into a suitable representation. 
@@ -69,10 +69,21 @@ were kept in the representation. The BoW models for the different languages are 
 * `Spanish <https://github.com/INGEOTEC/text_models/releases/download/models/es_2.4.2.microtc>`_
 
 
+These representations can be used as follows:
+
+>>> from text_models.utils import load_bow
+>>> bow = load_bow(lang='es')
+>>> X = bow.transform(['Hola', 'Está funcionando'])
+>>> X.shape
+(2, 16384)
+
+where the text `Hola` (`Hi` in English) and `Está funcionando` (`It is working`) 
+are transformed into matrix :math:`\mathbb R^{2 \times 16384}`.
+
 .. _emoji:
 
 Emoji Text Representation
-================================
+--------------------------------
 
 Transforming the dataset into a labeled dataset is similar to the one used in 
 `deepmoji <https://aclanthology.org/D17-1169/>`_. 
