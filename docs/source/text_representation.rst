@@ -121,3 +121,50 @@ array([ 0.97302326, -0.4441671 ])
 
 Dataset Text Representation
 ---------------------------------
+
+
+Dataset and Emoji Text Representations
+------------------------------------------
+
+>>> from text_models.utils import load_bow, load_emoji, emoji_information, dataset_information, load_dataset
+>>> from sklearn.metrics.pairwise import cosine_distances
+>>> from sklearn.decomposition import PCA
+>>> from matplotlib import pylab as plt
+>>> from joblib import Parallel, delayed
+>>> from tqdm import tqdm
+>>> import numpy as np
+
+>>> def weights(models):
+>>> 	bow = load_bow(lang=LANG)
+>>> 	w = np.array([bow.token_weight[i]
+					  for i in range(len(bow.token_weight))])
+>>> 	return np.array([m.coef_[0] * w for m in models])
+
+>>> LANG = 'es'
+>>> emoji_info = [(k, v['number'], v['recall'])
+				  for k, v in emoji_information(lang=LANG).items()]
+>>> emoji_info.sort(key=lambda x: x[1], reverse=True)
+>>> emoji_models = Parallel(n_jobs=-1)(delayed(load_emoji)(lang=LANG, emoji=k)
+                                       for k in tqdm(range(len(emoji_info))))
+
+>>> dataset_info = dataset_information(lang=LANG)
+>>> problems = []
+>>> [[problems.append(dict(name=name, lang=LANG, k=k))
+	  for k in range(len(labels))] for name, labels in dataset_info.items()]
+>>> dataset_models = Parallel(n_jobs=-1)(delayed(load_dataset)(**x)
+									     for x in tqdm(problems))
+
+>>> X = np.vstack([weights(emoji_models), weights(dataset_models)])
+>>> distances = cosine_distances(X)
+
+>>> pca = PCA(n_components=2).fit(distances)
+
+>>> for x, y in pca.transform(distances[:len(emoji_info)]):
+>>> 	plt.plot(x, y, 'k.')
+>>> for x, y in pca.transform(distances[len(emoji_models):]):
+>>> 	plt.plot(x, y, 'r.')
+plt.tick_params(axis='both', bottom=False, labelbottom=False, left=False, labelleft=False)
+plt.tight_layout()
+plt.savefig('emoji-dataset-vis.png')
+
+.. image:: emoji-dataset-vis.png
