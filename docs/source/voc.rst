@@ -104,21 +104,8 @@ The tokens and their frequency, grouped by country, can be used to model,
 for example, the similarity of a particular language in different countries. 
 In particular, let us analyze the similarity between Spanish-speaking 
 countries. The procedure followed is to take randomly 30 days, 
-from January 1, 2019, to July 14, 2020. The pandas' library has a function 
-that handles date periods. Consequently, we use this library to gather 
-the dates needed. 
+from January 1, 2019, to December 21, 2021 on Spanish-speaking countries.
 
->>> import pandas as pd
->>> dates = pd.date_range("2019-01-01", "2020-07-14")
->>> dates = list(pd.Series(dates).sample(30))
-
-Once the date is selected, it is time to retrieve the tokens on the 
-specified dates from the Spanish-speaking countries. 
-The following codes retrieves 30 random days from the 
-year 2019 to 2021. The last instruction retrieves 
-the tokens and their frequency for each country.
-
->>> from text_models import Vocabulary
 >>> from text_models.utils import date_range
 >>> import random
 >>> NDAYS = 30
@@ -135,10 +122,16 @@ the tokens and their frequency for each country.
 >>> dates = avail(dates, n=NDAYS,
                   countries=countries,
                   lang="Es")
+
+
+Once the dates are selected, it is time to retrieve the tokens
+from the Spanish-speaking countries. 
+
+>>> from text_models import Vocabulary
 >>> vocs = [Vocabulary(dates.copy(), lang="Es", country=c)
             for c in countries]
 
-From the vocabulary of all the countries, it is kept the 
+For all the countries, it is kept only the 
 first :math:`n` tokens with higher frequency where :math:`n`
 corresponds to the 10% of the country's vocabulary with less number
 of tokens.
