@@ -119,12 +119,17 @@ of the emoji identified with index 0.
 >>> emo.decision_function(X)
 array([ 1.01405812, -0.41814145])
 
+The function :py:func:`~text_models.utils.emoji_information` 
+can be used to know the available emojis. 
+The information is stored in a dictionary where the keys are emojis, 
+and values contain additional information such as the performance (i.e., recall), 
+the number of examples of the possitive class (i.e., number), 
+and the identifier (i.e., emoji). The following code shows an example:
 
 >>> from text_models.utils import emoji_information
 >>> emoji = emoji_information(lang='es')
 >>> emoji['🇲🇽']
-{'recall': 0.722301474084641, 'ratio': 0.0026274001731610387, 'number': 18413}
-
+{'recall': 0.722301474084641, 'emoji': 133, 'number': 18413}
 
 .. _dataset:
 
@@ -138,6 +143,35 @@ of a text classifier.
 The datasets used are in Arabic, Chinese, English, and Spanish; 
 these are text categorization problems taken from competitions such as
 SemEval, TASS, and IberLEF, among others. 
+
+The models were created using the approach one versus the rest, 
+even when there are only two classes. Consequently, in a binary problem, 
+there will be two models corresponding to each class being the positive class. 
+
+The function :py:func:`~text_models.utils.dataset_information` can be used
+to know which are the available datasets. It returns a dictionary where the
+the keys correspond to the dataset names and the values are the labels. 
+
+>>> from text_models.utils import dataset_information
+>>> dataset = dataset_information(lang='es')
+>>> dataset['HA']
+array(['negative', 'neutral', 'positive'], dtype='<U8')
+
+The model can be retrieved using the function :py:func:`~text_models.utils.load_dataset`
+that requieres its name and the class index one wishes to use. 
+For example, to use the *HA* model
+for the *positive* label, the following code can be used:
+
+>>> from text_models.utils import load_dataset, load_bow
+>>> bow = load_bow(lang='es')
+>>> ha = load_dataset(name='HA', k=2)
+>>> X = bow.transform(['Buenos días', 'Estoy triste y enojado'])
+>>> ha.decision_function(X)
+array([ 1.16582005, -0.10821308])
+
+where the examples are *Buenos días* (Good morning) 
+and *Estoy triste y enojado* (I am sad and angry) correspond to a correct
+classification. 
 
 Dataset and Emoji Text Representations
 ------------------------------------------
