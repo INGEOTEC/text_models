@@ -66,13 +66,13 @@ The BoW model is implemented with `microTC <https://microtc.readthedocs.io/en/la
 the only particular characteristic is that only the 16,384 more frequent tokens 
 were kept in the representation. The BoW models for the different languages are found in:
 
-* `Arabic <https://github.com/INGEOTEC/text_models/releases/download/models/ar_2.4.2.microtc>`_
-* `Chinese <https://github.com/INGEOTEC/text_models/releases/download/models/zh_2.4.2.microtc>`_ 
-* `English <https://github.com/INGEOTEC/text_models/releases/download/models/en_2.4.2.microtc>`_
-* `French <https://github.com/INGEOTEC/text_models/releases/download/models/fr_2.4.2.microtc>`_
-* `Portuguese <https://github.com/INGEOTEC/text_models/releases/download/models/pt_2.4.2.microtc>`_
-* `Russian <https://github.com/INGEOTEC/text_models/releases/download/models/ru_2.4.2.microtc>`_
-* `Spanish <https://github.com/INGEOTEC/text_models/releases/download/models/es_2.4.2.microtc>`_
+* `Arabic (ar) <https://github.com/INGEOTEC/text_models/releases/download/models/ar_2.4.2.microtc>`_
+* `Chinese (zh) <https://github.com/INGEOTEC/text_models/releases/download/models/zh_2.4.2.microtc>`_ 
+* `English (en) <https://github.com/INGEOTEC/text_models/releases/download/models/en_2.4.2.microtc>`_
+* `French (fr) <https://github.com/INGEOTEC/text_models/releases/download/models/fr_2.4.2.microtc>`_
+* `Portuguese (pt) <https://github.com/INGEOTEC/text_models/releases/download/models/pt_2.4.2.microtc>`_
+* `Russian (ru) <https://github.com/INGEOTEC/text_models/releases/download/models/ru_2.4.2.microtc>`_
+* `Spanish (es) <https://github.com/INGEOTEC/text_models/releases/download/models/es_2.4.2.microtc>`_
 
 
 These representations can be used as follows:
@@ -180,6 +180,8 @@ Considering that there is a linear model for each emoji and dataset, it is feasi
 to visualize them with the aim of learning more about the similarities and differences 
 between the models. 
 
+Before starting the comparison, let us load the libraries used in the procedure. 
+
 >>> from text_models.utils import load_bow, load_emoji, emoji_information, dataset_information, load_dataset
 >>> from sklearn.metrics.pairwise import cosine_distances
 >>> from sklearn.decomposition import PCA
@@ -188,31 +190,47 @@ between the models.
 >>> from tqdm import tqdm
 >>> import numpy as np
 
->>> def weights(models):
+The models are vectors where each component corresponds to a token; 
+the BoW assigns a weight to each token. 
+These weights are incorporated in the comparison by computing the 
+element-wise product of the coefficients obtained by the SVM (see :py:data:`m.coef_`) 
+and the weight :py:data:`w`. 
+
+>>> def weights(models: list):
 >>> 	bow = load_bow(lang=LANG)
->>> 	w = np.array([bow.token_weight[i]
-					  for i in range(len(bow.token_weight))])
+>>> 	w = np.array([bow.token_weight[i] for i in range(len(bow.token_weight))])
 >>> 	return np.array([m.coef_[0] * w for m in models])
 
+The first step is to download the :ref:`emoji`.
+
 >>> LANG = 'es'
->>> emoji_info = [(k, v['number'], v['recall'])
-				  for k, v in emoji_information(lang=LANG).items()]
->>> emoji_info.sort(key=lambda x: x[1], reverse=True)
+>>> emoji_info = emoji_information(lang=LANG).items()
 >>> emoji_models = Parallel(n_jobs=-1)(delayed(load_emoji)(lang=LANG, emoji=k)
                                        for k in tqdm(range(len(emoji_info))))
 
+The :ref:`dataset` can be retrieved using the following code. 
+
 >>> dataset_info = dataset_information(lang=LANG)
 >>> problems = []
->>> [[problems.append(dict(name=name, lang=LANG, k=k))
-	  for k in range(len(labels))] for name, labels in dataset_info.items()]
+>>> [[problems.append(dict(name=name, lang=LANG, k=k)) for k in range(len(labels))]
+     for name, labels in dataset_info.items()]
 >>> dataset_models = Parallel(n_jobs=-1)(delayed(load_dataset)(**x)
-									     for x in tqdm(problems))
+                                         for x in tqdm(problems))
+
+The representations are stored in :py:data:`emoji_models` and :py:data:`datasets_models`; 
+these contain the coefficients estimated with SVM. The missing step is 
+to use the weights in the BoW model, which is done with :py:func:`weights`. 
+These representations are set to form a matrix where the cosine distance of all 
+the pairs are computed, as can be observed in the following code. 
 
 >>> X = np.vstack([weights(emoji_models), weights(dataset_models)])
 >>> distances = cosine_distances(X)
 
->>> pca = PCA(n_components=2).fit(distances)
+The final step is to visualize :py:data:`X` using :py:class:`~sklearn.decomposition.PCA`
+to reduce the number of dimensions to two. The figure presents in black the emojis 
+and red the datasets. 
 
+>>> pca = PCA(n_components=2).fit(distances)
 >>> for x, y in pca.transform(distances[:len(emoji_info)]):
 >>> 	plt.plot(x, y, 'k.')
 >>> for x, y in pca.transform(distances[len(emoji_models):]):
