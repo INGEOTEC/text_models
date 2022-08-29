@@ -101,8 +101,10 @@ alone, i.e., the text contains only one emoji.
 The second step is to use the labeled dataset and the BoW model with a classifier; 
 it was decided to use a Linear Support Vector Machine 
 (implemented in `sklearn.svm.LinearSVC`). The methodology used is one versus the rest. 
-The positive class corresponds to 262,144 tweets containing only the label at hand, 
+The positive class corresponds to a maximum of 262,144 tweets containing only the label at hand, 
 whereas the negative class corresponds to 262,144 randomly selected from the other labels. 
+If there are not enough tweets, then it is used as many tweets as possible 
+as long as the set contains the same number of positive and negative examples. 
 For the negative class, only tweets with unique labels are used; however, 
 if there are not enough, it is allowed to use tweets with multiple labels as long as 
 it does not contain the positive class. 
@@ -115,16 +117,34 @@ of the emoji identified with index 0.
 >>> emo = load_emoji(lang='en', emoji=0)
 >>> X = bow.transform(['This is funny', 'This is sad'])
 >>> emo.decision_function(X)
-array([ 0.97302326, -0.4441671 ])
+array([ 1.01405812, -0.41814145])
+
+
+>>> from text_models.utils import emoji_information
+>>> emoji = emoji_information(lang='es')
+>>> emoji['🇲🇽']
+{'recall': 0.722301474084641, 'ratio': 0.0026274001731610387, 'number': 18413}
+
 
 .. _dataset:
 
 Dataset Text Representation
 ---------------------------------
 
+The idea of Dataset Text Representation is, on the one hand, to increase the number 
+of representations and, on the other, to test their impact on the performance 
+of a text classifier. 
+
+The datasets used are in Arabic, Chinese, English, and Spanish; 
+these are text categorization problems taken from competitions such as
+SemEval, TASS, and IberLEF, among others. 
 
 Dataset and Emoji Text Representations
 ------------------------------------------
+
+Considering that there is a linear model for each emoji and dataset, it is feasible 
+to visualize them with the aim of learning more about the similarities and differences 
+between the models. 
 
 >>> from text_models.utils import load_bow, load_emoji, emoji_information, dataset_information, load_dataset
 >>> from sklearn.metrics.pairwise import cosine_distances
@@ -163,8 +183,5 @@ Dataset and Emoji Text Representations
 >>> 	plt.plot(x, y, 'k.')
 >>> for x, y in pca.transform(distances[len(emoji_models):]):
 >>> 	plt.plot(x, y, 'r.')
-plt.tick_params(axis='both', bottom=False, labelbottom=False, left=False, labelleft=False)
-plt.tight_layout()
-plt.savefig('emoji-dataset-vis.png')
 
 .. image:: emoji-dataset-vis.png
