@@ -237,3 +237,75 @@ and red the datasets.
 >>> 	plt.plot(x, y, 'r.')
 
 .. image:: emoji-dataset-vis.png
+
+Example
+------------------------------------
+
+Let us assume that there is a text classification problem that one wants to 
+visualize using the above procedure. The first step is to load the libraries 
+needed. 
+
+>>> from EvoMSA import base	
+>>> from microtc.utils import tweet_iterator
+>>> import os
+>>> from sklearn.svm import LinearSVC
+
+The second step is to load the dataset into the memory; 
+this can be done with the following instructions. 
+
+>>> tweets = os.path.join(os.path.dirname(base.__file__), 'tests', 'tweets.json')
+>>> D = list(tweet_iterator(tweets))
+
+It is time to estimate the parameters of the linear SVM, and scale the parameters
+obtained with the tokens' weights. 
+
+>>> bow = load_bow(lang='es')
+>>> m = LinearSVC().fit(bow.transform(D),
+                        [x['klass'] for x in D])
+>>> w = np.array([bow.token_weight[i] for i in range(len(bow.token_weight))])
+>>> P = [w * c for c in m.coef_]
+
+The problem is represented in the matrix :py:data:`P`, the next step is to use :py:data:`P` 
+and :py:data:`X` to compute the cosine distance as follows:
+
+>>> P_dis = cosine_distances(P, X)
+
+Let us depict the problem points along with the emoji and dataset points.
+In the following figure, the first 64 emojis are in black, the problem points are in red,
+and the rest of the emojis and datasets are in lightgrey.
+
+>>> for x, y in pca.transform(distances[64:]):
+>>> 	plt.plot(x, y, '.', color='lightgrey')
+>>> for x, y in pca.transform(distances[:64]):
+>>> 	plt.plot(x, y, 'k.')
+>>> for x, y in pca.transform(P_dis):
+>>> 	plt.plot(x, y, 'r.')
+
+.. 
+	plt.tick_params(axis='both', bottom=False, labelbottom=False, left=False, labelleft=False)
+	plt.tight_layout()
+	plt.savefig('emoji64-problem.png')
+
+.. image:: emoji64-problem.png
+
+The idea is that a figure similar to the one produced above provides information about 
+the performance of a system developed on the text representations used. 
+For example, to complement the example, the following code uses the first 64 emojis 
+and the BoW as text representations. 
+These representations are combined using a stack generalization approach 
+(see `EvoMSA <https://evomsa.readthedocs.io/en/latest/>`_).
+
+>>> from EvoMSA.utils import linearSVC_array
+>>> from EvoMSA.model import LabeledDataSet
+>>> coef, intercept = linearSVC_array(emoji_models[:64])
+>>> emo = LabeledDataSet(textModel=bow, coef=coef, intercept=intercept)
+>>> evomsa = base.EvoMSA(models=[[bow, 'sklearn.svm.LinearSVC'],
+                                 [emo, 'EvoMSA.model.SVCWrapper']],
+                         stacked_method='sklearn.naive_bayes.GaussianNB',
+                         TR=False).fit(D, [x['klass'] for x in D])
+
+The final step is to use the model to predict; the next code predicts two sentences
+in Spanish used in a previous example. 
+
+>>> evomsa.predict(['Buenos días', 'Estoy triste y enojado'])
+array(['P', 'N'], dtype='<U4')						 
