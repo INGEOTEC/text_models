@@ -66,13 +66,13 @@ The BoW model is implemented with `microTC <https://microtc.readthedocs.io/en/la
 the only particular characteristic is that only the 16,384 more frequent tokens 
 were kept in the representation. The BoW models for the different languages are found in:
 
-* `Arabic <https://github.com/INGEOTEC/text_models/releases/download/models/ar_2.4.2.microtc>`_
-* `Chinese <https://github.com/INGEOTEC/text_models/releases/download/models/zh_2.4.2.microtc>`_ 
-* `English <https://github.com/INGEOTEC/text_models/releases/download/models/en_2.4.2.microtc>`_
-* `French <https://github.com/INGEOTEC/text_models/releases/download/models/fr_2.4.2.microtc>`_
-* `Portuguese <https://github.com/INGEOTEC/text_models/releases/download/models/pt_2.4.2.microtc>`_
-* `Russian <https://github.com/INGEOTEC/text_models/releases/download/models/ru_2.4.2.microtc>`_
-* `Spanish <https://github.com/INGEOTEC/text_models/releases/download/models/es_2.4.2.microtc>`_
+* `Arabic (ar) <https://github.com/INGEOTEC/text_models/releases/download/models/ar_2.4.2.microtc>`_
+* `Chinese (zh) <https://github.com/INGEOTEC/text_models/releases/download/models/zh_2.4.2.microtc>`_ 
+* `English (en) <https://github.com/INGEOTEC/text_models/releases/download/models/en_2.4.2.microtc>`_
+* `French (fr) <https://github.com/INGEOTEC/text_models/releases/download/models/fr_2.4.2.microtc>`_
+* `Portuguese (pt) <https://github.com/INGEOTEC/text_models/releases/download/models/pt_2.4.2.microtc>`_
+* `Russian (ru) <https://github.com/INGEOTEC/text_models/releases/download/models/ru_2.4.2.microtc>`_
+* `Spanish (es) <https://github.com/INGEOTEC/text_models/releases/download/models/es_2.4.2.microtc>`_
 
 
 These representations can be used as follows:
@@ -101,8 +101,10 @@ alone, i.e., the text contains only one emoji.
 The second step is to use the labeled dataset and the BoW model with a classifier; 
 it was decided to use a Linear Support Vector Machine 
 (implemented in `sklearn.svm.LinearSVC`). The methodology used is one versus the rest. 
-The positive class corresponds to 262,144 tweets containing only the label at hand, 
+The positive class corresponds to a maximum of 262,144 tweets containing only the label at hand, 
 whereas the negative class corresponds to 262,144 randomly selected from the other labels. 
+If there are not enough tweets, then it is used as many tweets as possible 
+as long as the set contains the same number of positive and negative examples. 
 For the negative class, only tweets with unique labels are used; however, 
 if there are not enough, it is allowed to use tweets with multiple labels as long as 
 it does not contain the positive class. 
@@ -115,16 +117,70 @@ of the emoji identified with index 0.
 >>> emo = load_emoji(lang='en', emoji=0)
 >>> X = bow.transform(['This is funny', 'This is sad'])
 >>> emo.decision_function(X)
-array([ 0.97302326, -0.4441671 ])
+array([ 1.01405812, -0.41814145])
+
+The function :py:func:`~text_models.utils.emoji_information` 
+can be used to know the available emojis. 
+The information is stored in a dictionary where the keys are emojis, 
+and values contain additional information such as the performance (i.e., recall), 
+the number of examples of the possitive class (i.e., number), 
+and the identifier (i.e., emoji). The following code shows an example:
+
+>>> from text_models.utils import emoji_information
+>>> emoji = emoji_information(lang='es')
+>>> emoji['🇲🇽']
+{'recall': 0.722301474084641, 'emoji': 133, 'number': 18413}
 
 .. _dataset:
 
 Dataset Text Representation
 ---------------------------------
 
+The idea of Dataset Text Representation is, on the one hand, to increase the number 
+of representations and, on the other, to test their impact on the performance 
+of a text classifier. 
+
+The datasets used are in Arabic, Chinese, English, and Spanish; 
+these are text categorization problems taken from competitions such as
+SemEval, TASS, and IberLEF, among others. 
+
+The models were created using the approach one versus the rest, 
+even when there are only two classes. Consequently, in a binary problem, 
+there will be two models corresponding to each class being the positive class. 
+
+The function :py:func:`~text_models.utils.dataset_information` can be used
+to know which are the available datasets. It returns a dictionary where the
+the keys correspond to the dataset names and the values are the labels. 
+
+>>> from text_models.utils import dataset_information
+>>> dataset = dataset_information(lang='es')
+>>> dataset['HA']
+array(['negative', 'neutral', 'positive'], dtype='<U8')
+
+The model can be retrieved using the function :py:func:`~text_models.utils.load_dataset`
+that requieres its name and the class index one wishes to use. 
+For example, to use the *HA* model
+for the *positive* label, the following code can be used:
+
+>>> from text_models.utils import load_dataset, load_bow
+>>> bow = load_bow(lang='es')
+>>> ha = load_dataset(name='HA', k=2)
+>>> X = bow.transform(['Buenos días', 'Estoy triste y enojado'])
+>>> ha.decision_function(X)
+array([ 1.16582005, -0.10821308])
+
+where the examples are *Buenos días* (Good morning) 
+and *Estoy triste y enojado* (I am sad and angry) correspond to a correct
+classification. 
 
 Dataset and Emoji Text Representations
 ------------------------------------------
+
+Considering that there is a linear model for each emoji and dataset, it is feasible 
+to visualize them with the aim of learning more about the similarities and differences 
+between the models. 
+
+Before starting the comparison, let us load the libraries used in the procedure. 
 
 >>> from text_models.utils import load_bow, load_emoji, emoji_information, dataset_information, load_dataset
 >>> from sklearn.metrics.pairwise import cosine_distances
@@ -134,37 +190,50 @@ Dataset and Emoji Text Representations
 >>> from tqdm import tqdm
 >>> import numpy as np
 
->>> def weights(models):
+The models are vectors where each component corresponds to a token; 
+the BoW assigns a weight to each token. 
+These weights are incorporated in the comparison by computing the 
+element-wise product of the coefficients obtained by the SVM (see :py:data:`m.coef_`) 
+and the weight :py:data:`w`. 
+
+>>> def weights(models: list):
 >>> 	bow = load_bow(lang=LANG)
->>> 	w = np.array([bow.token_weight[i]
-					  for i in range(len(bow.token_weight))])
+>>> 	w = np.array([bow.token_weight[i] for i in range(len(bow.token_weight))])
 >>> 	return np.array([m.coef_[0] * w for m in models])
 
+The first step is to download the :ref:`emoji`.
+
 >>> LANG = 'es'
->>> emoji_info = [(k, v['number'], v['recall'])
-				  for k, v in emoji_information(lang=LANG).items()]
->>> emoji_info.sort(key=lambda x: x[1], reverse=True)
+>>> emoji_info = emoji_information(lang=LANG).items()
 >>> emoji_models = Parallel(n_jobs=-1)(delayed(load_emoji)(lang=LANG, emoji=k)
                                        for k in tqdm(range(len(emoji_info))))
 
+The :ref:`dataset` can be retrieved using the following code. 
+
 >>> dataset_info = dataset_information(lang=LANG)
 >>> problems = []
->>> [[problems.append(dict(name=name, lang=LANG, k=k))
-	  for k in range(len(labels))] for name, labels in dataset_info.items()]
+>>> [[problems.append(dict(name=name, lang=LANG, k=k)) for k in range(len(labels))]
+     for name, labels in dataset_info.items()]
 >>> dataset_models = Parallel(n_jobs=-1)(delayed(load_dataset)(**x)
-									     for x in tqdm(problems))
+                                         for x in tqdm(problems))
+
+The representations are stored in :py:data:`emoji_models` and :py:data:`datasets_models`; 
+these contain the coefficients estimated with SVM. The missing step is 
+to use the weights in the BoW model, which is done with :py:func:`weights`. 
+These representations are set to form a matrix where the cosine distance of all 
+the pairs are computed, as can be observed in the following code. 
 
 >>> X = np.vstack([weights(emoji_models), weights(dataset_models)])
 >>> distances = cosine_distances(X)
 
->>> pca = PCA(n_components=2).fit(distances)
+The final step is to visualize :py:data:`X` using :py:class:`~sklearn.decomposition.PCA`
+to reduce the number of dimensions to two. The figure presents in black the emojis 
+and red the datasets. 
 
+>>> pca = PCA(n_components=2).fit(distances)
 >>> for x, y in pca.transform(distances[:len(emoji_info)]):
 >>> 	plt.plot(x, y, 'k.')
 >>> for x, y in pca.transform(distances[len(emoji_models):]):
 >>> 	plt.plot(x, y, 'r.')
-plt.tick_params(axis='both', bottom=False, labelbottom=False, left=False, labelleft=False)
-plt.tight_layout()
-plt.savefig('emoji-dataset-vis.png')
 
 .. image:: emoji-dataset-vis.png
