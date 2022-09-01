@@ -217,6 +217,8 @@ positive class.
       plt.savefig('dataset-wordcloud.png')
 .. image:: dataset-wordcloud.png
 
+.. _dataset-emoji:
+
 Dataset and Emoji Text Representations
 ------------------------------------------
 
@@ -335,6 +337,11 @@ and the rest of the emojis and datasets are in lightgrey.
 	plt.savefig('emoji64-problem.png')
 .. image:: emoji64-problem.png
 
+.. text_categorization:
+
+Text Categorization
+-----------------------------------
+
 The idea is that a figure similar to the one produced above provides information about 
 the performance of a system developed on the text representations used. 
 For example, to complement the example, the following code uses the first 64 emojis 
@@ -360,3 +367,34 @@ array(['P', 'N'], dtype='<U4')
 Work to be done
 ------------------------------
 
+The library aims to serve as a building block to developing Natural Language Processing systems, 
+mainly text categorization, and to facilitate the process of mining events on Twitter.
+Consequently, there are more possible applications and research works than the 
+ones described in this section. This section mainly focuses on possible 
+improvements of complementary methodologies to the analysis and text 
+representations explained. 
+
+One of the first problems that one will encounter while working with emojis and 
+languages that do not have an ASCII representation is that the procedure used
+to create the wordcloud will not display the characters. 
+For example, one can try to replicate the example in Section :ref:`bow` in
+Arabic (ar) and the output would be a cloud filled with boxes which is the 
+the way the library represents those characters that cannot be displayed. 
+
+In Section :ref:`dataset-emoji`, it is used PCA to visualize the distance (cosine)
+matrix of the text representations; however, other procedures can 
+complement this visualization as well as other distance measures. On the other hand,
+the use of the coefficients to represent the models helps to give a general overview of
+the behavior of the models; however, if one is interested in exploring the 
+models in a particular problem might be better to visualize them in terms of the problem.
+That is, the problem dataset can be represented with each model, and then use these
+representations to visualize them. 
+
+Section :ref:`text_representation` presents a system that uses two text representations: 
+the BoW and the 64  more frequent emojis. The section did not include
+a comparison nor present the system performance. Nonetheless, the model opens 
+different research avenues, given the number of text representations available. The
+natural question is how to select those representations that produce the simpler model
+with the best performance. There are two follow-up questions about the 
+procedure used to select the models; could the procedure be supervised or unsupervised?
+That is, the labels of the problem being solved are needed to make a better selection.
