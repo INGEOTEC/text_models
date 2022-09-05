@@ -61,31 +61,17 @@ def data_bow(lang='zh', size=2**19):
 
 def bow(lang='zh', num_terms=2**14):
     tweets = data_bow(lang=lang)
-    token_min_filter = 0
     if lang == 'zh':
         token_list = [1, 2, 3]
         q_grams_words = False
-        # token_min_filter=0.0005
     else:
         token_list = [-1, 2, 3, 4]
         q_grams_words = True
-        # token_min_filter=0.001
     tm = TextModel(token_list=token_list,
-                   token_max_filter=len(tweets),
-                   token_min_filter=token_min_filter, 
+                   token_max_filter=num_terms,
+                   max_dimension=True,
                    q_grams_words=q_grams_words,
                    **TM_ARGS).fit(tweets)
-
-    model = tm.model
-    id2word = {v: k for k, v in model.word2id.items()}
-    N = model._ndocs
-    word_weight = [[N / 2**v , id2word[k]]
-                for k, v in model.wordWeight.items()]
-    word_weight.sort(key=lambda x: x[0], reverse=True)
-    word_weight = word_weight[:num_terms]
-    model.word2id = {token: k for k, (w, token) in enumerate(word_weight)}
-    model.wordWeight = {k: w for k, (w, token) in enumerate(word_weight)}
-
     save_model(tm,
                join('models', f'{lang}_{MICROTC}.microtc'))
     return tm
