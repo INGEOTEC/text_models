@@ -52,7 +52,6 @@ describes the dataset and competition sets used to create text representations.
 Bag of Word (BoW) Representation
 --------------------------------------
 
-
 The first step to including more information in the representation is to be able 
 to represent the text in a format amenable to different machine learning algorithms. 
 Particularly, it is used a BoW representation with q-grams of 
@@ -78,13 +77,29 @@ were kept in the representation. The BoW models for the different languages are 
 These representations can be used as follows:
 
 >>> from text_models.utils import load_bow
->>> bow = load_bow(lang='es')
->>> X = bow.transform(['Hola', 'Está funcionando'])
+>>> bow = load_bow(lang='en')
+>>> X = bow.transform(['Hi', 'It is working'])
 >>> X.shape
 (2, 16384)
 
-where the text *Hola* (*Hi* in English) and *Está funcionando* (*It is working*) 
+where the text *Hi* and *It is working* 
 are transformed into matrix :math:`\mathbb R^{2 \times 16384}`.
+
+The BoW contains words and q-grams; let us depict in a wordcloud the 
+words with the highest weight; this can be done with the following code.  
+
+>>> from matplotlib import pylab as plt
+>>> from wordcloud import WordCloud
+>>> _ = {bow.id2token[id]: w for id, w in bow.token_weight.items()}
+>>> words = {k: v for k, v in _.items() if k[:2] != 'q:'}
+>>> word_cloud = WordCloud().generate_from_frequencies(words)
+>>> plt.imshow(word_cloud, interpolation='bilinear')
+>>> plt.axis("off")
+
+.. 
+      plt.tight_layout()
+      plt.savefig('bow-wordcloud.png')
+.. image:: bow-wordcloud.png
 
 .. _emoji:
 
@@ -114,22 +129,37 @@ of the emoji identified with index 0.
 
 >>> from text_models.utils import load_bow, load_emoji
 >>> bow = load_bow(lang='en')
->>> emo = load_emoji(lang='en', emoji=0)
->>> X = bow.transform(['This is funny', 'This is sad'])
+>>> emo = load_emoji(lang='en', emoji=2)
+>>> X = bow.transform(['This is funny', 'This is lovely'])
 >>> emo.decision_function(X)
-array([ 1.01405812, -0.41814145])
+array([-0.89521935,  0.46341599])
 
 The function :py:func:`~text_models.utils.emoji_information` 
 can be used to know the available emojis. 
 The information is stored in a dictionary where the keys are emojis, 
 and values contain additional information such as the performance (i.e., recall), 
-the number of examples of the possitive class (i.e., number), 
+the number of examples of the positive class (i.e., number), 
 and the identifier (i.e., emoji). The following code shows an example:
 
 >>> from text_models.utils import emoji_information
->>> emoji = emoji_information(lang='es')
->>> emoji['🇲🇽']
-{'recall': 0.722301474084641, 'emoji': 133, 'number': 18413}
+>>> emoji = emoji_information(lang='en')
+>>> emoji['❤️']
+{'recall': 0.6546198309081498, 'emoji': 2, 'number': 673530}
+
+Complementing the previous wordcloud, the following code computes a wordcloud 
+of the words that contribute the most to decide the positive class. 
+
+>>> w = emo.coef_[0]
+>>> _ = {bow.id2token[id]: _w * w[id] for id, _w in bow.token_weight.items() if w[id] > 0}
+>>> words = {k: v for k, v in _.items() if k[:2] != 'q:'}
+>>> word_cloud = WordCloud().generate_from_frequencies(words)
+>>> plt.imshow(word_cloud, interpolation='bilinear')
+>>> plt.axis("off")
+
+.. 
+      plt.tight_layout()
+      plt.savefig('emoji-wordcloud.png')
+.. image:: emoji-wordcloud.png
 
 .. _dataset:
 
@@ -153,7 +183,7 @@ to know which are the available datasets. It returns a dictionary where the
 the keys correspond to the dataset names and the values are the labels. 
 
 >>> from text_models.utils import dataset_information
->>> dataset = dataset_information(lang='es')
+>>> dataset = dataset_information(lang='en')
 >>> dataset['HA']
 array(['negative', 'neutral', 'positive'], dtype='<U8')
 
@@ -163,15 +193,31 @@ For example, to use the *HA* model
 for the *positive* label, the following code can be used:
 
 >>> from text_models.utils import load_dataset, load_bow
->>> bow = load_bow(lang='es')
->>> ha = load_dataset(name='HA', k=2)
->>> X = bow.transform(['Buenos días', 'Estoy triste y enojado'])
+>>> bow = load_bow(lang='en')
+>>> ha = load_dataset(lang='en', name='HA', k=2)
+>>> X = bow.transform(['Good moorning!', 'It is a cold and rainy day'])
 >>> ha.decision_function(X)
-array([ 1.16582005, -0.10821308])
+array([ 0.8267016, -0.1237163])
 
-where the examples are *Buenos días* (Good morning) 
-and *Estoy triste y enojado* (I am sad and angry) correspond to a correct
-classification. 
+where the examples presented correspond to a correct
+classification. Following an equivalent procedure to the one used 
+to compute the emoji's wordcloud, on this occassion, 
+it is computed the wordcloud of the dataset *HA* on the 
+positive class.
+
+>>> w = ha.coef_[0]
+>>> _ = {bow.id2token[id]: _w * w[id] for id, _w in bow.token_weight.items() if w[id] > 0}
+>>> words = {k: v for k, v in _.items() if k[:2] != 'q:'}
+>>> word_cloud = WordCloud().generate_from_frequencies(words)
+>>> plt.imshow(word_cloud, interpolation='bilinear')
+>>> plt.axis("off")
+
+.. 
+      plt.tight_layout()
+      plt.savefig('dataset-wordcloud.png')
+.. image:: dataset-wordcloud.png
+
+.. _dataset-emoji:
 
 Dataset and Emoji Text Representations
 ------------------------------------------
@@ -196,8 +242,8 @@ These weights are incorporated in the comparison by computing the
 element-wise product of the coefficients obtained by the SVM (see :py:data:`m.coef_`) 
 and the weight :py:data:`w`. 
 
->>> def weights(models: list):
->>> 	bow = load_bow(lang=LANG)
+>>> def weights(models: list, lang: str):
+>>> 	bow = load_bow(lang=lang)
 >>> 	w = np.array([bow.token_weight[i] for i in range(len(bow.token_weight))])
 >>> 	return np.array([m.coef_[0] * w for m in models])
 
@@ -223,7 +269,7 @@ to use the weights in the BoW model, which is done with :py:func:`weights`.
 These representations are set to form a matrix where the cosine distance of all 
 the pairs are computed, as can be observed in the following code. 
 
->>> X = np.vstack([weights(emoji_models), weights(dataset_models)])
+>>> X = np.vstack([weights(emoji_models, lang=LANG), weights(dataset_models, lang=LANG)])
 >>> distances = cosine_distances(X)
 
 The final step is to visualize :py:data:`X` using :py:class:`~sklearn.decomposition.PCA`
@@ -236,10 +282,14 @@ and red the datasets.
 >>> for x, y in pca.transform(distances[len(emoji_models):]):
 >>> 	plt.plot(x, y, 'r.')
 
+.. 
+     	plt.tick_params(axis='both', bottom=False, labelbottom=False, left=False, labelleft=False)
+      plt.tight_layout()
+      plt.savefig('emoji-dataset-vis.png')
 .. image:: emoji-dataset-vis.png
 
 Example
-------------------------------------
+~~~~~~~~~~~~~~~~~~
 
 Let us assume that there is a text classification problem that one wants to 
 visualize using the above procedure. The first step is to load the libraries 
@@ -285,8 +335,12 @@ and the rest of the emojis and datasets are in lightgrey.
 	plt.tick_params(axis='both', bottom=False, labelbottom=False, left=False, labelleft=False)
 	plt.tight_layout()
 	plt.savefig('emoji64-problem.png')
-
 .. image:: emoji64-problem.png
+
+.. text_categorization:
+
+Text Categorization
+-----------------------------------
 
 The idea is that a figure similar to the one produced above provides information about 
 the performance of a system developed on the text representations used. 
@@ -305,7 +359,42 @@ These representations are combined using a stack generalization approach
                          TR=False).fit(D, [x['klass'] for x in D])
 
 The final step is to use the model to predict; the next code predicts two sentences
-in Spanish used in a previous example. 
+in Spanish, i.e., *Good moorning!* and *It is a cold and rainy day*. 
 
->>> evomsa.predict(['Buenos días', 'Estoy triste y enojado'])
-array(['P', 'N'], dtype='<U4')						 
+>>> evomsa.predict(['Buenos días!', 'Es un día frío y lluvioso']) 
+array(['P', 'N'], dtype='<U4')
+
+Work to be done
+------------------------------
+
+The library aims to serve as a building block to developing Natural Language Processing systems, 
+mainly text categorization, and to facilitate the process of mining events on Twitter.
+Consequently, there are more possible applications and research works than the 
+ones described in this section. This section mainly focuses on possible 
+improvements of complementary methodologies to the analysis and text 
+representations explained. 
+
+One of the first problems that one will encounter while working with emojis and 
+languages that do not have an ASCII representation is that the procedure used
+to create the wordcloud will not display the characters. 
+For example, one can try to replicate the example in Section :ref:`bow` in
+Arabic (ar) and the output would be a cloud filled with boxes which is the 
+the way the library represents those characters that cannot be displayed. 
+
+In Section :ref:`dataset-emoji`, it is used PCA to visualize the distance (cosine)
+matrix of the text representations; however, other procedures can 
+complement this visualization as well as other distance measures. On the other hand,
+the use of the coefficients to represent the models helps to give a general overview of
+the behavior of the models; however, if one is interested in exploring the 
+models in a particular problem might be better to visualize them in terms of the problem.
+That is, the problem dataset can be represented with each model, and then use these
+representations to visualize them. 
+
+Section :ref:`text_representation` presents a system that uses two text representations: 
+the BoW and the 64  more frequent emojis. The section did not include
+a comparison nor present the system performance. Nonetheless, the model opens 
+different research avenues, given the number of text representations available. The
+natural question is how to select those representations that produce the simpler model
+with the best performance. There are two follow-up questions about the 
+procedure used to select the models; could the procedure be supervised or unsupervised?
+That is, the labels of the problem being solved are needed to make a better selection.
