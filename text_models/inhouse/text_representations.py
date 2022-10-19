@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from text_models.utils import TM_ARGS, MICROTC, load_bow
+from text_models.utils import TM_ARGS, MICROTC
+from EvoMSA.utils import load_bow
 from text_models.dataset import Dataset
 from microtc import TextModel
 from microtc.utils import load_model, save_model, tweet_iterator

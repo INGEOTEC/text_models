@@ -76,7 +76,7 @@ were kept in the representation. The BoW models for the different languages are 
 
 These representations can be used as follows:
 
->>> from text_models.utils import load_bow
+>>> from EvoMSA.utils import load_bow
 >>> bow = load_bow(lang='en')
 >>> X = bow.transform(['Hi', 'It is working'])
 >>> X.shape
@@ -127,7 +127,7 @@ it does not contain the positive class.
 The following code uses the emoji representation in English using only the representation 
 of the emoji identified with index 0. 
 
->>> from text_models.utils import load_bow, load_emoji
+>>> from EvoMSA.utils import load_bow, load_emoji
 >>> bow = load_bow(lang='en')
 >>> emo = load_emoji(lang='en', emoji=2)
 >>> X = bow.transform(['This is funny', 'This is lovely'])
@@ -192,7 +192,7 @@ that requieres its name and the class index one wishes to use.
 For example, to use the *HA* model
 for the *positive* label, the following code can be used:
 
->>> from text_models.utils import load_dataset, load_bow
+>>> from EvoMSA.utils import load_dataset, load_bow
 >>> bow = load_bow(lang='en')
 >>> ha = load_dataset(lang='en', name='HA', k=2)
 >>> X = bow.transform(['Good moorning!', 'It is a cold and rainy day'])
@@ -228,7 +228,7 @@ between the models.
 
 Before starting the comparison, let us load the libraries used in the procedure. 
 
->>> from text_models.utils import load_bow, load_emoji, emoji_information, dataset_information, load_dataset
+>>> from EvoMSA.utils import load_bow, load_emoji, emoji_information, dataset_information, load_dataset
 >>> from sklearn.metrics.pairwise import cosine_distances
 >>> from sklearn.decomposition import PCA
 >>> from matplotlib import pylab as plt
