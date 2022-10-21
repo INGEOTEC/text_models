@@ -1,6 +1,6 @@
 .. _perf_dataset_repr:
 
-Performance Dataset Representation
+Performance Dataset Representations
 ==========================================
 
 .. image:: https://github.com/INGEOTEC/text_models/actions/workflows/test.yaml/badge.svg
@@ -69,6 +69,16 @@ Then, the performance, e.g., recall is computed as:
 
 >>> recall_score(y, hy)
 
+The performance includes the estimated standard error, this is 
+computed using bootstrap on the test set, asumming that the 
+training and the model are kept constant. The following code
+was used to estimate it.
+
+>>> B = []
+>>> for s in np.random.randint(y.shape[0], size=(500, y.shape[0])):
+>>>     _ = recall_score(y[s], hy[s])
+>>>     B.append(_)
+>>> np.std(B)
 
 Spanish
 ----------------------
@@ -141,6 +151,8 @@ Spanish
 	  - :math:`0.7735 \pm 0.0227`
 	  - :math:`0.7108 \pm 0.0236`
 
+`Overview of the HAHA Task <http://ceur-ws.org/Vol-2150/overview-HAHA.pdf>`_ [HAHA]_ 
+
 .. list-table:: haha2018
 	:header-rows: 1
 
@@ -189,6 +201,8 @@ Spanish
 	  - :math:`0.4866 \pm 0.0286`
 	  - :math:`0.6502 \pm 0.0322`
 
+`Overview of MEX-A3T at IberEval 2018 <http://ceur-ws.org/Vol-2150/overview-mex-a3t.pdf>`_ [MEX-A3T]_
+
 .. list-table:: mexa3t2018_aggress
 	:header-rows: 1
 
@@ -200,6 +214,8 @@ Spanish
 	  - :math:`0.6866 \pm 0.0133`
 	  - :math:`0.6455 \pm 0.0166`
 	  - :math:`0.7333 \pm 0.0156`
+
+`Overview of the Task on Automatic Misogyny Identification at IberEval 2018 <http://ceur-ws.org/Vol-2150/overview-AMI.pdf>`_ [AMI]_
 
 .. list-table:: misoginia
 	:header-rows: 1
@@ -224,6 +240,8 @@ Spanish
 	  - :math:`0.8882 \pm 0.0088`
 	  - :math:`0.8925 \pm 0.0110`
 	  - :math:`0.8840 \pm 0.0114`
+
+`SemEval-2018 Task 1: Affect in tweets <https://www.aclweb.org/anthology/S18-1001/>`_ [Task-1]_ 
 
 .. list-table:: semeval2018_anger
 	:header-rows: 1
@@ -357,6 +375,8 @@ Spanish
 	  - :math:`0.8431 \pm 0.0510`
 	  - :math:`0.2704 \pm 0.0369`
 
+`Overview of TASS 2017 <http://ceur-ws.org/Vol-1896/p0_overview_tass2017.pdf>`_ [TASS2017-2016]_
+
 .. list-table:: tass2016
 	:header-rows: 1
 
@@ -404,6 +424,9 @@ Spanish
 	  - :math:`0.5691 \pm 0.0316`
 	  - :math:`0.6859 \pm 0.0389`
 	  - :math:`0.4864 \pm 0.0337`
+
+
+`Overview of TASS 2018: Opinions, health and emotions <http://ceur-ws.org/Vol-2172/p0_overview_tass2018.pdf>`_ [TASS2018]_
 
 .. list-table:: tass2018_s1_l1
 	:header-rows: 1
@@ -1582,3 +1605,72 @@ Chinese
 	  - :math:`0.9289 \pm 0.0023`
 	  - :math:`0.8834 \pm 0.0028`
 
+
+References
+------------------------
+
+.. [Human-Annotated] Igor Mozetic, Miha Grcar, and Jasmina
+                     Smailovic. Multilingual Twitter sentiment
+                     classification: The role of human
+                     annotators. PloS one, 11(5):1–26, May 2016.
+
+.. [Task-4] S. Rosenthal, N. Farra, and P. Nakov, SemEval-2017 Task
+	    4: Sentiment analysis in Twitter, in Proc. of the 11th
+	    International Workshop on Semantic Evaluation. ACL,
+	    Aug. 2017, pp. 502–518.
+
+.. [Task-1] S. M. Mohammad, F. Bravo-Marquez, M. Salameh,
+	    and S. Kiritchenko, SemEval-2018 Task 1: Affect in
+	    tweets, in Proc. of the 12th International Workshop on
+	    Semantic Evaluation. ACL, June 2018, pp. 1–17.
+
+.. [TASS2017-2016] Eugenio Martınez-Camara, Manuel C Dıaz-Galiano, Angel
+              Garcıa-Cumbreras, Manuel Garcıa-Vega, and Julio
+              Villena-Roman. Overview of TASS 2017. CEUR Workshop
+              Proceedings, 1896:13–21, Sept. 2017.
+
+.. [TASS2018] Eugenio Martınez-Camara, Yudivin Almeida-Cruz, Manuel
+              Carlos Dıaz-Galiano, Suilan Estevez-Velarde, Migue A
+              Garcıa-Cumbreras, Manuel Garcıa-Vega, Yoan Gutierrez,
+              Arturo Montejo-Raez, Andrs Montoyo, Rafael Munoz,
+              Alejandro Piad-Morffis, and Julio
+              Villena-Roman. Overview of TASS 2018: Opinions, health
+              and emotions. CEUR Workshop Proceedings, 2172:13–27,
+              Sept. 2018.
+
+.. [MEX-A3T] Miguel A Alvarez-Carmona, Estefana Guzman-Falcon, Manuel
+             Montes-Y-Gomez, Hugo Jair Escalante, Luis Villasenor
+             Pineda, Vernica Reyes-Meza, and Antonio
+             Rico-Sulayes. Overview of MEX-A3T at IberEval 2018:
+             Authorship and aggressiveness analysis in Mexican Spanish
+             tweets. CEUR Workshop Proceedings, 2150:74–96, Sept. 2018
+
+.. [HAHA] Santiago Castro, Luis Chiruzzo, and Aiala Rosa. Overview of
+          the HAHA Task: Humor analysis based on human annotation at
+          IberEval 2018. CEUR Workshop Proceedings, 2150:187–194,
+          Sept. 2018.
+
+.. [AMI] E. Fersini1, P. Rosso2, and M. Anzovino1. Overview of the
+         Task on Automatic Misogyny Identification at
+         IberEval 2018. CEUR Workshop Proceedings, 2150:214-228,
+         Sept. 2018.
+
+.. [SS] Mike Thelwall, Kevan Buckley, and Georgios
+        Paltoglou. Sentiment strength detection forthe social
+        web. Journal of the American Society for Information Science
+        and Technology, 63(1):163–173, Jan. 2012.
+	
+.. [SCv1] Marilyn Walker, Jean Fox Tree, Pranav Anand, Rob Abbott, and
+           Joseph King. A corpus forresearch on deliberation and
+           debate.  InProceedings of the Eighth International
+           Conferenceon Language Resources and Evaluation (LREC'12),
+           pages 812–817, Istanbul, Turkey, May2012. European Language
+           Resources Association (ELRA).
+	   
+.. [SCv2-GEN] Shereen Oraby, Vrindavan Harrison, Lena Reed, Ernesto
+              Hernandez, Ellen Riloff, and Marilyn Walker. Creating
+              and characterizing a diverse corpus of sarcasm in
+              dialogue.  InProceedingsof the 17th Annual Meeting of
+              the Special Interest Group on Discourse and Dialogue,
+              pages31–41, Los Angeles, September 2016. Association for
+              Computational Linguistics
