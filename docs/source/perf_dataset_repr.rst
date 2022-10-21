@@ -25,9 +25,53 @@ Performance Dataset Representation
       :target: https://text-models.readthedocs.io/en/latest/?badge=latest
       :alt: Documentation Status
 
+This section presents the performance of the :ref:`dataset`; however,
+there are more representations in the library than the ones presented here.
+This difference is because the test set for some datasets is not available.
+
+The performance is computed using the available test set, whereas
+the training set was used to develop the model.
+The performance measures used are score f1, recall, and precision. 
+The characteristic is that the performance values are presented for each class. 
+In the binary case, the values correspond to the positive class. 
+In the multiclass case, each label was treated as the positive class,
+and the remaining ones were treated as the negatives; therefore,
+there is a set of measurements per class. 
+
+The procedure used to compute the performance is the following. 
+The first step is to import the necessary libraries
+
+>>> from EvoMSA.evodag import BoW
+>>> from EvoMSA.utils import load_dataset
+>>> from microtc.utils import tweet_iterator
+>>> from sklearn.metrics import f1_score, recall_score, precision_score
+>>> import numpy as np
+
+These steps are followed by instantiating the text representation; 
+it is used as an example the `Delitos <https://ingeotec.github.io/Delitos>`_
+dataset. 
+
+>>> bow = BoW(lang='es')
+>>> bow.estimator_instance = load_dataset(lang='es', name='delitos_ingeotec', k=1)
+
+Assuming the dataset is in a JSON format and that it contains a keyword 
+`text`; the predictions are computed as follows. 
+
+>>> Dtest = list(tweet_iterator('delitos_test.json'))
+>>> hy = bow.predict(Dtest)
+
+The next step is to compute the performance, the first step
+is to retrieved the ground truth, i.e., 
+
+>>> y = np.array([x['label'] for x in Dtest])
+
+Then, the performance, e.g., recall is computed as:
+
+>>> recall_score(y, hy)
+
 
 Spanish
-==========================
+----------------------
 
 .. list-table:: MeTwo
 	:header-rows: 1
@@ -398,7 +442,7 @@ Spanish
 	  - :math:`0.6937 \pm 0.0254`
 
 English
-=======================
+----------------------
 
 .. list-table:: SCv1
 	:header-rows: 1
@@ -1241,7 +1285,7 @@ English
 	  - :math:`0.7143 \pm 0.0982`
 
 Arabic
-====================
+----------------------
 
 .. list-table:: semeval2017
 	:header-rows: 1
@@ -1408,7 +1452,7 @@ Arabic
 	  - :math:`0.3048 \pm 0.0349`
 
 Chinese
-=======================
+----------------------
 
 .. list-table:: NLPCC2013_emotion
 	:header-rows: 1
