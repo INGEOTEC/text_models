@@ -328,16 +328,52 @@ class TokenCount(object):
                 yield x
         return cls(tokenizer=co_ocurrence)
 
+class Place(object):
+    """
+    >>> tweet = {'place': {'country_code': 'MX', 'bounding_box': {'type': 'Polygon', 'coordinates': [[[-99.067766, 19.366862], [-99.067766, 19.498582], [-98.966267, 19.498582], [-98.966267, 19.366862]]]}}}
+    >>> place = Place()
+    >>> place(tweet)
+    'MX-MEX'
+    """
+    def __init__(self) -> None:
+        self._label = BoundingBox().label
+        _ = join(dirname(__file__), "data", "state.dict")
+        self._states = load_model(_)
+
+    def __call__(self, tweet: dict) -> Union[str, None]:
+        label = self._label
+        states = self._states
+        country = None
+        try:
+            place = tweet.get('place', dict())
+            if place is None:
+                return None
+            country = place['country_code']
+        except KeyError:
+            return None
+        if country is None or not len(country):
+            return None
+        try:
+            geo = label(dict(position=location(tweet), country=country))
+        except Exception:
+            return country
+        try:
+            geo = states[geo]
+        except KeyError:
+            return country
+        return geo
+        
 
 class GeoFrequency(object):
     def __init__(self, fnames: Union[list, str],
                        reader: Callable[[str], Iterable[dict]]=tweet_iterator) -> None:
         self._fnames = fnames if isinstance(fnames, list) else [fnames]
         self._reader = reader
-        self._label = BoundingBox().label
+        self._place = Place()
+        # self._label = BoundingBox().label
         self._data = defaultdict(TokenCount.single_co_ocurrence)
-        _ = join(dirname(__file__), "data", "state.dict")
-        self._states = load_model(_)
+        # _ = join(dirname(__file__), "data", "state.dict")
+        # self._states = load_model(_)
 
     @property
     def data(self) -> defaultdict:
@@ -352,23 +388,27 @@ class GeoFrequency(object):
             self.compute_file(fname)
 
     def compute_file(self, fname: str) -> None:
-        label = self._label
-        states = self._states
+        # label = self._label
+        # states = self._states
+        place = self._place
         data = self.data
         for line in self._reader(fname):
-            try:
-                country, geo = None, None
-                country = line["place"]["country_code"]
-                geo = label(dict(position=location(line), country=country))
-                geo = states[geo]
-            except Exception:
-                pass
-            if geo is not None:
-                data[geo].process_line(line)
-            elif country is not None:
-                data[country].process_line(line)
-            else:
-                data["nogeo"].process_line(line)
+            geo = place(line)
+            key = geo if geo is not None else 'nogeo'
+            data[key].process_line(line)
+            # try:
+            #     country, geo = None, None
+            #     country = line["place"]["country_code"]
+            #     geo = label(dict(position=location(line), country=country))
+            #     geo = states[geo]
+            # except Exception:
+            #     pass
+            # if geo is not None:
+            #     data[geo].process_line(line)
+            # elif country is not None:
+            #     data[country].process_line(line)
+            # else:
+            #     data["nogeo"].process_line(line)
 
     def clean(self) -> None:
         keys = list(self.data.keys())
