@@ -27,9 +27,9 @@ import random
 JSON = join(dirname(__file__), '..', '..', 'data', '*.json')
 
 
-def num_tweets_language(lang='es'):
+def num_tweets_language(lang='es', path=JSON):
     output = []
-    for fname in glob(JSON):
+    for fname in glob(path):
         data = list(tweet_iterator(fname))[0].get(lang, None)
         if data is None:
             continue
@@ -101,6 +101,12 @@ def emo_data(lang='zh'):
     ds.add(ds.load_emojis())
     for fname in fnames:
         output = dict()
+        output_fname = join(dirname(fname), 'emo')
+        if not isdir(output_fname):
+            os.mkdir(output_fname)
+        output_fname = join(output_fname, basename(fname))
+        if isfile(output_fname):
+            continue
         for key, tweets in load_model(fname).items():
             labels = [ds.klass(x['text']) for x in tweets]
             inner = []
@@ -113,10 +119,6 @@ def emo_data(lang='zh'):
                 output[key] = inner
         if len(output) == 0:
             continue
-        output_fname = join(dirname(fname), 'emo')
-        if not isdir(output_fname):
-            os.mkdir(output_fname)
-        output_fname = join(output_fname, basename(fname))
         save_model(output, output_fname)
 
 
@@ -143,6 +145,7 @@ def create_test(lang='zh', n_jobs=16):
 #     from joblib import delayed, Parallel
 #     LANG = 'zh'
 #     data = num_tweets_language(lang=LANG)
+#     # data = [[x, _] for x, _ in data if not (isfile('data/zh/test/{:d}{:02d}{:02d}.gz'.format(x['year'], x['month'], x['day'])) or isfile('data/zh/{:d}{:02d}{:02d}.gz'.format(x['year'], x['month'], x['day'])))]
 #     days = choose(data)
 #     create_output_path(LANG)
 #     fnames = Parallel(n_jobs=32)(delayed(store_tweets)(LANG, day) for day, _ in days)
