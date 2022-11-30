@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from text_models.utils import TM_ARGS, MICROTC, load_bow
+from text_models.utils import TM_ARGS, MICROTC
+from EvoMSA.utils import load_bow
 from text_models.dataset import Dataset
 from microtc import TextModel
 from microtc.utils import load_model, save_model, tweet_iterator
@@ -192,6 +193,12 @@ def dataset(lang, fname, name):
         return labels
     tm = load_bow(lang=lang)
     X = tm.transform(D)
+    if labels.shape[0] == 2:
+        m = LinearSVC().fit(X, [x['klass'] for x in D])
+        k = 1
+        output = join('models', f'{lang}_{name}_{k}_muTC{MICROTC}')    
+        save_model(m, f'{output}.LinearSVC')
+        return labels
     for k, label in enumerate(labels):
         output = join('models', f'{lang}_{name}_{k}_muTC{MICROTC}')    
         pos_index = np.array([i for i, x in enumerate(D) if x['klass'] == label])
