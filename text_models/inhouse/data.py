@@ -14,15 +14,17 @@
 
 from text_models.inhouse.reader import TweetIterator
 from text_models.dataset import GeoFrequency, Dataset
+from text_models.utils import TM_ARGS
 from microtc.utils import tweet_iterator, save_model, load_model
-import os
+from microtc import TextModel
+from EvoMSA.evodag import BoW
 from os.path import join, dirname, basename, isdir, isfile
 from glob import glob
-from microtc import TextModel
-from text_models.utils import TM_ARGS
 from collections import defaultdict
 from joblib import delayed, Parallel
 import random
+import os
+
 
 JSON = join(dirname(__file__), '..', '..', 'data', '*.json')
 
@@ -120,6 +122,40 @@ def emo_data(lang='zh'):
         if len(output) == 0:
             continue
         save_model(output, output_fname)
+
+
+def keywords_data(lang='zh'):
+    fnames = glob(join('data', lang, '*.gz'))
+    bow = BoW(lang=lang)
+    if lang == 'zh':
+        keywords = [x for x in bow.bow.token2id.keys() if len(x[2:]) == 1]
+    else:
+        keywords = [x for x in bow.bow.token2id.keys() if x[:2] != 'q:']
+    ds = Dataset(text_transformations=True if lang != 'zh' else False)
+    tt = bow.bow.text_transformations if lang != 'zh' else lambda x: x
+    ds.add({tt(x): True for x in keywords}) 
+    ds._tm = bow.bow
+    for fname in fnames:
+        output = dict()
+        output_fname = join(dirname(fname), 'keywords')
+        if not isdir(output_fname):
+            os.mkdir(output_fname)
+        output_fname = join(output_fname, basename(fname))
+        if isfile(output_fname):
+            continue
+        for key, tweets in load_model(fname).items():
+            labels = [ds.klass(x['text']) for x in tweets]
+            inner = []
+            for tweet, label in zip(tweets, labels):
+                if len(label) == 0:
+                    continue
+                tweet['klass'] = label
+                inner.append(tweet)
+            if len(inner):
+                output[key] = inner
+        if len(output) == 0:
+            continue
+        save_model(output, output_fname)        
 
 
 def create_test(lang='zh', n_jobs=16):

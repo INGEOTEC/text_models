@@ -34,30 +34,36 @@ data.JSON = join(dirname(__file__), '..', '..', 'data', '*.json')
 
 
 def data_bow(lang='zh', size=2**19):
-    num_tweets = {'{year}{month:02d}{day:02d}.gz'.format(**k): v 
-                  for k, v in num_tweets_language(lang=lang)}
-    files = [[num_tweets[basename(x)], x] for x in glob(join('data', lang, '*.gz'))]
-    files.sort(key=lambda x: x[0])
-    files = [x[1] for x in files]
-    per_file = size / len(files)
-    output = []
-    for k, file in tqdm(enumerate(files), total=len(files)):
-        tweets = load_model(file)
-        [shuffle(tweets[key]) for key in tweets]
-        cnt = [[key, len(tweets[key])] for key in tweets]
-        cnt.sort(key=lambda x: x[1])
-        per_place = int(np.ceil(per_file // len(cnt)))
-        prev = len(output)
-        for i, (key, n) in enumerate(cnt):
-            _ = [x['text'] for x in tweets[key][:per_place]]
-            output.extend(_)
-            if len(_) < per_place and i < len(cnt) - 1:
-                per_place += int(np.ceil((per_place - len(_)) / (len(cnt) - (i + 1))))
-        inc = len(output) - prev
-        if inc < per_file and k < len(files) - 1:
-            per_file += (per_file - inc) / (len(files) - (k + 1))
-    shuffle(output)        
-    return output
+    D = []
+    for tweet in tweet_iterator(join('data', lang, 'dataset.gz')):
+        D.append(tweet)
+        if len(D) >= size:
+            return D
+    return D
+    # num_tweets = {'{year}{month:02d}{day:02d}.gz'.format(**k): v 
+    #               for k, v in num_tweets_language(lang=lang)}
+    # files = [[num_tweets[basename(x)], x] for x in glob(join('data', lang, '*.gz'))]
+    # files.sort(key=lambda x: x[0])
+    # files = [x[1] for x in files]
+    # per_file = size / len(files)
+    # output = []
+    # for k, file in tqdm(enumerate(files), total=len(files)):
+    #     tweets = load_model(file)
+    #     [shuffle(tweets[key]) for key in tweets]
+    #     cnt = [[key, len(tweets[key])] for key in tweets]
+    #     cnt.sort(key=lambda x: x[1])
+    #     per_place = int(np.ceil(per_file // len(cnt)))
+    #     prev = len(output)
+    #     for i, (key, n) in enumerate(cnt):
+    #         _ = [x['text'] for x in tweets[key][:per_place]]
+    #         output.extend(_)
+    #         if len(_) < per_place and i < len(cnt) - 1:
+    #             per_place += int(np.ceil((per_place - len(_)) / (len(cnt) - (i + 1))))
+    #     inc = len(output) - prev
+    #     if inc < per_file and k < len(files) - 1:
+    #         per_file += (per_file - inc) / (len(files) - (k + 1))
+    # shuffle(output)        
+    # return output
 
 
 def bow(lang='zh', num_terms=2**14):
@@ -79,66 +85,53 @@ def bow(lang='zh', num_terms=2**14):
 
 
 def count_emo(lang='zh'):
-    fnames = glob(join('data', lang, 'emo', '*.gz'))
+    fname = join('data', lang, 'emo', 'dataset.gz')
     cnt = Counter()
-    for fname in fnames:
-        for key, data in load_model(fname).items():
-            [cnt.update(x['klass'])
-             for x in data if len(x['klass']) == 1]
+    [cnt.update(x['klass'])
+     for x in tweet_iterator(fname) if len(x['klass']) == 1]
     return cnt
 
 
-def emo(k, lang='zh', size=2**19, n_jobs=8):
-    def read_data(fname):
+def _emo(k, lang='zh', size=2**17):
+    def read_data(fname, size):
         P = []
         N = []
-        for key, data in load_model(fname).items():
-            for d in data:
-                klass = d['klass']
-                if len(klass) == 1:
-                    klass = klass.pop()
-                    if klass == pos:
-                        P.append(ds.process(d['text']))
-                    elif klass in neg:
-                        N.append(ds.process(d['text']))
-        shuffle(N)
-        return P, N[:len(P)]
+        for d in tweet_iterator(fname):
+            klass = d['klass']
+            if len(klass) != 1:
+                continue
+            klass = klass.pop()
+            if klass == pos:
+                P.append(ds.process(d['text']))
+            elif klass in neg:
+                N.append(ds.process(d['text']))
+            if len(P) >= size and len(N) >= size:
+                break
+        _min = min(len(P), len(N))
+        return P[:_min], N[:_min]
 
     ds = Dataset(text_transformations=False)
     ds.add(ds.load_emojis())    
     output = join('models', f'{lang}_emo_{k}_muTC{MICROTC}')
     dd = load_model(join('models', f'{lang}_emo.info'))
-    _ = [x for x, v in dd.most_common() if v >= 2**10]
-    tot = sum([v for x, v in dd.most_common() if v >= 2**10])
-    if k >= len(_):
-        return
-    pos = _[k]
-    neg = set([x for i, x in enumerate(_) if i != k])
-    POS, NEG = [], []
-    _ = Parallel(n_jobs=n_jobs)(delayed(read_data)(fname) 
-                                for fname in tqdm(glob(join('data',
-                                                            lang,
-                                                            'emo',
-                                                            '*.gz'))))
-    for P, N in _:
-        POS.extend(P)
-        NEG.extend(N)
-    size2 = size // 2
-    if size2 > len(POS):
-        size2 = len(POS)
-    if size2 > len(NEG):
-        size2 = len(NEG)
-    # assert len(NEG) >= len(POS)
-    shuffle(POS), shuffle(NEG)    
-
-    POS = POS[:size2]
-    NEG = NEG[:len(POS)]
+    labels = [(x, v) for x, v in dd.most_common() if v >= 2**10]
+    pos, size2 = labels[k]
+    neg = set([x for i, (x, v) in enumerate(labels) if i != k])
+    _ = join('data', lang, 'emo', 'dataset.gz')
+    POS, NEG = read_data(_, min(size, size2))
     y = [1] * len(POS) + [-1] * len(NEG)
-    # tm = load_model(join('models', f'{lang}_{MICROTC}.microtc'))
-    tm = load_bow(lang=lang)
+    tm = load_model(join('models', f'{lang}_{MICROTC}.microtc'))
+    # tm = load_bow(lang=lang)
     X = tm.transform(POS + NEG)
     m = LinearSVC().fit(X, y)
     save_model(m, f'{output}.LinearSVC')
+
+
+def emo(lang='it', n_jobs=4):
+    dd = load_model(join('models', f'{lang}_emo.info'))
+    labels = [(x, v) for x, v in dd.most_common() if v >= 2**10]    
+    Parallel(n_jobs=n_jobs)(delayed(_emo)(k, lang=lang)
+                            for k in range(len(labels)))
 
 
 def recall_emo(lang='zh', n_jobs=1):

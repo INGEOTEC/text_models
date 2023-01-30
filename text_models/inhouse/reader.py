@@ -22,7 +22,10 @@ from glob import glob
 
 class TweetIteratorV1(object):
     def __init__(self, lang):
-        self._lang = lang.lower().strip()
+        if lang is not None:
+            self._lang = lang.lower().strip()
+        else:
+            self._lang = lang
 
     def tweet_iterator(self, fname):
         lang = self._lang
@@ -37,7 +40,7 @@ class TweetIteratorV1(object):
                     _ = d.decode('utf-8').split('\t')[1]
                     try:
                         tw = json.loads(_)
-                        if tw.get('lang', '') == lang:
+                        if lang is None or tw.get('lang', '') == lang:
                             try:
                                 text = get_text(tw)
                             except KeyError:
@@ -56,7 +59,7 @@ class TweetIteratorV2(TweetIteratorV1):
     def tweet_iterator(self, fname):
         lang = self._lang        
         for tw in tweet_iterator(fname):
-            if tw.get('lang', '') == lang:
+            if lang is None or tw.get('lang', '') == lang:
                 text = get_text(tw)
                 if text[:2] == 'RT':
                     continue
@@ -89,11 +92,18 @@ class TweetIterator(object):
                         '{:02}'.format(day.month),
                         '{:02}'.format(day.day))
             init_geo_es_en = datetime.datetime(year=2022, month=5, day=12)
-            if lang in ['es', 'en']:
-                files = glob(join(self.path,
-                                  f'{lang}-data',
-                                  date, '*.json.gz'))
-                if day == init_geo_es_en:
+            if lang is None or lang in ['es', 'en']:
+                if lang is None:
+                    files = []
+                    for _lang in ['es', 'en']:
+                        files += glob(join(self.path,
+                                      f'{_lang}-data',
+                                      date, '*.json.gz'))
+                else:
+                    files = glob(join(self.path,
+                                    f'{lang}-data',
+                                    date, '*.json.gz'))
+                if lang is None or day == init_geo_es_en:
                     files.extend(glob(join(self.path,
                                            'GEO-es-en',
                                            date, '*.json.gz')))
@@ -112,9 +122,17 @@ class TweetIterator(object):
                files = glob(join(self.path, 'GEO', date, '*.json.gz'))
             return files
         else:
-            assert lang in ['ru', 'ar', 'es', 'en']
-            path = join(self.path, '{}-prev-data'.format(lang))
-            path = join(path, str(day.year)[-2:],
-                        '{:02}'.format(day.month),
-                        '{:02}'.format(day.day))
-            return glob(join(path, '*.log.gz'))
+            if lang is None:
+                langs = ['ru', 'ar', 'es', 'en']
+            else:
+                assert lang in ['ru', 'ar', 'es', 'en']
+                langs = [lang]
+            ### iterar por lang cuando lang is None
+            files = []
+            for lang in langs:
+                path = join(self.path, '{}-prev-data'.format(lang))
+                path = join(path, str(day.year)[-2:],
+                            '{:02}'.format(day.month),
+                            '{:02}'.format(day.day))
+                files += glob(join(path, '*.log.gz'))
+            return files

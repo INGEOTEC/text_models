@@ -15,6 +15,7 @@ from typing import Callable, Iterable, Union
 from b4msa.textmodel import TextModel
 from microtc.utils import load_model
 from EvoMSA.utils import download
+from EvoMSA import BoW
 from microtc import emoticons
 from collections import OrderedDict, defaultdict
 from microtc.utils import Counter
@@ -24,7 +25,9 @@ from microtc.utils import tweet_iterator
 from text_models.place import BoundingBox, location
 from text_models.utils import get_text, TM_ARGS
 from joblib import Parallel, delayed
+from typing import List
 import random
+import tempfile
 
 
 try:
@@ -62,6 +65,10 @@ class Dataset(object):
         except AttributeError:
             self._tm = TextModel(**TM_ARGS)
         return self._tm
+
+    @textModel.setter
+    def textModel(self, value):
+        self._tm = value
 
     @property
     def text_transformations(self):
@@ -328,6 +335,7 @@ class TokenCount(object):
                 yield x
         return cls(tokenizer=co_ocurrence)
 
+
 class Place(object):
     """
     >>> tweet = {'place': {'country_code': 'MX', 'bounding_box': {'type': 'Polygon', 'coordinates': [[[-99.067766, 19.366862], [-99.067766, 19.498582], [-98.966267, 19.498582], [-98.966267, 19.366862]]]}}}
@@ -422,39 +430,63 @@ class GeoFrequency(object):
             if len(data[key].counter) == 0 or data[key].num_documents <= min_value:
                 del data[key]
 
-class MaskedLMDataset(object):
+
+class SemiSupervisedDataset(object):
     """Create a masked language model
-    >>> from text_models.dataset import Dataset, MaskedLMDataset
-    >>> from EvoMSA.utils import download
-    >>> from microtc.utils import load_model
+    >>> from text_models.dataset import Dataset, SemiSupervisedDataset
     >>> from text_models.tests.test_dataset import TWEETS
-    >>> emo = load_model(download("emo_En.tm"))
-    >>> ds = Dataset()
-    >>> ds.add({k: True for k in emo._labels})
-    >>> mk = MaskedLMDataset(ds)
-    >>> mk.process(TWEETS)
+    >>> from EvoMSA import TextRepresentations
+    >>> emo = TextRepresentations(lang='es', emoji=False, dataset=False)
+    >>> semi = SemiSupervisedDataset(emo.names)
     """
-    def __init__(self, dataset: Dataset,
-                 num_elements: int=64000,
-                 lang="es",
-                 reader: Callable[[str], Iterable[dict]]=tweet_iterator) -> None:
+    def __init__(self, labels: List[str],
+                 dataset: Dataset=Dataset(),
+                 bow: BoW=BoW(lang='es'),    
+                 text_transformations: bool=True,                 
+                 num_elements: int=2**17,
+                 tempfile: str=tempfile.mktemp(),
+                 n_jobs: int=1) -> None:
+        self._labels = labels
         self._dataset = dataset
-        self._reader = reader
-        self._store = defaultdict(list)
+        self._bow = bow
+        self._text_transformations = text_transformations
         self._num_elements = num_elements
-        self._lang = lang
+        self._tempfile = tempfile
+        self._n_jobs = n_jobs
+        self.add_labels(labels)
+
+    @property
+    def labels(self):
+        return self._labels
 
     @property
     def dataset(self):
-        return self._store
+        return self._dataset
 
     @property
-    def reader(self):
-        return self._reader
+    def bow(self):
+        return self._bow
 
-    @reader.setter
-    def reader(self, reader):
-        self._reader = reader
+    @property
+    def text_transformations(self):
+        return self._text_transformations
+    
+    @property 
+    def num_elements(self):
+        return self._num_elements
+
+    @property
+    def tempfile(self):
+        return self._tempfile
+
+    @property
+    def n_jobs(self):
+        return self._n_jobs
+
+    def add_labels(self, labels):
+        tt = self.bow.bow.text_transformations if self.text_transformations else lambda x: x
+        labels = [tt(x) for x in self.labels]
+        self.dataset.add({x: True for x in labels})
 
     def missing(self):
         """Number of klass that has not been reached the 
@@ -539,93 +571,93 @@ class MaskedLMDataset(object):
             self.add(klasses, text)
 
 
-class MaskedLM(object):
-    """Create a masked language model
-    >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
-    >>> from EvoMSA.utils import download
-    >>> from EvoMSA.model import LabeledDataSet
-    >>> from microtc.utils import load_model
-    >>> from text_models.tests.test_dataset import TWEETS
-    >>> emo = load_model(download("emo_En.tm"))
-    >>> ds = Dataset()
-    >>> ds.add({k: True for k in emo._labels})
-    >>> mkDS = MaskedLMDataset(ds)
-    >>> mkDS.process(TWEETS)
-    >>> mk = MaskedLM(mkDS)
-    >>> tm = mk.textModel()
-    >>> coef, intercept, labels = mk.run(tm)
-    >>> model = LabeledDataSet(textModel=tm, coef=coef, intercept=intercept, labels=labels)
-    >>> coef, intercept, labels = mk.run(tm, n_jobs=-2)
-    """
-    def __init__(self, masked: MaskedLMDataset) -> None:
-        self._masked = masked
+# class MaskedLM(object):
+#     """Create a masked language model
+#     >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
+#     >>> from EvoMSA.utils import download
+#     >>> from EvoMSA.model import LabeledDataSet
+#     >>> from microtc.utils import load_model
+#     >>> from text_models.tests.test_dataset import TWEETS
+#     >>> emo = load_model(download("emo_En.tm"))
+#     >>> ds = Dataset()
+#     >>> ds.add({k: True for k in emo._labels})
+#     >>> mkDS = MaskedLMDataset(ds)
+#     >>> mkDS.process(TWEETS)
+#     >>> mk = MaskedLM(mkDS)
+#     >>> tm = mk.textModel()
+#     >>> coef, intercept, labels = mk.run(tm)
+#     >>> model = LabeledDataSet(textModel=tm, coef=coef, intercept=intercept, labels=labels)
+#     >>> coef, intercept, labels = mk.run(tm, n_jobs=-2)
+#     """
+#     def __init__(self, masked: MaskedLMDataset) -> None:
+#         self._masked = masked
 
-    def fit(self, klass, tm):
-        from sklearn.svm import LinearSVC        
-        dataset = self._masked.dataset
-        klasses = sorted(dataset.keys())
-        cnt = len(klasses) - 1
-        transform = self.transform
-        X = transform(klass, dataset[klass])
-        y = [1] * len(X)
-        nneg = max(len(X) // cnt, 1)
-        for k2 in klasses:
-            if k2 == klass:
-                continue
-            ele = dataset[k2]
-            random.shuffle(ele)
-            ele = transform(k2, ele[:nneg])
-            y += [-1] * len(ele)
-            X += ele
-        return LinearSVC().fit(tm.transform(X), y)
+#     def fit(self, klass, tm):
+#         from sklearn.svm import LinearSVC        
+#         dataset = self._masked.dataset
+#         klasses = sorted(dataset.keys())
+#         cnt = len(klasses) - 1
+#         transform = self.transform
+#         X = transform(klass, dataset[klass])
+#         y = [1] * len(X)
+#         nneg = max(len(X) // cnt, 1)
+#         for k2 in klasses:
+#             if k2 == klass:
+#                 continue
+#             ele = dataset[k2]
+#             random.shuffle(ele)
+#             ele = transform(k2, ele[:nneg])
+#             y += [-1] * len(ele)
+#             X += ele
+#         return LinearSVC().fit(tm.transform(X), y)
         
-    def run(self, tm, n_jobs=None):
-        from EvoMSA.utils import linearSVC_array
-        dataset = self._masked.dataset
-        klasses = sorted(dataset.keys())
-        cnt = len(klasses) - 1
-        transform = self.transform
-        if n_jobs is not None and (n_jobs > 1 or n_jobs < 0):
-            MODELS = Parallel(n_jobs=n_jobs)(delayed(self.fit)(klass, tm) for klass in tqdm(klasses))
-        else:
-            MODELS = [self.fit(klass, tm) for klass in tqdm(klasses)]
-        coef, intercept = linearSVC_array(MODELS)
-        return coef, intercept, klasses
+#     def run(self, tm, n_jobs=None):
+#         from EvoMSA.utils import linearSVC_array
+#         dataset = self._masked.dataset
+#         klasses = sorted(dataset.keys())
+#         cnt = len(klasses) - 1
+#         transform = self.transform
+#         if n_jobs is not None and (n_jobs > 1 or n_jobs < 0):
+#             MODELS = Parallel(n_jobs=n_jobs)(delayed(self.fit)(klass, tm) for klass in tqdm(klasses))
+#         else:
+#             MODELS = [self.fit(klass, tm) for klass in tqdm(klasses)]
+#         coef, intercept = linearSVC_array(MODELS)
+#         return coef, intercept, klasses
 
-    def transform(self, klass, texts) -> None:
-        """Transform
-        >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
-        >>> from EvoMSA.utils import download
-        >>> from microtc.utils import load_model
-        >>> from text_models.tests.test_dataset import TWEETS
-        >>> emo = load_model(download("emo_En.tm"))
-        >>> ds = Dataset()
-        >>> ds.add({k: True for k in emo._labels})
-        >>> mk = MaskedLMDataset(ds)
-        >>> mk.process(TWEETS)
-        >>> mask = MaskedLM(mk)
-        >>> mask.transform('🤘', ['Tengo sueñoooooooo🤘', '🤘'])
-        [['tengo suenoooooooo']]
-        """
-        output = []
-        process = self._masked._dataset.process
-        for text in texts:
-            _ = [" ".join(filter(lambda x: len(x), x.split('~'))) for x in process(text)]
-            _ = list(filter(lambda x: len(x), _))
-            if len(_):
-                output.append(_)
-        return output
+#     def transform(self, klass, texts) -> None:
+#         """Transform
+#         >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
+#         >>> from EvoMSA.utils import download
+#         >>> from microtc.utils import load_model
+#         >>> from text_models.tests.test_dataset import TWEETS
+#         >>> emo = load_model(download("emo_En.tm"))
+#         >>> ds = Dataset()
+#         >>> ds.add({k: True for k in emo._labels})
+#         >>> mk = MaskedLMDataset(ds)
+#         >>> mk.process(TWEETS)
+#         >>> mask = MaskedLM(mk)
+#         >>> mask.transform('🤘', ['Tengo sueñoooooooo🤘', '🤘'])
+#         [['tengo suenoooooooo']]
+#         """
+#         output = []
+#         process = self._masked._dataset.process
+#         for text in texts:
+#             _ = [" ".join(filter(lambda x: len(x), x.split('~'))) for x in process(text)]
+#             _ = list(filter(lambda x: len(x), _))
+#             if len(_):
+#                 output.append(_)
+#         return output
 
-    def textModel(self, n=10000):
-        tm = TokenCount.textModel([-2, -1, 2, 3, 4])
-        tm.token_min_filter = 0.001
-        tm.token_max_filter = 0.999
-        D = []
-        transform = self.transform
-        items = self._masked.dataset.items
-        for k, v in items():
-            random.shuffle(v)
-            D += transform(k, v[:n])
-        tm.fit(D)
-        return tm
+#     def textModel(self, n=10000):
+#         tm = TokenCount.textModel([-2, -1, 2, 3, 4])
+#         tm.token_min_filter = 0.001
+#         tm.token_max_filter = 0.999
+#         D = []
+#         transform = self.transform
+#         items = self._masked.dataset.items
+#         for k, v in items():
+#             random.shuffle(v)
+#             D += transform(k, v[:n])
+#         tm.fit(D)
+#         return tm
         
