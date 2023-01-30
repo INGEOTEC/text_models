@@ -194,3 +194,21 @@ def test_GeoFrequency_clean():
     freq.clean()
     act = len(freq.data)
     assert ant > act
+
+
+def test_Dataset_textModel_setter():
+    from text_models.dataset import Dataset
+
+    ds = Dataset(text_transformations=False)
+    ds.textModel = '!'
+    assert ds._tm == '!'
+
+
+def test_SemiSupervisedDataset_dataset():
+    from text_models.dataset import Dataset, SemiSupervisedDataset
+    from text_models.tests.test_dataset import TWEETS
+    from EvoMSA import TextRepresentations
+    emo = TextRepresentations(lang='es', emoji=False, dataset=False)
+    semi = SemiSupervisedDataset(emo.names)
+    assert len(semi.dataset.klasses) == len(semi.names)
+    
