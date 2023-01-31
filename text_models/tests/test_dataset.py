@@ -210,5 +210,52 @@ def test_SemiSupervisedDataset_dataset():
     from EvoMSA import TextRepresentations
     emo = TextRepresentations(lang='es', emoji=False, dataset=False)
     semi = SemiSupervisedDataset(emo.names)
-    assert len(semi.dataset.klasses) == len(semi.names)
-    
+    assert len(semi.dataset.klasses) == len(emo.names)
+    x = list(semi.dataset.klasses.keys())[0]
+    assert x[0] == '~' and x[-1] == '~'
+
+
+def test_SemiSupervisedDataset_identify_labels():
+    from text_models.dataset import Dataset, SemiSupervisedDataset
+    from text_models.tests.test_dataset import TWEETS
+    from EvoMSA import TextRepresentations
+    from microtc.utils import tweet_iterator
+    import os
+    import gzip
+    emo = TextRepresentations(lang='es', emoji=False, dataset=False)
+    semi = SemiSupervisedDataset(emo.names)
+    semi.identify_labels(TWEETS)
+    with gzip.open(semi.tempfile, 'rb') as fpt:
+        for a, b in zip(fpt.readlines(), tweet_iterator(TWEETS)):
+            text, *klass = str(a, encoding='utf-8').split('|')
+            assert text.strip() == emo.bow.text_transformations(b)
+            break
+    os.unlink(semi.tempfile)
+    assert len(semi.dataset.klasses) < len(emo.names)
+
+
+def test_SemiSupervisedDataset_process():
+    from text_models.dataset import Dataset, SemiSupervisedDataset
+    from text_models.tests.test_dataset import TWEETS
+    from EvoMSA import TextRepresentations
+    from microtc.utils import tweet_iterator
+    import os
+    import gzip
+    emo = TextRepresentations(lang='es', emoji=False, dataset=False)
+    semi = SemiSupervisedDataset(emo.names, tempfile='t.gz')
+    semi.process(TWEETS)
+
+
+def test_SemiSupervisedDataset_labels_frequency():
+    from text_models.dataset import Dataset, SemiSupervisedDataset
+    from text_models.tests.test_dataset import TWEETS
+    from EvoMSA import TextRepresentations
+    from microtc.utils import tweet_iterator
+    import os
+    import gzip
+    emo = TextRepresentations(lang='es', emoji=False, dataset=False)
+    semi = SemiSupervisedDataset(emo.names)
+    semi.identify_labels(TWEETS)
+    semi2 = SemiSupervisedDataset(emo.names, tempfile=semi.tempfile)
+    semi2.process(TWEETS)
+    assert semi2.labels_frequency is not None

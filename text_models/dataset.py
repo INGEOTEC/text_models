@@ -19,14 +19,14 @@ from EvoMSA import BoW
 from microtc import emoticons
 from collections import OrderedDict, defaultdict
 from microtc.utils import Counter
-from os.path import join, dirname
 from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
 from text_models.place import BoundingBox, location
 from text_models.utils import get_text, TM_ARGS
 from joblib import Parallel, delayed
-from typing import List
-import random
+from typing import List, Iterable
+from os.path import join, dirname, isfile
+import gzip
 import tempfile
 
 
@@ -440,17 +440,23 @@ class SemiSupervisedDataset(object):
     >>> semi = SemiSupervisedDataset(emo.names)
     """
     def __init__(self, labels: List[str],
-                 dataset: Dataset=Dataset(),
+                 dataset_class: Dataset=Dataset,
+                 dataset_kwargs: dict=dict(text_transformations=False),
                  bow: BoW=BoW(lang='es'),    
-                 text_transformations: bool=True,                 
+                 words: bool=True,
+                 reader: Iterable=tweet_iterator,               
                  num_elements: int=2**17,
+                 min_num_elements: int=2**10,
                  tempfile: str=tempfile.mktemp(),
                  n_jobs: int=1) -> None:
         self._labels = labels
-        self._dataset = dataset
+        self._dataset_class = dataset_class
+        self._dataset_kwargs = dataset_kwargs
         self._bow = bow
-        self._text_transformations = text_transformations
+        self._words = words
+        self._reader = reader
         self._num_elements = num_elements
+        self._min_num_elements = min_num_elements
         self._tempfile = tempfile
         self._n_jobs = n_jobs
         self.add_labels(labels)
@@ -459,8 +465,15 @@ class SemiSupervisedDataset(object):
     def labels(self):
         return self._labels
 
+    def dataset_instance(self):
+        return self._dataset_class(**self._dataset_kwargs)
+
     @property
     def dataset(self):
+        try:
+            return self._dataset
+        except AttributeError:
+            self._dataset = self.dataset_instance()
         return self._dataset
 
     @property
@@ -468,12 +481,20 @@ class SemiSupervisedDataset(object):
         return self._bow
 
     @property
-    def text_transformations(self):
-        return self._text_transformations
+    def reader(self):
+        return self._reader
+
+    @property
+    def words(self):
+        return self._words
     
     @property 
     def num_elements(self):
         return self._num_elements
+
+    @property
+    def min_num_elements(self):
+        return self._min_num_elements
 
     @property
     def tempfile(self):
@@ -483,92 +504,151 @@ class SemiSupervisedDataset(object):
     def n_jobs(self):
         return self._n_jobs
 
-    def add_labels(self, labels):
-        tt = self.bow.bow.text_transformations if self.text_transformations else lambda x: x
+    @property
+    def labels_frequency(self):
+        try:
+            return self._labels_frequency
+        except AttributeError:
+            return None
+
+    @labels_frequency.setter
+    def labels_frequency(self, value):
+        self._labels_frequency = value
+        D = []
+        for k, v in self.dataset.klasses.items():
+            if value[v] < self.min_num_elements:
+                D.append(k)
+        [self.dataset.remove(x) for x in D]
+
+    def add_labels(self, labels: Iterable[str], dataset=None):
+        self.bow.bow.disable_text_transformations = False
+        tt = self.bow.bow.text_transformations if self.words else lambda x: x
         labels = [tt(x) for x in self.labels]
-        self.dataset.add({x: True for x in labels})
+        dataset = dataset if dataset is not None else self.dataset
+        self.dataset.add({k: v for k, v in zip(labels, self.labels)})
 
-    def missing(self):
-        """Number of klass that has not been reached the 
-        maximum number of elements
-        >>> from text_models.dataset import MaskedLMDataset
-        >>> ms = MaskedLMDataset(None, num_elements=64000)
-        >>> ms.add(['☹'], "aa ☹ b")
-        >>> ms.add(['☺'], "aa ☺ b")
-        >>> _ = [ms.add(['☹'], "aa ☹ b") for _ in range(64010)]
-        >>> ms.missing()
-        1
-        """
-        n = self._num_elements
-        _ = [1 for v in self.dataset.values() if len(v) < n]
-        return sum(_)
+    def identify_labels(self, filename: str, cache_size: int=1024):
+        def flush(D):
+            while D:
+                text, labels = D.pop(0)
+                fpt.write(bytes(f'{text}|{labels}\n', encoding='utf-8'))
 
-    def add(self, klasses, text):
-        """Add text into the dataset
-        >>> from text_models.dataset import MaskedLMDataset
-        >>> ms = MaskedLMDataset(None, num_elements=64000)
-        >>> ms.add(['☹'], "aa ☹ b")
-        >>> len(ms.dataset['☹'])
-        1
-        >>> ms.add(['☹', '☺'], "aa ☹ ☺ b")
-        >>> len(ms.dataset['☺'])
-        0
-        >>> len(ms.dataset['☹'])
-        1
-        >>> _ = [ms.add(['☹'], "aa ☹ b") for _ in range(64010)]
-        >>> len(ms.dataset['☹'])
-        64000
-        """
-        if len(klasses) != 1:
-            return
-        dataset = self.dataset
-        num_elements = self._num_elements
-        klass = list(klasses)[0]
-        value = dataset[klass]
-        if len(value) < num_elements:
-            value.append(text)
+        klass = self.dataset.klass
+        self.bow.bow.disable_text_transformations = False
+        tt = self.bow.bow.text_transformations
+        counter = Counter()        
+        with gzip.open(self.tempfile, 'wb') as fpt:
+            D = []
+            for tweet in self.reader(filename):
+                text = tt(tweet)
+                labels = klass(text)
+                if len(labels) == 0:
+                    continue
+                counter.update(labels)
+                D.append((text, '|'.join(labels)))
+                if len(D) == cache_size:
+                    flush(D)
+            if len(D):
+                flush(D)
+        self.labels_frequency = counter
 
-    def filter(self, text):
-        """Filter RT
-        >>> from text_models.dataset import MaskedLMDataset
-        >>> ms = MaskedLMDataset(None)
-        >>> ms.filter('RT a')
-        True
-        >>> ms.filter('a')
-        False
-        """
-        if text[:2] == 'RT':
-            return True
-        return False
+    def _process(self, k, output):
+        pass
 
-    def lang(self, tw: dict):
-        """Test the language of the tweet
-        >>> from text_models.dataset import MaskedLMDataset
-        >>> ms = MaskedLMDataset(None, lang='ar')
-        >>> ms.lang(dict(lang="ar"))
-        True
-        >>> ms.lang(dict(lang="en"))
-        False
-        >>> ms = MaskedLMDataset(None, lang=None)
-        >>> ms.lang(dict())
-        True
-        """
-        if self._lang is None:
-            return True
-        return tw.get('lang', "") == self._lang
+    def process(self, filename: str, identify_labels_kwargs: dict=dict(),
+                output: str='.'):
+        if not isfile(self.tempfile):
+            self.identify_labels(filename, **identify_labels_kwargs)
+        if self.labels_frequency is None:
+            counter = Counter()
+            with gzip.open(self.tempfile, 'rb') as fpt:
+                for a in fpt:
+                    text, *klass = str(a, encoding='utf-8').split('|')
+                    counter.update(klass)
+            self.labels_frequency = counter                   
+        
 
-    def process(self, fname: str):
-        dataset = self._dataset
-        filter = self.filter
-        lang = self.lang
-        for tw in self._reader(fname):
-            if not lang(tw):
-                continue
-            text = get_text(tw)
-            if filter(text):
-                continue
-            klasses = dataset.klass(text)
-            self.add(klasses, text)
+    # def missing(self):
+    #     """Number of klass that has not been reached the 
+    #     maximum number of elements
+    #     >>> from text_models.dataset import MaskedLMDataset
+    #     >>> ms = MaskedLMDataset(None, num_elements=64000)
+    #     >>> ms.add(['☹'], "aa ☹ b")
+    #     >>> ms.add(['☺'], "aa ☺ b")
+    #     >>> _ = [ms.add(['☹'], "aa ☹ b") for _ in range(64010)]
+    #     >>> ms.missing()
+    #     1
+    #     """
+    #     n = self._num_elements
+    #     _ = [1 for v in self.dataset.values() if len(v) < n]
+    #     return sum(_)
+
+    # def add(self, klasses, text):
+    #     """Add text into the dataset
+    #     >>> from text_models.dataset import MaskedLMDataset
+    #     >>> ms = MaskedLMDataset(None, num_elements=64000)
+    #     >>> ms.add(['☹'], "aa ☹ b")
+    #     >>> len(ms.dataset['☹'])
+    #     1
+    #     >>> ms.add(['☹', '☺'], "aa ☹ ☺ b")
+    #     >>> len(ms.dataset['☺'])
+    #     0
+    #     >>> len(ms.dataset['☹'])
+    #     1
+    #     >>> _ = [ms.add(['☹'], "aa ☹ b") for _ in range(64010)]
+    #     >>> len(ms.dataset['☹'])
+    #     64000
+    #     """
+    #     if len(klasses) != 1:
+    #         return
+    #     dataset = self.dataset
+    #     num_elements = self._num_elements
+    #     klass = list(klasses)[0]
+    #     value = dataset[klass]
+    #     if len(value) < num_elements:
+    #         value.append(text)
+
+    # def filter(self, text):
+    #     """Filter RT
+    #     >>> from text_models.dataset import MaskedLMDataset
+    #     >>> ms = MaskedLMDataset(None)
+    #     >>> ms.filter('RT a')
+    #     True
+    #     >>> ms.filter('a')
+    #     False
+    #     """
+    #     if text[:2] == 'RT':
+    #         return True
+    #     return False
+
+    # def lang(self, tw: dict):
+    #     """Test the language of the tweet
+    #     >>> from text_models.dataset import MaskedLMDataset
+    #     >>> ms = MaskedLMDataset(None, lang='ar')
+    #     >>> ms.lang(dict(lang="ar"))
+    #     True
+    #     >>> ms.lang(dict(lang="en"))
+    #     False
+    #     >>> ms = MaskedLMDataset(None, lang=None)
+    #     >>> ms.lang(dict())
+    #     True
+    #     """
+    #     if self._lang is None:
+    #         return True
+    #     return tw.get('lang', "") == self._lang
+
+    # def process(self, fname: str):
+    #     dataset = self._dataset
+    #     filter = self.filter
+    #     lang = self.lang
+    #     for tw in self._reader(fname):
+    #         if not lang(tw):
+    #             continue
+    #         text = get_text(tw)
+    #         if filter(text):
+    #             continue
+    #         klasses = dataset.klass(text)
+    #         self.add(klasses, text)
 
 
 # class MaskedLM(object):
