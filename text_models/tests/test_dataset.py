@@ -263,6 +263,6 @@ def test_SemiSupervisedDataset_process():
     emo = TextRepresentations(lang='es', emoji=False, dataset=False)
     semi = SemiSupervisedDataset(emo.names, tempfile='t.gz')
     semi.process(TWEETS)
-    for k in range(len(semi.klasses)):
+    for k in range(len(semi.dataset.klasses)):
         os.unlink(join('', f'{k}.json'))
     os.unlink(semi.tempfile)
