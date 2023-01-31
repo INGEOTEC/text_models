@@ -194,3 +194,75 @@ def test_GeoFrequency_clean():
     freq.clean()
     act = len(freq.data)
     assert ant > act
+
+
+def test_Dataset_textModel_setter():
+    from text_models.dataset import Dataset
+
+    ds = Dataset(text_transformations=False)
+    ds.textModel = '!'
+    assert ds._tm == '!'
+
+
+def test_SemiSupervisedDataset_dataset():
+    from text_models.dataset import SemiSupervisedDataset
+    from text_models.tests.test_dataset import TWEETS
+    from EvoMSA import TextRepresentations
+    
+    emo = TextRepresentations(lang='es', emoji=False, dataset=False)
+    semi = SemiSupervisedDataset(emo.names)
+    assert len(semi.dataset.klasses) == len(emo.names)
+    x = list(semi.dataset.klasses.keys())[0]
+    assert x[0] == '~' and x[-1] == '~'
+
+
+def test_SemiSupervisedDataset_identify_labels():
+    from text_models.dataset import SemiSupervisedDataset
+    from text_models.tests.test_dataset import TWEETS
+    from EvoMSA import TextRepresentations
+    from microtc.utils import tweet_iterator
+    import os
+    import gzip
+
+    emo = TextRepresentations(lang='es', emoji=False, dataset=False)
+    semi = SemiSupervisedDataset(emo.names)
+    semi.identify_labels(TWEETS)
+    with gzip.open(semi.tempfile, 'rb') as fpt:
+        for a, b in zip(fpt.readlines(), tweet_iterator(TWEETS)):
+            text, *klass = str(a, encoding='utf-8').split('|')
+            assert text.strip() == emo.bow.text_transformations(b)
+            break
+    os.unlink(semi.tempfile)
+    assert len(semi.dataset.klasses) < len(emo.names)
+
+
+def test_SemiSupervisedDataset_labels_frequency():
+    from text_models.dataset import SemiSupervisedDataset
+    from text_models.tests.test_dataset import TWEETS
+    from EvoMSA import TextRepresentations
+    from microtc.utils import tweet_iterator
+    import os
+
+    emo = TextRepresentations(lang='es', emoji=False, dataset=False)
+    semi = SemiSupervisedDataset(emo.names)
+    semi.identify_labels(TWEETS)
+    semi2 = SemiSupervisedDataset(emo.names, tempfile=semi.tempfile)
+    semi2.process(TWEETS)
+    assert semi2.labels_frequency is not None
+    os.unlink(semi.tempfile)
+
+
+def test_SemiSupervisedDataset_process():
+    from text_models.dataset import SemiSupervisedDataset
+    from text_models.tests.test_dataset import TWEETS
+    from EvoMSA import TextRepresentations
+    from microtc.utils import tweet_iterator
+    from os.path import join
+    import os
+
+    emo = TextRepresentations(lang='es', emoji=False, dataset=False)
+    semi = SemiSupervisedDataset(emo.names, tempfile='t.gz')
+    semi.process(TWEETS)
+    for k in range(len(semi.dataset.klasses)):
+        os.unlink(join('', f'{k}.json'))
+    os.unlink(semi.tempfile)
