@@ -554,7 +554,7 @@ class SelfSupervisedDataset(object):
                 counter.update(labels)
                 D.append((text, '|'.join(labels)))
                 for k, v in counter.items():
-                    if v >= size:
+                    if v >= size and inv[k] in self.dataset.klasses:
                         self.dataset.remove(inv[k])
                 if len(D) == cache_size:
                     flush(D)
