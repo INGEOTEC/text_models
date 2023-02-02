@@ -562,7 +562,7 @@ class SelfSupervisedDataset(object):
             return 1
         return -1
 
-    def _process(self, k, output):
+    def process_label(self, k, output):
         key, label = list(self.dataset.klasses.items())[k]
         ds = self._dataset_class(**self._dataset_kwargs)
         ds.add({key: label})
@@ -571,7 +571,7 @@ class SelfSupervisedDataset(object):
         POS, NEG = [], []
         with gzip.open(self.tempfile, 'rb') as fpt:
             for a in fpt:
-                text, *klass = str(a, encoding='utf-8').split('|')
+                text, *klass = str(a, encoding='utf-8').strip().split('|')
                 flag = self.test_positive(label, klass)
                 if flag == 1 and len(POS) < size:
                     POS.append(ds.process(text))
@@ -581,7 +581,10 @@ class SelfSupervisedDataset(object):
                     break
         _min = min(len(POS), len(NEG))
         POS = POS[:_min]
-        NEG = NEG[:_min]     
+        NEG = NEG[:_min]
+        self.train_classifier(POS, NEG, k, output, label)
+
+    def train_classifier(self, POS, NEG, k, output, label):     
         y = [1] * len(POS) + [-1] * len(NEG)
         X = self.bow.bow.transform(POS + NEG)
         m = LinearSVC().fit(X, y)
@@ -591,18 +594,21 @@ class SelfSupervisedDataset(object):
             _ = json.dumps(dict(coef=coef, intercept=intercept, labels=[-1, label]))
             print(_, file=fpt)
 
+    def count_labels_frequency(self):
+        counter = Counter()
+        with gzip.open(self.tempfile, 'rb') as fpt:
+            for a in fpt:
+                text, *klass = str(a, encoding='utf-8').strip().split('|')
+                counter.update(klass)
+        self.labels_frequency = counter
+
     def process(self, filename: str=None, identify_labels_kwargs: dict=dict(),
                 output: str=''):
         if not isfile(self.tempfile):
             self.identify_labels(filename, **identify_labels_kwargs)
         if self.labels_frequency is None:
-            counter = Counter()
-            with gzip.open(self.tempfile, 'rb') as fpt:
-                for a in fpt:
-                    text, *klass = str(a, encoding='utf-8').split('|')
-                    counter.update(klass)
-            self.labels_frequency = counter
+            self.count_labels_frequency()
         self.bow.bow.disable_text_transformations = True
-        Parallel(n_jobs=self.n_jobs)(delayed(self._process)(k, output=output)
+        Parallel(n_jobs=self.n_jobs)(delayed(self.process_label)(k, output=output)
                                      for k in tqdm(range(len(self.dataset.klasses))))
         self.bow.bow.disable_text_transformations = False
