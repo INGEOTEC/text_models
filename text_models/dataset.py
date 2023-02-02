@@ -432,13 +432,13 @@ class GeoFrequency(object):
                 del data[key]
 
 
-class SemiSupervisedDataset(object):
+class SelfSupervisedDataset(object):
     """Create a masked language model
-    >>> from text_models.dataset import Dataset, SemiSupervisedDataset
+    >>> from text_models.dataset import Dataset, SelfSupervisedDataset
     >>> from text_models.tests.test_dataset import TWEETS
     >>> from EvoMSA import TextRepresentations
     >>> emo = TextRepresentations(lang='es', emoji=False, dataset=False)
-    >>> semi = SemiSupervisedDataset(emo.names)
+    >>> semi = SelfSupervisedDataset(emo.names)
     >>> semi.process(TWEETS)
     """
     def __init__(self, labels: List[str],
@@ -558,7 +558,9 @@ class SemiSupervisedDataset(object):
         self.labels_frequency = counter
 
     def test_positive(self, label, labels):
-        return label in labels
+        if label in labels:
+            return 1
+        return -1
 
     def _process(self, k, output):
         key, label = list(self.dataset.klasses.items())[k]
@@ -570,9 +572,10 @@ class SemiSupervisedDataset(object):
         with gzip.open(self.tempfile, 'rb') as fpt:
             for a in fpt:
                 text, *klass = str(a, encoding='utf-8').split('|')
-                if self.test_positive(label, klass) and len(POS) < size:
+                flag = self.test_positive(label, klass)
+                if flag == 1 and len(POS) < size:
                     POS.append(ds.process(text))
-                elif len(NEG) < size:
+                elif flag == -1 and len(NEG) < size:
                     NEG.append(text)
                 if len(POS) == size and len(NEG) == size:
                     break
