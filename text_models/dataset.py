@@ -541,7 +541,9 @@ class SelfSupervisedDataset(object):
         klass = self.dataset.klass
         self.bow.bow.disable_text_transformations = False
         tt = self.bow.bow.text_transformations
-        counter = Counter()        
+        counter = Counter()
+        size = self.num_elements
+        inv = {v: k for k, v in self.dataset.klasses.items()}        
         with gzip.open(self.tempfile, 'wb') as fpt:
             D = []
             for tweet in self.reader(filename):
@@ -551,6 +553,9 @@ class SelfSupervisedDataset(object):
                     continue
                 counter.update(labels)
                 D.append((text, '|'.join(labels)))
+                for k, v in counter.items():
+                    if v >= size:
+                        self.dataset.remove(inv[k])
                 if len(D) == cache_size:
                     flush(D)
             if len(D):
