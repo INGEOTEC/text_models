@@ -532,6 +532,9 @@ class SelfSupervisedDataset(object):
         labels = [tt(x) for x in self.labels]
         self.dataset.add({k: v for k, v in zip(labels, self.labels)})
 
+    def select_labels_for_text(self, labels):
+        pass
+
     def identify_labels(self, filename: str, cache_size: int=1024):
         def flush(D):
             while D:
@@ -551,6 +554,7 @@ class SelfSupervisedDataset(object):
                 labels = klass(text)
                 if len(labels) == 0:
                     continue
+                self.select_labels_for_text(labels)
                 counter.update(labels)
                 D.append((text, '|'.join(labels)))
                 for k, v in counter.items():
