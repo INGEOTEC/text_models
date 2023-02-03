@@ -560,6 +560,9 @@ class SelfSupervisedDataset(object):
                     flush(D)
             if len(D):
                 flush(D)
+        keys = list(self.dataset.klasses.keys())
+        [self.dataset.remove(x) for x in keys]
+        self.add_labels(self.labels)
         self.labels_frequency = counter
 
     def test_positive(self, label, labels):
