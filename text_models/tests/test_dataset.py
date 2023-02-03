@@ -204,20 +204,20 @@ def test_Dataset_textModel_setter():
     assert ds._tm == '!'
 
 
-def test_SemiSupervisedDataset_dataset():
-    from text_models.dataset import SemiSupervisedDataset
+def test_SelfSupervisedDataset_dataset():
+    from text_models.dataset import SelfSupervisedDataset
     from text_models.tests.test_dataset import TWEETS
     from EvoMSA import TextRepresentations
     
     emo = TextRepresentations(lang='es', emoji=False, dataset=False)
-    semi = SemiSupervisedDataset(emo.names)
+    semi = SelfSupervisedDataset(emo.names)
     assert len(semi.dataset.klasses) == len(emo.names)
     x = list(semi.dataset.klasses.keys())[0]
     assert x[0] == '~' and x[-1] == '~'
 
 
-def test_SemiSupervisedDataset_identify_labels():
-    from text_models.dataset import SemiSupervisedDataset
+def test_SelfSupervisedDataset_identify_labels():
+    from text_models.dataset import SelfSupervisedDataset
     from text_models.tests.test_dataset import TWEETS
     from EvoMSA import TextRepresentations
     from microtc.utils import tweet_iterator
@@ -225,7 +225,7 @@ def test_SemiSupervisedDataset_identify_labels():
     import gzip
 
     emo = TextRepresentations(lang='es', emoji=False, dataset=False)
-    semi = SemiSupervisedDataset(emo.names)
+    semi = SelfSupervisedDataset(emo.names)
     semi.identify_labels(TWEETS)
     with gzip.open(semi.tempfile, 'rb') as fpt:
         for a, b in zip(fpt.readlines(), tweet_iterator(TWEETS)):
@@ -236,24 +236,24 @@ def test_SemiSupervisedDataset_identify_labels():
     assert len(semi.dataset.klasses) < len(emo.names)
 
 
-def test_SemiSupervisedDataset_labels_frequency():
-    from text_models.dataset import SemiSupervisedDataset
+def test_SelfSupervisedDataset_labels_frequency():
+    from text_models.dataset import SelfSupervisedDataset
     from text_models.tests.test_dataset import TWEETS
     from EvoMSA import TextRepresentations
     from microtc.utils import tweet_iterator
     import os
 
     emo = TextRepresentations(lang='es', emoji=False, dataset=False)
-    semi = SemiSupervisedDataset(emo.names)
+    semi = SelfSupervisedDataset(emo.names)
     semi.identify_labels(TWEETS)
-    semi2 = SemiSupervisedDataset(emo.names, tempfile=semi.tempfile)
+    semi2 = SelfSupervisedDataset(emo.names, tempfile=semi.tempfile)
     semi2.process(TWEETS)
     assert semi2.labels_frequency is not None
     os.unlink(semi.tempfile)
 
 
-def test_SemiSupervisedDataset_process():
-    from text_models.dataset import SemiSupervisedDataset
+def test_SelfSupervisedDataset_process():
+    from text_models.dataset import SelfSupervisedDataset
     from text_models.tests.test_dataset import TWEETS
     from EvoMSA import TextRepresentations
     from microtc.utils import tweet_iterator
@@ -261,7 +261,7 @@ def test_SemiSupervisedDataset_process():
     import os
 
     emo = TextRepresentations(lang='es', emoji=False, dataset=False)
-    semi = SemiSupervisedDataset(emo.names, tempfile='t.gz')
+    semi = SelfSupervisedDataset(emo.names, tempfile='t.gz')
     semi.process(TWEETS)
     for k in range(len(semi.dataset.klasses)):
         os.unlink(join('', f'{k}.json'))

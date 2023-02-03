@@ -432,13 +432,13 @@ class GeoFrequency(object):
                 del data[key]
 
 
-class SemiSupervisedDataset(object):
+class SelfSupervisedDataset(object):
     """Create a masked language model
-    >>> from text_models.dataset import Dataset, SemiSupervisedDataset
+    >>> from text_models.dataset import Dataset, SelfSupervisedDataset
     >>> from text_models.tests.test_dataset import TWEETS
     >>> from EvoMSA import TextRepresentations
     >>> emo = TextRepresentations(lang='es', emoji=False, dataset=False)
-    >>> semi = SemiSupervisedDataset(emo.names)
+    >>> semi = SelfSupervisedDataset(emo.names)
     >>> semi.process(TWEETS)
     """
     def __init__(self, labels: List[str],
@@ -532,6 +532,9 @@ class SemiSupervisedDataset(object):
         labels = [tt(x) for x in self.labels]
         self.dataset.add({k: v for k, v in zip(labels, self.labels)})
 
+    def select_labels_for_text(self, labels):
+        pass
+
     def identify_labels(self, filename: str, cache_size: int=1024):
         def flush(D):
             while D:
@@ -541,7 +544,9 @@ class SemiSupervisedDataset(object):
         klass = self.dataset.klass
         self.bow.bow.disable_text_transformations = False
         tt = self.bow.bow.text_transformations
-        counter = Counter()        
+        counter = Counter()
+        size = self.num_elements
+        inv = {v: k for k, v in self.dataset.klasses.items()}        
         with gzip.open(self.tempfile, 'wb') as fpt:
             D = []
             for tweet in self.reader(filename):
@@ -549,18 +554,27 @@ class SemiSupervisedDataset(object):
                 labels = klass(text)
                 if len(labels) == 0:
                     continue
+                self.select_labels_for_text(labels)
                 counter.update(labels)
                 D.append((text, '|'.join(labels)))
+                for k, v in counter.items():
+                    if v >= size and inv[k] in self.dataset.klasses:
+                        self.dataset.remove(inv[k])
                 if len(D) == cache_size:
                     flush(D)
             if len(D):
                 flush(D)
+        keys = list(self.dataset.klasses.keys())
+        [self.dataset.remove(x) for x in keys]
+        self.add_labels(self.labels)
         self.labels_frequency = counter
 
     def test_positive(self, label, labels):
-        return label in labels
+        if label in labels:
+            return 1
+        return -1
 
-    def _process(self, k, output):
+    def process_label(self, k, output):
         key, label = list(self.dataset.klasses.items())[k]
         ds = self._dataset_class(**self._dataset_kwargs)
         ds.add({key: label})
@@ -569,16 +583,20 @@ class SemiSupervisedDataset(object):
         POS, NEG = [], []
         with gzip.open(self.tempfile, 'rb') as fpt:
             for a in fpt:
-                text, *klass = str(a, encoding='utf-8').split('|')
-                if self.test_positive(label, klass) and len(POS) < size:
+                text, *klass = str(a, encoding='utf-8').strip().split('|')
+                flag = self.test_positive(label, klass)
+                if flag == 1 and len(POS) < size:
                     POS.append(ds.process(text))
-                elif len(NEG) < size:
+                elif flag == -1 and len(NEG) < size:
                     NEG.append(text)
                 if len(POS) == size and len(NEG) == size:
                     break
         _min = min(len(POS), len(NEG))
         POS = POS[:_min]
-        NEG = NEG[:_min]     
+        NEG = NEG[:_min]
+        self.train_classifier(POS, NEG, k, output, label)
+
+    def train_classifier(self, POS, NEG, k, output, label):     
         y = [1] * len(POS) + [-1] * len(NEG)
         X = self.bow.bow.transform(POS + NEG)
         m = LinearSVC().fit(X, y)
@@ -588,18 +606,21 @@ class SemiSupervisedDataset(object):
             _ = json.dumps(dict(coef=coef, intercept=intercept, labels=[-1, label]))
             print(_, file=fpt)
 
+    def count_labels_frequency(self):
+        counter = Counter()
+        with gzip.open(self.tempfile, 'rb') as fpt:
+            for a in fpt:
+                text, *klass = str(a, encoding='utf-8').strip().split('|')
+                counter.update(klass)
+        self.labels_frequency = counter
+
     def process(self, filename: str=None, identify_labels_kwargs: dict=dict(),
                 output: str=''):
         if not isfile(self.tempfile):
             self.identify_labels(filename, **identify_labels_kwargs)
         if self.labels_frequency is None:
-            counter = Counter()
-            with gzip.open(self.tempfile, 'rb') as fpt:
-                for a in fpt:
-                    text, *klass = str(a, encoding='utf-8').split('|')
-                    counter.update(klass)
-            self.labels_frequency = counter
+            self.count_labels_frequency()
         self.bow.bow.disable_text_transformations = True
-        Parallel(n_jobs=self.n_jobs)(delayed(self._process)(k, output=output)
+        Parallel(n_jobs=self.n_jobs)(delayed(self.process_label)(k, output=output)
                                      for k in tqdm(range(len(self.dataset.klasses))))
         self.bow.bow.disable_text_transformations = False
