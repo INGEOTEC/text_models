@@ -24,7 +24,7 @@ from text_models.utils import get_text, TM_ARGS
 from sklearn.svm import LinearSVC
 from collections import OrderedDict, defaultdict
 from joblib import Parallel, delayed
-from typing import List, Iterable, Callable, Union
+from typing import List, Iterable, Callable, Union, Dict
 from os.path import join, dirname, isfile
 import gzip
 import tempfile
@@ -451,7 +451,7 @@ class SelfSupervisedDataset(object):
                  min_num_elements: int=2**10,
                  tempfile: str=tempfile.mktemp(),
                  n_jobs: int=1) -> None:
-        self._labels = labels
+        self.labels = labels
         self._dataset_class = dataset_class
         self._dataset_kwargs = dataset_kwargs
         self._bow = bow
@@ -466,6 +466,10 @@ class SelfSupervisedDataset(object):
     @property
     def labels(self):
         return self._labels
+
+    @labels.setter
+    def labels(self, value):
+        self._labels = value
 
     def dataset_instance(self):
         return self._dataset_class(**self._dataset_kwargs)
@@ -532,11 +536,15 @@ class SelfSupervisedDataset(object):
         labels = [tt(x) for x in self.labels]
         self.dataset.add({k: v for k, v in zip(labels, self.labels)})
 
+    def select_labels_for_text(self, labels, labels_freq):
+        return True
+
     def identify_labels(self, filename: str, cache_size: int=1024):
         def flush(D):
             while D:
                 text, labels = D.pop(0)
                 fpt.write(bytes(f'{text}|{labels}\n', encoding='utf-8'))
+            fpt.flush()
 
         klass = self.dataset.klass
         self.bow.bow.disable_text_transformations = False
@@ -550,6 +558,8 @@ class SelfSupervisedDataset(object):
                 text = tt(tweet)
                 labels = klass(text)
                 if len(labels) == 0:
+                    continue
+                if not self.select_labels_for_text(labels, counter):
                     continue
                 counter.update(labels)
                 D.append((text, '|'.join(labels)))
@@ -572,7 +582,7 @@ class SelfSupervisedDataset(object):
 
     def process_label(self, k, output):
         key, label = list(self.dataset.klasses.items())[k]
-        ds = self._dataset_class(**self._dataset_kwargs)
+        ds = self.dataset_instance()
         ds.add({key: label})
         ds.textModel = self.bow.bow
         size = self.num_elements
@@ -620,3 +630,21 @@ class SelfSupervisedDataset(object):
         Parallel(n_jobs=self.n_jobs)(delayed(self.process_label)(k, output=output)
                                      for k in tqdm(range(len(self.dataset.klasses))))
         self.bow.bow.disable_text_transformations = False
+
+
+class EmojiDataset(SelfSupervisedDataset):
+    def __init__(self, labels: List[str]=[], 
+                       words: bool = False, 
+                       **kwargs) -> None:
+        assert len(labels) == 0
+        super(EmojiDataset, self).__init__(labels, words=words, **kwargs)
+        emojis = self.dataset.load_emojis()
+        self.labels = emojis
+        self.add_labels(emojis)
+
+    def add_labels(self, labels: Dict):
+        if len(labels):
+            self.dataset.add(labels)
+
+    def select_labels_for_text(self, labels, labels_freq):
+        return len(labels) == 1
