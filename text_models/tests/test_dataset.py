@@ -266,3 +266,21 @@ def test_SelfSupervisedDataset_process():
     for k in range(len(semi.dataset.klasses)):
         os.unlink(join('', f'{k}.json'))
     os.unlink(semi.tempfile)
+
+
+def test_EmojiDataset():
+    from text_models.dataset import EmojiDataset
+    from text_models.tests.test_dataset import TWEETS
+    from os.path import join
+    import os
+    import gzip
+
+    semi = EmojiDataset(tempfile='t.gz', min_num_elements=10)
+    semi.process(TWEETS)
+    with gzip.open('t.gz', 'rb') as fpt:
+        for x in fpt:
+            text = str(x, encoding='utf-8')
+            assert len(text.split('|')) == 2
+    for k in range(len(semi.dataset.klasses)):
+        os.unlink(join('', f'{k}.json'))
+    os.unlink(semi.tempfile)
