@@ -575,13 +575,17 @@ class SelfSupervisedDataset(object):
         self.add_labels(self.labels)
         self.labels_frequency = counter
 
-    def test_positive(self, label, labels):
+    def test_positive(self, label, labels, neg):
         if label in labels:
             return 1
-        return -1
+        if len(labels - neg) < len(labels):
+            return -1
+        return 0
 
     def process_label(self, k, output):
-        key, label = list(self.dataset.klasses.items())[k]
+        _ = list(self.dataset.klasses.items())
+        key, label = _.pop(k)
+        neg = set([v for k, v in _])
         ds = self.dataset_instance()
         ds.add({key: label})
         ds.textModel = self.bow.bow
@@ -590,7 +594,7 @@ class SelfSupervisedDataset(object):
         with gzip.open(self.tempfile, 'rb') as fpt:
             for a in fpt:
                 text, *klass = str(a, encoding='utf-8').strip().split('|')
-                flag = self.test_positive(label, klass)
+                flag = self.test_positive(label, set(klass), neg)
                 if flag == 1 and len(POS) < size:
                     POS.append(ds.process(text))
                 elif flag == -1 and len(NEG) < size:
