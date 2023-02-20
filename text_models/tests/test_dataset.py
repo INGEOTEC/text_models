@@ -284,3 +284,59 @@ def test_EmojiDataset():
     for k in range(len(semi.dataset.klasses)):
         os.unlink(join('', f'{k}.json'))
     os.unlink(semi.tempfile)
+
+
+def test_TrainBoW_frequency():
+    from text_models.dataset import TrainBoW
+    from text_models.tests.test_dataset import TWEETS
+    from os.path import join
+    import os
+    import gzip
+
+    bow = TrainBoW(lang='es', tempfile='t.gz')
+    bow.frequency(TWEETS)
+    assert len(bow.counter)
+    bow = TrainBoW(lang='es', tempfile='t.gz')
+    assert len(bow.counter)
+    os.unlink(bow.tempfile)
+
+
+def test_TrainBoW_most_common():
+    from text_models.dataset import TrainBoW
+    from text_models.tests.test_dataset import TWEETS
+    from microtc.utils import Counter
+    from os.path import join
+    import os
+    import gzip
+
+    bow = TrainBoW(lang='es', tempfile='t.gz')
+    bow.most_common('t2.gz', size=10, input_filename=TWEETS)
+    with gzip.open('t2.gz', 'rb') as fpt:
+        counter = Counter.fromjson(str(fpt.read(), encoding='utf-8'))
+    assert len(counter) == 10
+    os.unlink(bow.tempfile)
+    os.unlink('t2.gz')
+
+
+def test_TrainBoW_most_common_by_type():
+    from text_models.dataset import TrainBoW
+    from text_models.tests.test_dataset import TWEETS
+    from microtc.utils import Counter
+    from os.path import join
+    import os
+    import gzip
+
+    size = 10
+    bow = TrainBoW(lang='es', tempfile='t.gz')
+    bow.most_common('t2.gz', size=size, input_filename=TWEETS)
+    with gzip.open('t2.gz', 'rb') as fpt:
+        counter = Counter.fromjson(str(fpt.read(), encoding='utf-8'))
+    assert len(counter) == size
+    bow = TrainBoW(lang='es', tempfile='t.gz')
+    bow.most_common_by_type('t2.gz', size=size, input_filename=TWEETS)
+    with gzip.open('t2.gz', 'rb') as fpt:
+        counter2 = Counter.fromjson(str(fpt.read(), encoding='utf-8'))
+    inter = set(counter.keys()).intersection(counter2.keys())
+    assert len(inter) < size
+    os.unlink(bow.tempfile)
+    os.unlink('t2.gz')
