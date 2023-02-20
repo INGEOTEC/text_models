@@ -66,22 +66,21 @@ def test_node_performance():
 
 def test_ForwardSelection():
     X, y = get_data()
-    models = {0: ["EvoMSA.model.Corpus", "sklearn.svm.LinearSVC"],
+    models = {0: ["b4msa.textmodel.TextModel", "sklearn.svm.LinearSVC"],
               1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernoulli"],
-              2: ["EvoMSA.model.AggressivenessEs", "EvoMSA.model.Identity"]}
+              2: ["b4msa.textmodel.TextModel", "EvoMSA.model.Identity"]}
     a = ForwardSelection(models, output="fw.node")
     node = a.run(X, y)
     assert isinstance(node, Node)
     assert node.perf > 0 and node.perf < 1
     assert os.path.isfile("fw.node")
 
-
 def test_BeamSelection():
     X, y = get_data()
-    models = {0: ["EvoMSA.model.Corpus", "sklearn.svm.LinearSVC"],
+    models = {0: ["b4msa.textmodel.TextModel", "sklearn.svm.LinearSVC"],
               1: ["b4msa.textmodel.TextModel", "EvoMSA.model.Bernoulli"],
-              2: ["EvoMSA.model.AggressivenessEs", "EvoMSA.model.Identity"]}
-
+              2: ["b4msa.textmodel.TextModel", "EvoMSA.model.Identity"]}
+    # assert X == None
     a = BeamSelection(models, output="beam.node")
     node = a.run(X, y, early_stopping=2)
     assert isinstance(node, Node)
