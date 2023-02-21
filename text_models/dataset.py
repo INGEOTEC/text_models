@@ -17,7 +17,7 @@ from microtc import emoticons
 from microtc.utils import Counter
 from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
-from EvoMSA.utils import download
+from EvoMSA.utils import download, b4msa_params
 from EvoMSA import BoW
 from text_models.place import BoundingBox, location
 from text_models.utils import get_text, TM_ARGS
@@ -26,6 +26,7 @@ from collections import OrderedDict, defaultdict
 from joblib import Parallel, delayed
 from typing import List, Iterable, Callable, Union, Dict
 from os.path import join, dirname, isfile
+import numpy as np
 import gzip
 import tempfile
 import json
@@ -430,6 +431,92 @@ class GeoFrequency(object):
             data[key].clean()
             if len(data[key].counter) == 0 or data[key].num_documents <= min_value:
                 del data[key]
+
+class TrainBoW(object):
+    def __init__(self, lang:str, tempfile: str=tempfile.mktemp()) -> None:
+        self._tempfile = tempfile        
+        self._lang = lang
+
+    @property
+    def lang(self):
+        return self._lang
+
+    @property
+    def tempfile(self):
+        return self._tempfile
+    
+    @property
+    def counter(self):
+        try:
+            return self._counter
+        except AttributeError:
+            if isfile(self.tempfile):
+                with gzip.open(self.tempfile, 'rb') as fpt:
+                    counter = Counter.fromjson(str(fpt.read(), encoding='utf-8'))
+            else:
+                counter = Counter()
+        self._counter = counter
+        return self._counter
+    
+    def frequency(self, filename: str, size=2**20):
+        if isfile(self.tempfile) and len(self.counter):
+            return
+        tm = TextModel(**b4msa_params(lang=self.lang))
+        counter = self.counter
+        for i, tweet in zip(tqdm(range(size)),
+                            tweet_iterator(filename)):
+            counter.update(set(tm.tokenize(tweet)))
+        with gzip.open(self.tempfile, 'wb') as fpt:
+            fpt.write(bytes(counter.tojson(), encoding='utf-8'))
+
+    def delete_freq_N(self, counter):
+        borrar = []
+        for k, v in counter.most_common():
+            if v < counter.update_calls:
+                break
+            borrar.append(k)
+        for x in borrar:
+            del counter[x]
+
+    def most_common(self, output_filename: str, 
+                    size: int, input_filename: str=None):
+        self.frequency(input_filename)
+        counter = self.counter
+        self.delete_freq_N(counter)
+        borrar = []
+        [borrar.append(k) for k, _ in counter.most_common()[size:]]
+        for x in borrar:
+            del counter[x]
+        with gzip.open(output_filename, 'wb') as fpt:
+            fpt.write(bytes(counter.tojson(), encoding='utf-8'))
+
+    def most_common_by_type(self, output_filename: str, 
+                            size: int, input_filename: str=None):
+        def key(k):
+            if k[:2] == 'q:':
+                return f'q:{len(k) - 2}'
+            elif '~' in k:
+                return 'bigrams'
+            return 'words'        
+        
+        self.frequency(input_filename)
+        counter = self.counter
+        self.delete_freq_N(counter)
+
+        tot = dict()
+        for k, v in counter.items():
+            _key = key(k)
+            tot[_key] = tot.get(_key, 0) + v
+        tot = {k: np.log2(v) for k, v in tot.items()}
+        norm = [(k, np.log2(v) - tot[key(k)]) 
+                for k, v in counter.most_common()]
+        norm.sort(key=lambda x: x[1], reverse=True)
+        for k, _ in norm[size:]:
+            del counter[k]
+
+        with gzip.open(output_filename, 'wb') as fpt:
+            fpt.write(bytes(counter.tojson(), encoding='utf-8'))
+
 
 
 class SelfSupervisedDataset(object):
