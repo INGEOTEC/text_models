@@ -328,3 +328,43 @@ class LikelihoodRatios(TStatistic):
         t1 = L(c12, c1, p) + L(c2 - c12, N - c1, p)
         t2 = L(c12, c1, p1) + L(c2 - c12, N - c1, p2)
         return -2 * (t1 - t2)
+
+
+class Budget():
+    def __init__(self, capacity):
+        self.capacity = capacity
+
+    @property
+    def capacity(self):
+        return self._capacity
+    
+    @capacity.setter
+    def capacity(self, value):
+        self._capacity = value
+        
+    def finish(self, fut):
+        v = fut.result()
+        self.capacity += v
+
+    def reduce(self, x):
+        self.capacity -= x
+
+
+
+def farthest_first_traversal(X, num=512):
+    S = []
+    next = 0 
+    mask = np.ones(X.shape[0], dtype=bool)
+    for i in range(1, num):
+        mask[next] = False
+        dis = np.fabs(np.dot(X, X[next]))
+        S.append((next, dis))
+        if len(S) == 1:
+            next = S[0][1].argmin()
+        else:
+            _ = np.vstack([x for _, x in S]).max(axis=0)
+            index = np.where(mask)[0]
+            next = index[_[index].argmin()]
+    index = [i for i, _ in S]
+    index.append(next)
+    return sorted(index)        

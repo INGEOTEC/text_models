@@ -66,3 +66,19 @@ def test_date_range():
     assert len(lst) == 30
     end = lst[-1]
     assert end.year == 2020 and end.month==3 and end.day == 1
+
+
+def test_budget():
+    from text_models.utils import Budget
+
+    budget = Budget(10)
+    assert budget.capacity == 10
+    budget.reduce(2)
+    assert budget.capacity == 8
+
+
+def test_farthest_first_traversal():
+    from text_models.utils import farthest_first_traversal
+    X = np.random.random(size=(10, 32))
+    index = farthest_first_traversal(X, num=3)
+    assert len(index) == 3

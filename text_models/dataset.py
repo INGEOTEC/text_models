@@ -18,18 +18,21 @@ from microtc.utils import Counter
 from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
 from EvoMSA.utils import download, b4msa_params
-from EvoMSA import BoW
+from EvoMSA import BoW, TextRepresentations
 from text_models.place import BoundingBox, location
-from text_models.utils import get_text, TM_ARGS
+from text_models.utils import get_text, TM_ARGS, Budget, farthest_first_traversal
 from sklearn.svm import LinearSVC
 from collections import OrderedDict, defaultdict
 from joblib import Parallel, delayed
+from joblib.externals.loky import get_reusable_executor
 from typing import List, Iterable, Callable, Union, Dict
 from os.path import join, dirname, isfile
 import numpy as np
+import time
 import gzip
 import tempfile
 import json
+import gc
 
 
 try:
@@ -518,7 +521,6 @@ class TrainBoW(object):
             fpt.write(bytes(counter.tojson(), encoding='utf-8'))
 
 
-
 class SelfSupervisedDataset(object):
     """Create a masked language model
     >>> from text_models.dataset import Dataset, SelfSupervisedDataset
@@ -537,6 +539,7 @@ class SelfSupervisedDataset(object):
                  num_elements: int=2**17,
                  min_num_elements: int=2**10,
                  tempfile: str=tempfile.mktemp(),
+                 capacity: int=1,
                  n_jobs: int=1) -> None:
         self.labels = labels
         self._dataset_class = dataset_class
@@ -547,6 +550,7 @@ class SelfSupervisedDataset(object):
         self._num_elements = num_elements
         self._min_num_elements = min_num_elements
         self._tempfile = tempfile
+        self._capacity = capacity
         self._n_jobs = n_jobs
         self.add_labels(labels)
 
@@ -670,38 +674,46 @@ class SelfSupervisedDataset(object):
         return 0
 
     def process_label(self, k, output):
-        _ = list(self.dataset.klasses.items())
-        key, label = _.pop(k)
-        neg = set([v for k, v in _])
+        _ = sorted(set(self.dataset.klasses.values()))
+        label = _.pop(k)
+        neg = set([v for v in _])
         ds = self.dataset_instance()
-        ds.add({key: label})
+        ds.add({k: l for k, l in self.dataset.klasses.items() if l == label})
         ds.textModel = self.bow.bow
-        size = self.num_elements
+        size = min(self.labels_frequency[label], self.num_elements)
+        bow = self.bow.bow
         POS, NEG = [], []
         with gzip.open(self.tempfile, 'rb') as fpt:
             for a in fpt:
                 text, *klass = str(a, encoding='utf-8').strip().split('|')
                 flag = self.test_positive(label, set(klass), neg)
                 if flag == 1 and len(POS) < size:
-                    POS.append(ds.process(text))
+                    POS.append(bow[ds.process(text)])
                 elif flag == -1 and len(NEG) < size:
-                    NEG.append(text)
+                    NEG.append(bow[text])
                 if len(POS) == size and len(NEG) == size:
                     break
         _min = min(len(POS), len(NEG))
         POS = POS[:_min]
         NEG = NEG[:_min]
-        self.train_classifier(POS, NEG, k, output, label)
+        self.train_classifier(self.bow.bow.tonp(POS + NEG), 
+                              k, output, label)
+        return size
 
-    def train_classifier(self, POS, NEG, k, output, label):     
-        y = [1] * len(POS) + [-1] * len(NEG)
-        X = self.bow.bow.transform(POS + NEG)
+    def train_classifier(self, X, k, output, label):
+        cnt = int(X.shape[0] / 2)   
+        y = [1] * cnt + [-1] * cnt
+        # X = self.bow.bow.transform(POS + NEG)
+        # X = self.bow.bow.tonp(POS + NEG)
         m = LinearSVC().fit(X, y)
         with open(join(output, f'{k}.json'), 'w') as fpt:
             coef = m.coef_[0].tolist()
             intercept = m.intercept_[0]
-            _ = json.dumps(dict(coef=coef, intercept=intercept, labels=[-1, label]))
+            _ = json.dumps(dict(N=len(y), coef=coef, 
+                                intercept=intercept, 
+                                labels=[-1, label]))
             print(_, file=fpt)
+
 
     def count_labels_frequency(self):
         counter = Counter()
@@ -718,9 +730,71 @@ class SelfSupervisedDataset(object):
         if self.labels_frequency is None:
             self.count_labels_frequency()
         self.bow.bow.disable_text_transformations = True
-        Parallel(n_jobs=self.n_jobs)(delayed(self.process_label)(k, output=output)
-                                     for k in tqdm(range(len(self.dataset.klasses))))
+        labels = sorted(set(self.dataset.klasses.values()))
+        data = [(i, min(self.labels_frequency[v], self.num_elements))
+                for i, v in enumerate(labels)]
+        mu = np.mean([x for _, x in data])
+        budget = Budget(capacity = mu * self.n_jobs * self._capacity)
+        executor = get_reusable_executor(max_workers=self.n_jobs, timeout=2)
+        with tqdm(total=len(data)) as _tqdm:
+            while len(data):
+                _min = (np.inf, -1)
+                if budget.capacity > 0:
+                    capacity = budget.capacity
+                    for i, (_, v) in enumerate(data):
+                        size = capacity - v            
+                        if size > 0:
+                            if _min[0] > size:
+                                _min = (size, i)
+                if _min[1] != -1:
+                    ele = data.pop(_min[1])
+                    budget.reduce(ele[1])
+                    fut = executor.submit(self.process_label, 
+                                          ele[0], output=output)
+                    fut.add_done_callback(budget.finish)
+                    _tqdm.update()
+                else:
+                    time.sleep(0.5)
         self.bow.bow.disable_text_transformations = False
+
+    @staticmethod
+    def keywords(lang, num=512, min_freq=1, angle=-10):
+        def all_keywords():
+            bow = BoW(lang=lang)
+            N = bow.bow.model.N
+            tokens = [(v, 1 / (2**bow.bow.token_weight[k] / N)) 
+                    for k, v in enumerate(bow.names)]
+            ds = Dataset(text_transformations=False)
+            ds.add(ds.load_emojis())
+            if lang in ['zh', 'ja']:
+                tokens = [(k, v) for k, v in tokens 
+                          if v >= min_freq and len(ds.klass(k)) == 0 and k.count('~') == 0]
+            else:
+                tokens = [(k, v) for k, v in tokens 
+                          if v >= min_freq and k[:2] != 'q:' and len(ds.klass(k)) == 0 and k.count('~') == 0]
+            tokens.sort(key=lambda x: x[1], reverse=True)
+            for i in range(len(tokens)):
+                _ = np.rad2deg(np.arctan((tokens[i][1] - tokens[-1][1]) / (i - len(tokens))))
+                if _ >= angle:
+                    break
+            return [k for k, _ in tokens[i:]]
+
+        tokens = all_keywords()
+        tr = TextRepresentations(lang=lang, keyword=False, dataset=False)
+        W = np.array([x._coef for x in tr.text_representations])
+        bow = BoW(lang=lang)
+        token2id = bow.bow.token2id
+        # filter when norm = 0
+        _ = [(W[:, token2id[w]], w) for w in tokens
+            if np.linalg.norm(W[:, token2id[w]]) != 0]
+        vecs = np.array([v for v, w in _])
+        tokens = [w for v, w in _]
+        # unit length
+        vecs = vecs / np.atleast_2d(np.linalg.norm(vecs, axis=1)).T
+        # select
+        index = farthest_first_traversal(vecs, num=num)
+        return [tokens[i] for i in index]
+
 
 
 class EmojiDataset(SelfSupervisedDataset):

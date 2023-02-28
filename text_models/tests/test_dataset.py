@@ -340,3 +340,12 @@ def test_TrainBoW_most_common_by_type():
     assert len(inter) < size
     os.unlink(bow.tempfile)
     os.unlink('t2.gz')
+
+
+def test_SelfSupervisedDataset_keywords():
+    from text_models.dataset import SelfSupervisedDataset
+
+    keywords = SelfSupervisedDataset.keywords(lang='ca',
+                                              min_freq=1, 
+                                              angle=-10)
+    assert len(keywords) == 512
