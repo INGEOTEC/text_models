@@ -11,20 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Iterable, Union
 from b4msa.textmodel import TextModel
 from microtc.utils import load_model
-from EvoMSA.utils import download
 from microtc import emoticons
-from collections import OrderedDict, defaultdict
 from microtc.utils import Counter
-from os.path import join, dirname
 from microtc.params import OPTION_DELETE, OPTION_NONE
 from microtc.utils import tweet_iterator
+from EvoMSA.utils import download, b4msa_params
+from EvoMSA import BoW
 from text_models.place import BoundingBox, location
 from text_models.utils import get_text, TM_ARGS
+from sklearn.svm import LinearSVC
+from collections import OrderedDict, defaultdict
 from joblib import Parallel, delayed
-import random
+from typing import List, Iterable, Callable, Union, Dict
+from os.path import join, dirname, isfile
+import numpy as np
+import gzip
+import tempfile
+import json
 
 
 try:
@@ -62,6 +67,10 @@ class Dataset(object):
         except AttributeError:
             self._tm = TextModel(**TM_ARGS)
         return self._tm
+
+    @textModel.setter
+    def textModel(self, value):
+        self._tm = value
 
     @property
     def text_transformations(self):
@@ -328,6 +337,7 @@ class TokenCount(object):
                 yield x
         return cls(tokenizer=co_ocurrence)
 
+
 class Place(object):
     """
     >>> tweet = {'place': {'country_code': 'MX', 'bounding_box': {'type': 'Polygon', 'coordinates': [[[-99.067766, 19.366862], [-99.067766, 19.498582], [-98.966267, 19.498582], [-98.966267, 19.366862]]]}}}
@@ -422,210 +432,310 @@ class GeoFrequency(object):
             if len(data[key].counter) == 0 or data[key].num_documents <= min_value:
                 del data[key]
 
-class MaskedLMDataset(object):
-    """Create a masked language model
-    >>> from text_models.dataset import Dataset, MaskedLMDataset
-    >>> from EvoMSA.utils import download
-    >>> from microtc.utils import load_model
-    >>> from text_models.tests.test_dataset import TWEETS
-    >>> emo = load_model(download("emo_En.tm"))
-    >>> ds = Dataset()
-    >>> ds.add({k: True for k in emo._labels})
-    >>> mk = MaskedLMDataset(ds)
-    >>> mk.process(TWEETS)
-    """
-    def __init__(self, dataset: Dataset,
-                 num_elements: int=64000,
-                 lang="es",
-                 reader: Callable[[str], Iterable[dict]]=tweet_iterator) -> None:
-        self._dataset = dataset
-        self._reader = reader
-        self._store = defaultdict(list)
-        self._num_elements = num_elements
+class TrainBoW(object):
+    def __init__(self, lang:str, tempfile: str=tempfile.mktemp()) -> None:
+        self._tempfile = tempfile        
         self._lang = lang
 
     @property
+    def lang(self):
+        return self._lang
+
+    @property
+    def tempfile(self):
+        return self._tempfile
+    
+    @property
+    def counter(self):
+        try:
+            return self._counter
+        except AttributeError:
+            if isfile(self.tempfile):
+                with gzip.open(self.tempfile, 'rb') as fpt:
+                    counter = Counter.fromjson(str(fpt.read(), encoding='utf-8'))
+            else:
+                counter = Counter()
+        self._counter = counter
+        return self._counter
+    
+    def frequency(self, filename: str, size=2**20):
+        if isfile(self.tempfile) and len(self.counter):
+            return
+        tm = TextModel(**b4msa_params(lang=self.lang))
+        counter = self.counter
+        for i, tweet in zip(tqdm(range(size)),
+                            tweet_iterator(filename)):
+            counter.update(set(tm.tokenize(tweet)))
+        with gzip.open(self.tempfile, 'wb') as fpt:
+            fpt.write(bytes(counter.tojson(), encoding='utf-8'))
+
+    def delete_freq_N(self, counter):
+        borrar = []
+        for k, v in counter.most_common():
+            if v < counter.update_calls:
+                break
+            borrar.append(k)
+        for x in borrar:
+            del counter[x]
+
+    def most_common(self, output_filename: str, 
+                    size: int, input_filename: str=None):
+        self.frequency(input_filename)
+        counter = self.counter
+        self.delete_freq_N(counter)
+        borrar = []
+        [borrar.append(k) for k, _ in counter.most_common()[size:]]
+        for x in borrar:
+            del counter[x]
+        with gzip.open(output_filename, 'wb') as fpt:
+            fpt.write(bytes(counter.tojson(), encoding='utf-8'))
+
+    def most_common_by_type(self, output_filename: str, 
+                            size: int, input_filename: str=None):
+        def key(k):
+            if k[:2] == 'q:':
+                return f'q:{len(k) - 2}'
+            elif '~' in k:
+                return 'bigrams'
+            return 'words'        
+        
+        self.frequency(input_filename)
+        counter = self.counter
+        self.delete_freq_N(counter)
+
+        tot = dict()
+        for k, v in counter.items():
+            _key = key(k)
+            tot[_key] = tot.get(_key, 0) + v
+        tot = {k: np.log2(v) for k, v in tot.items()}
+        norm = [(k, np.log2(v) - tot[key(k)]) 
+                for k, v in counter.most_common()]
+        norm.sort(key=lambda x: x[1], reverse=True)
+        for k, _ in norm[size:]:
+            del counter[k]
+
+        with gzip.open(output_filename, 'wb') as fpt:
+            fpt.write(bytes(counter.tojson(), encoding='utf-8'))
+
+
+
+class SelfSupervisedDataset(object):
+    """Create a masked language model
+    >>> from text_models.dataset import Dataset, SelfSupervisedDataset
+    >>> from text_models.tests.test_dataset import TWEETS
+    >>> from EvoMSA import TextRepresentations
+    >>> emo = TextRepresentations(lang='es', emoji=False, dataset=False)
+    >>> semi = SelfSupervisedDataset(emo.names)
+    >>> semi.process(TWEETS)
+    """
+    def __init__(self, labels: List[str],
+                 dataset_class: Dataset=Dataset,
+                 dataset_kwargs: dict=dict(text_transformations=False),
+                 bow: BoW=BoW(lang='es'),    
+                 words: bool=True,
+                 reader: Iterable=tweet_iterator,               
+                 num_elements: int=2**17,
+                 min_num_elements: int=2**10,
+                 tempfile: str=tempfile.mktemp(),
+                 n_jobs: int=1) -> None:
+        self.labels = labels
+        self._dataset_class = dataset_class
+        self._dataset_kwargs = dataset_kwargs
+        self._bow = bow
+        self._words = words
+        self._reader = reader
+        self._num_elements = num_elements
+        self._min_num_elements = min_num_elements
+        self._tempfile = tempfile
+        self._n_jobs = n_jobs
+        self.add_labels(labels)
+
+    @property
+    def labels(self):
+        return self._labels
+
+    @labels.setter
+    def labels(self, value):
+        self._labels = value
+
+    def dataset_instance(self):
+        return self._dataset_class(**self._dataset_kwargs)
+
+    @property
     def dataset(self):
-        return self._store
+        try:
+            return self._dataset
+        except AttributeError:
+            self._dataset = self.dataset_instance()
+        return self._dataset
+
+    @property
+    def bow(self):
+        return self._bow
 
     @property
     def reader(self):
         return self._reader
 
-    @reader.setter
-    def reader(self, reader):
-        self._reader = reader
+    @property
+    def words(self):
+        return self._words
 
-    def missing(self):
-        """Number of klass that has not been reached the 
-        maximum number of elements
-        >>> from text_models.dataset import MaskedLMDataset
-        >>> ms = MaskedLMDataset(None, num_elements=64000)
-        >>> ms.add(['☹'], "aa ☹ b")
-        >>> ms.add(['☺'], "aa ☺ b")
-        >>> _ = [ms.add(['☹'], "aa ☹ b") for _ in range(64010)]
-        >>> ms.missing()
-        1
-        """
-        n = self._num_elements
-        _ = [1 for v in self.dataset.values() if len(v) < n]
-        return sum(_)
+    @words.setter
+    def words(self, value):
+        self._words = value
+    
+    @property 
+    def num_elements(self):
+        return self._num_elements
 
-    def add(self, klasses, text):
-        """Add text into the dataset
-        >>> from text_models.dataset import MaskedLMDataset
-        >>> ms = MaskedLMDataset(None, num_elements=64000)
-        >>> ms.add(['☹'], "aa ☹ b")
-        >>> len(ms.dataset['☹'])
-        1
-        >>> ms.add(['☹', '☺'], "aa ☹ ☺ b")
-        >>> len(ms.dataset['☺'])
-        0
-        >>> len(ms.dataset['☹'])
-        1
-        >>> _ = [ms.add(['☹'], "aa ☹ b") for _ in range(64010)]
-        >>> len(ms.dataset['☹'])
-        64000
-        """
-        if len(klasses) != 1:
-            return
-        dataset = self.dataset
-        num_elements = self._num_elements
-        klass = list(klasses)[0]
-        value = dataset[klass]
-        if len(value) < num_elements:
-            value.append(text)
+    @property
+    def min_num_elements(self):
+        return self._min_num_elements
 
-    def filter(self, text):
-        """Filter RT
-        >>> from text_models.dataset import MaskedLMDataset
-        >>> ms = MaskedLMDataset(None)
-        >>> ms.filter('RT a')
-        True
-        >>> ms.filter('a')
-        False
-        """
-        if text[:2] == 'RT':
-            return True
-        return False
+    @property
+    def tempfile(self):
+        return self._tempfile
 
-    def lang(self, tw: dict):
-        """Test the language of the tweet
-        >>> from text_models.dataset import MaskedLMDataset
-        >>> ms = MaskedLMDataset(None, lang='ar')
-        >>> ms.lang(dict(lang="ar"))
-        True
-        >>> ms.lang(dict(lang="en"))
-        False
-        >>> ms = MaskedLMDataset(None, lang=None)
-        >>> ms.lang(dict())
-        True
-        """
-        if self._lang is None:
-            return True
-        return tw.get('lang', "") == self._lang
+    @property
+    def n_jobs(self):
+        return self._n_jobs
 
-    def process(self, fname: str):
-        dataset = self._dataset
-        filter = self.filter
-        lang = self.lang
-        for tw in self._reader(fname):
-            if not lang(tw):
-                continue
-            text = get_text(tw)
-            if filter(text):
-                continue
-            klasses = dataset.klass(text)
-            self.add(klasses, text)
+    @property
+    def labels_frequency(self):
+        try:
+            return self._labels_frequency
+        except AttributeError:
+            return None
 
-
-class MaskedLM(object):
-    """Create a masked language model
-    >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
-    >>> from EvoMSA.utils import download
-    >>> from EvoMSA.model import LabeledDataSet
-    >>> from microtc.utils import load_model
-    >>> from text_models.tests.test_dataset import TWEETS
-    >>> emo = load_model(download("emo_En.tm"))
-    >>> ds = Dataset()
-    >>> ds.add({k: True for k in emo._labels})
-    >>> mkDS = MaskedLMDataset(ds)
-    >>> mkDS.process(TWEETS)
-    >>> mk = MaskedLM(mkDS)
-    >>> tm = mk.textModel()
-    >>> coef, intercept, labels = mk.run(tm)
-    >>> model = LabeledDataSet(textModel=tm, coef=coef, intercept=intercept, labels=labels)
-    >>> coef, intercept, labels = mk.run(tm, n_jobs=-2)
-    """
-    def __init__(self, masked: MaskedLMDataset) -> None:
-        self._masked = masked
-
-    def fit(self, klass, tm):
-        from sklearn.svm import LinearSVC        
-        dataset = self._masked.dataset
-        klasses = sorted(dataset.keys())
-        cnt = len(klasses) - 1
-        transform = self.transform
-        X = transform(klass, dataset[klass])
-        y = [1] * len(X)
-        nneg = max(len(X) // cnt, 1)
-        for k2 in klasses:
-            if k2 == klass:
-                continue
-            ele = dataset[k2]
-            random.shuffle(ele)
-            ele = transform(k2, ele[:nneg])
-            y += [-1] * len(ele)
-            X += ele
-        return LinearSVC().fit(tm.transform(X), y)
-        
-    def run(self, tm, n_jobs=None):
-        from EvoMSA.utils import linearSVC_array
-        dataset = self._masked.dataset
-        klasses = sorted(dataset.keys())
-        cnt = len(klasses) - 1
-        transform = self.transform
-        if n_jobs is not None and (n_jobs > 1 or n_jobs < 0):
-            MODELS = Parallel(n_jobs=n_jobs)(delayed(self.fit)(klass, tm) for klass in tqdm(klasses))
-        else:
-            MODELS = [self.fit(klass, tm) for klass in tqdm(klasses)]
-        coef, intercept = linearSVC_array(MODELS)
-        return coef, intercept, klasses
-
-    def transform(self, klass, texts) -> None:
-        """Transform
-        >>> from text_models.dataset import Dataset, MaskedLMDataset, MaskedLM
-        >>> from EvoMSA.utils import download
-        >>> from microtc.utils import load_model
-        >>> from text_models.tests.test_dataset import TWEETS
-        >>> emo = load_model(download("emo_En.tm"))
-        >>> ds = Dataset()
-        >>> ds.add({k: True for k in emo._labels})
-        >>> mk = MaskedLMDataset(ds)
-        >>> mk.process(TWEETS)
-        >>> mask = MaskedLM(mk)
-        >>> mask.transform('🤘', ['Tengo sueñoooooooo🤘', '🤘'])
-        [['tengo suenoooooooo']]
-        """
-        output = []
-        process = self._masked._dataset.process
-        for text in texts:
-            _ = [" ".join(filter(lambda x: len(x), x.split('~'))) for x in process(text)]
-            _ = list(filter(lambda x: len(x), _))
-            if len(_):
-                output.append(_)
-        return output
-
-    def textModel(self, n=10000):
-        tm = TokenCount.textModel([-2, -1, 2, 3, 4])
-        tm.token_min_filter = 0.001
-        tm.token_max_filter = 0.999
+    @labels_frequency.setter
+    def labels_frequency(self, value):
+        self._labels_frequency = value
         D = []
-        transform = self.transform
-        items = self._masked.dataset.items
-        for k, v in items():
-            random.shuffle(v)
-            D += transform(k, v[:n])
-        tm.fit(D)
-        return tm
-        
+        for k, v in self.dataset.klasses.items():
+            if value[v] < self.min_num_elements:
+                D.append(k)
+        [self.dataset.remove(x) for x in D]
+
+    def add_labels(self, labels: Iterable[str]):
+        self.bow.bow.disable_text_transformations = False
+        tt = self.bow.bow.text_transformations if self.words else lambda x: x
+        labels = [tt(x) for x in self.labels]
+        self.dataset.add({k: v for k, v in zip(labels, self.labels)})
+
+    def select_labels_for_text(self, labels, labels_freq):
+        return True
+
+    def identify_labels(self, filename: str, cache_size: int=1024):
+        def flush(D):
+            while D:
+                text, labels = D.pop(0)
+                fpt.write(bytes(f'{text}|{labels}\n', encoding='utf-8'))
+            fpt.flush()
+
+        klass = self.dataset.klass
+        self.bow.bow.disable_text_transformations = False
+        tt = self.bow.bow.text_transformations
+        counter = Counter()
+        size = self.num_elements
+        inv = {v: k for k, v in self.dataset.klasses.items()}        
+        with gzip.open(self.tempfile, 'wb') as fpt:
+            D = []
+            for tweet in self.reader(filename):
+                text = tt(tweet)
+                labels = klass(text)
+                if len(labels) == 0:
+                    continue
+                if not self.select_labels_for_text(labels, counter):
+                    continue
+                counter.update(labels)
+                D.append((text, '|'.join(labels)))
+                for k, v in counter.items():
+                    if v >= size and inv[k] in self.dataset.klasses:
+                        self.dataset.remove(inv[k])
+                if len(D) == cache_size:
+                    flush(D)
+            if len(D):
+                flush(D)
+        keys = list(self.dataset.klasses.keys())
+        [self.dataset.remove(x) for x in keys]
+        self.add_labels(self.labels)
+        self.labels_frequency = counter
+
+    def test_positive(self, label, labels, neg):
+        if label in labels:
+            return 1
+        if len(labels - neg) < len(labels):
+            return -1
+        return 0
+
+    def process_label(self, k, output):
+        _ = list(self.dataset.klasses.items())
+        key, label = _.pop(k)
+        neg = set([v for k, v in _])
+        ds = self.dataset_instance()
+        ds.add({key: label})
+        ds.textModel = self.bow.bow
+        size = self.num_elements
+        POS, NEG = [], []
+        with gzip.open(self.tempfile, 'rb') as fpt:
+            for a in fpt:
+                text, *klass = str(a, encoding='utf-8').strip().split('|')
+                flag = self.test_positive(label, set(klass), neg)
+                if flag == 1 and len(POS) < size:
+                    POS.append(ds.process(text))
+                elif flag == -1 and len(NEG) < size:
+                    NEG.append(text)
+                if len(POS) == size and len(NEG) == size:
+                    break
+        _min = min(len(POS), len(NEG))
+        POS = POS[:_min]
+        NEG = NEG[:_min]
+        self.train_classifier(POS, NEG, k, output, label)
+
+    def train_classifier(self, POS, NEG, k, output, label):     
+        y = [1] * len(POS) + [-1] * len(NEG)
+        X = self.bow.bow.transform(POS + NEG)
+        m = LinearSVC().fit(X, y)
+        with open(join(output, f'{k}.json'), 'w') as fpt:
+            coef = m.coef_[0].tolist()
+            intercept = m.intercept_[0]
+            _ = json.dumps(dict(coef=coef, intercept=intercept, labels=[-1, label]))
+            print(_, file=fpt)
+
+    def count_labels_frequency(self):
+        counter = Counter()
+        with gzip.open(self.tempfile, 'rb') as fpt:
+            for a in fpt:
+                text, *klass = str(a, encoding='utf-8').strip().split('|')
+                counter.update(klass)
+        self.labels_frequency = counter
+
+    def process(self, filename: str=None, identify_labels_kwargs: dict=dict(),
+                output: str=''):
+        if not isfile(self.tempfile):
+            self.identify_labels(filename, **identify_labels_kwargs)
+        if self.labels_frequency is None:
+            self.count_labels_frequency()
+        self.bow.bow.disable_text_transformations = True
+        Parallel(n_jobs=self.n_jobs)(delayed(self.process_label)(k, output=output)
+                                     for k in tqdm(range(len(self.dataset.klasses))))
+        self.bow.bow.disable_text_transformations = False
+
+
+class EmojiDataset(SelfSupervisedDataset):
+    def __init__(self, labels: List[str]=[], 
+                       words: bool = False, 
+                       **kwargs) -> None:
+        assert len(labels) == 0
+        super(EmojiDataset, self).__init__(labels, words=words, **kwargs)
+        emojis = self.dataset.load_emojis()
+        self.labels = emojis
+        self.add_labels(emojis)
+
+    def add_labels(self, labels: Dict):
+        if len(labels):
+            self.dataset.add(labels)
+
+    def select_labels_for_text(self, labels, labels_freq):
+        return len(labels) == 1
