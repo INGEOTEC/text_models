@@ -777,6 +777,8 @@ class SelfSupervisedDataset(object):
                 _ = np.rad2deg(np.arctan((tokens[i][1] - tokens[-1][1]) / (i - len(tokens))))
                 if _ >= angle:
                     break
+            if len(tokens[i:]) < num:
+                i = -num 
             return [k for k, _ in tokens[i:]]
 
         tokens = all_keywords()
@@ -789,6 +791,8 @@ class SelfSupervisedDataset(object):
             if np.linalg.norm(W[:, token2id[w]]) != 0]
         vecs = np.array([v for v, w in _])
         tokens = [w for v, w in _]
+        if len(tokens) < num:
+            return tokens
         # unit length
         vecs = vecs / np.atleast_2d(np.linalg.norm(vecs, axis=1)).T
         # select
