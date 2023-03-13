@@ -277,7 +277,7 @@ def test_SelfSupervisedDataset_process():
 def test_EmojiDataset():
     from text_models.dataset import EmojiDataset
     from text_models.tests.test_dataset import TWEETS
-    from os.path import join
+    from os.path import join, isfile, isdir
     import os
     import gzip
 
@@ -287,9 +287,10 @@ def test_EmojiDataset():
         for x in fpt:
             text = str(x, encoding='utf-8')
             assert len(text.split('|')) == 2
-    for k in range(len(semi.dataset.klasses)):
-        os.unlink(join('', f'{k}.json'))
+    assert not isdir('repr')
+    assert isfile('repr.json.gz')
     os.unlink(semi.tempfile)
+    os.unlink('repr.json.gz')
 
 
 def test_TrainBoW_frequency():
