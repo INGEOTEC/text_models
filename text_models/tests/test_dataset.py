@@ -253,19 +253,25 @@ def test_SelfSupervisedDataset_labels_frequency():
 
 
 def test_SelfSupervisedDataset_process():
+    from microtc.utils import tweet_iterator
     from text_models.dataset import SelfSupervisedDataset
     from text_models.tests.test_dataset import TWEETS
-    from EvoMSA import TextRepresentations
-    from microtc.utils import tweet_iterator
-    from os.path import join
+    from os.path import join, isfile, isdir
     import os
 
-    emo = TextRepresentations(lang='es', emoji=False, dataset=False)
-    semi = SelfSupervisedDataset(emo.names, tempfile='t.gz')
-    semi.process(TWEETS)
-    for k in range(len(semi.dataset.klasses)):
-        os.unlink(join('', f'{k}.json'))
+    # emo = TextRepresentations(lang='es', emoji=False, dataset=False)
+    # keywords = SelfSupervisedDataset.keywords(lang='es', num=8)
+    semi = SelfSupervisedDataset(['a', 'que'], tempfile='t.gz',
+                                 num_elements=2**10,
+                                 min_num_elements=2)
+    # if not isdir('models'):
+    #     os.mkdir('models')
+    semi.process(TWEETS, output='models')
+    labels = sorted([x['labels'][-1] for x in tweet_iterator('models.json.gz')])
+    assert labels == ['a', 'que']
+    os.unlink('models.json.gz')
     os.unlink(semi.tempfile)
+    assert not isdir('models')
 
 
 def test_EmojiDataset():

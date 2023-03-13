@@ -20,19 +20,20 @@ from microtc.utils import tweet_iterator
 from EvoMSA.utils import download, b4msa_params
 from EvoMSA import BoW, TextRepresentations
 from text_models.place import BoundingBox, location
-from text_models.utils import get_text, TM_ARGS, Budget, farthest_first_traversal
+from text_models.utils import TM_ARGS, Budget, farthest_first_traversal
 from sklearn.svm import LinearSVC
 from collections import OrderedDict, defaultdict
 from joblib import Parallel, delayed
 from joblib.externals.loky import get_reusable_executor
 from typing import List, Iterable, Callable, Union, Dict
-from os.path import join, dirname, isfile
+from os.path import join, dirname, isfile, isdir
+from glob import glob
 import numpy as np
 import time
 import gzip
 import tempfile
 import json
-import gc
+import os
 
 
 try:
@@ -552,6 +553,7 @@ class SelfSupervisedDataset(object):
         self._tempfile = tempfile
         self._capacity = capacity
         self._n_jobs = n_jobs
+        self._clean_dir = False
         self.add_labels(labels)
 
     @property
@@ -714,7 +716,6 @@ class SelfSupervisedDataset(object):
                                 labels=[-1, label]))
             print(_, file=fpt)
 
-
     def count_labels_frequency(self):
         counter = Counter()
         with gzip.open(self.tempfile, 'rb') as fpt:
@@ -723,18 +724,37 @@ class SelfSupervisedDataset(object):
                 counter.update(klass)
         self.labels_frequency = counter
 
+    def files2json(self, output):
+        filenames = glob(join(output, '*.json'))
+        M = [list(tweet_iterator(fname))[0]
+             for fname in tqdm(filenames)]
+        M.sort(key=lambda x: x['N'], reverse=True)
+        with gzip.open(f'{output}.json.gz', 'wb') as fpt:
+            for x in M:
+                _ = bytes(json.dumps(x) + '\n', encoding='utf-8')
+                fpt.write(_)
+        if not self._clean_dir:
+            return
+        for filename in filenames:
+            os.unlink(filename)
+        os.rmdir(output)            
+
     def process(self, filename: str=None, identify_labels_kwargs: dict=dict(),
-                output: str=''):
+                output: str='repr'):
         if not isfile(self.tempfile):
             self.identify_labels(filename, **identify_labels_kwargs)
         if self.labels_frequency is None:
             self.count_labels_frequency()
+        if len(output) and not isdir(output):
+            self._clean_dir = True
+            os.mkdir(output)
         self.bow.bow.disable_text_transformations = True
         labels = sorted(set(self.dataset.klasses.values()))
         data = [(i, min(self.labels_frequency[v], self.num_elements))
                 for i, v in enumerate(labels)]
         mu = np.mean([x for _, x in data])
-        budget = Budget(capacity = mu * self.n_jobs * self._capacity)
+        cap = max(mu * self.n_jobs * self._capacity, max([x for _, x in data]))
+        budget = Budget(capacity = cap)
         executor = get_reusable_executor(max_workers=self.n_jobs, timeout=2)
         with tqdm(total=len(data)) as _tqdm:
             while len(data):
@@ -743,7 +763,7 @@ class SelfSupervisedDataset(object):
                     capacity = budget.capacity
                     for i, (_, v) in enumerate(data):
                         size = capacity - v            
-                        if size > 0:
+                        if size >= 0:
                             if _min[0] > size:
                                 _min = (size, i)
                 if _min[1] != -1:
@@ -755,7 +775,9 @@ class SelfSupervisedDataset(object):
                     _tqdm.update()
                 else:
                     time.sleep(0.5)
+        executor.shutdown()
         self.bow.bow.disable_text_transformations = False
+        self.files2json(output=output)
 
     @staticmethod
     def keywords(lang, num=512, min_freq=1, angle=-10):
