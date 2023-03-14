@@ -626,8 +626,8 @@ class SelfSupervisedDataset(object):
     def add_labels(self, labels: Iterable[str]):
         self.bow.bow.disable_text_transformations = False
         tt = self.bow.bow.text_transformations if self.words else lambda x: x
-        labels = [tt(x) for x in self.labels]
-        self.dataset.add({k: v for k, v in zip(labels, self.labels)})
+        tt_labels = [tt(x) for x in labels]
+        self.dataset.add({k: v for k, v in zip(tt_labels, labels)})
 
     def select_labels_for_text(self, labels, labels_freq):
         return True
