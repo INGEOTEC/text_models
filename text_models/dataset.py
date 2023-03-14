@@ -462,7 +462,7 @@ class TrainBoW(object):
         self._counter = counter
         return self._counter
     
-    def frequency(self, filename: str, size=2**20):
+    def frequency(self, filename: str, size=2**22):
         if isfile(self.tempfile) and len(self.counter):
             return
         tm = TextModel(**b4msa_params(lang=self.lang))
